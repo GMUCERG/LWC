@@ -1,4 +1,4 @@
-CAESAR HARDWARE API
+LWC HARDWARE API
 ==============
 
 This is a development package for the GMU authenticated encryption hardware API.
@@ -69,6 +69,6 @@ Software
 Notes
 ------
 
-Please refer to the latest Implementer’s Guide to the CAESAR Hardware API
+Please refer to the latest Implementer’s Guide to the LWC Hardware API
 available at https://cryptography.gmu.edu/athena/index.php?id=LWC
 for more detail.
