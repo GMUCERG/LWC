@@ -1,0 +1,5 @@
+cryptotvgen/cryptotvgen/__pycache__/
+prepare_src/crypto_aead/
+prepare_src/crypto_hash/
+prepare_src/log.prepare
+prepare_src/Makefile.paths
