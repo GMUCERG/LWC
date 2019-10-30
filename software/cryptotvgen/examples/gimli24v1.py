@@ -57,18 +57,20 @@ if __name__ == '__main__':
     #   preparation of the test vector is based only on the encryption operation.
     gen_test_routine = '--gen_test_routine 1 20 0'.split()
     gen_random = '--gen_random 10'.split()
-    gen_custom = ['--gen_custom',   # Note: Use this format!!
+
+    # Format: new key (bool), decrypt (bool), AD_LEN, PT_LEN, HASH (bool)
+    gen_custom = ['--gen_custom',   
         '''\
-        True,   False,      0,          20:
-        0,      1,          100,        500
+        True,   False,      0,          20,     False:
+        1,      0,          5,          10,     0
         ''']
     gen_single = ['--gen_single',
-        '1',                                # Encrypt(0)/decrypt(1)
-        '000102030405060708090A0B0C0D0E0F', #Key
-        '000102030405060708090A0B0C0D0E0F', #Npub
-        '000102030405060708090A0B0C0D0E0F', #Nsec (Ignored: nsec_size=0)
-        '000102030405060708090A0B0C0D0E0F', #AD
-        '000102030405060708090A0B0C0D0E0F', #DATA
+        '1',                                                                # Encrypt(0)/decrypt(1)
+        '000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F', #Key
+        '000102030405060708090A0B0C0D0E0F',                                 #Npub
+        '000102030405060708090A0B0C0D0E0F',                                 #Nsec (Ignored: nsec_size=0)
+        '000102030405060708090A0B0C0D0E0F',                                 #AD
+        '000102030405060708090A0B0C0D0E0F',                                 #DATA
         ]
 
     gen_test_combined = '--gen_test_combined 1 33 0'.split()

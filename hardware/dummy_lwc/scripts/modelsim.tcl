@@ -70,12 +70,23 @@ alias run_wave {
     add wave -group CipherCore    -internals -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_Cipher/*
     add wave -group PostProcessor -ports     -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PostProcessor/*
     add wave -group PostProcessor -internals -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PostProcessor/*
-#    add wave -group bdoSIPO -ports     -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PostProcessor/bdoSIPO/*
-#    add wave -group bdoSIPO -internals -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PostProcessor/bdoSIPO/*
-#    add wave -group keyPISO -ports     -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PreProcessor/keyPISO/*
-#    add wave -group keyPISO -internals -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PreProcessor/keyPISO/*
-#    add wave -group bdiPISO -ports     -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PreProcessor/bdiPISO/*
-#    add wave -group bdiPISO -internals -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PreProcessor/bdiPISO/*
+    ## add wave forms for 32 bit implementation
+    add wave -group PostProcessor -internals -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PostProcessor/FSM_32BIT/*
+    add wave -group PreProcessor  -internals -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PreProcessor/FSM_32BIT/*
+    ## add wave forms for 32 bit PISOs and SIPO
+    add wave -group PostProcessor -group bdoSIPO -ports     -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PostProcessor/FSM_32BIT/bdoSIPO/*
+    add wave -group PostProcessor -group bdoSIPO -internals -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PostProcessor/FSM_32BIT/bdoSIPO/*
+    add wave -group PreProcessor  -group keyPISO -ports     -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PreProcessor/FSM_32BIT/keyPISO/*
+    add wave -group PreProcessor  -group keyPISO -internals -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PreProcessor/FSM_32BIT/keyPISO/*
+    add wave -group PreProcessor  -group bdiPISO -ports     -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PreProcessor/FSM_32BIT/bdiPISO/*
+    add wave -group PreProcessor  -group bdiPISO -internals -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PreProcessor/FSM_32BIT/bdiPISO/*
+    ## add wave forms for 16 bit implementation
+    #add wave -group PostProcessor -internals -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PostProcessor/FSM_16BIT/*
+    #add wave -group PreProcessor  -internals -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PreProcessor/FSM_16BIT/*
+    ## add wave forms for 8 bit implementation
+    #add wave -group PostProcessor -internals -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PostProcessor/FSM_8BIT/*
+    #add wave -group PreProcessor  -internals -radix hexadecimal $TOP_LEVEL_NAME/uut/Inst_PreProcessor/FSM_8BIT/*
+
 
     # Configure wave panel
     configure wave -namecolwidth 180

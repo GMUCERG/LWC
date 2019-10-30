@@ -73,9 +73,6 @@ architecture PostProcessor of PostProcessor is
     --Signals
     signal do_data_internal     : std_logic_vector(W-1 downto 0);
     signal do_valid_internal    : std_logic;
-    signal bdo_valid_p          : std_logic;
-    signal bdo_ready_p          : std_logic;
-    signal bdo_p                : std_logic_vector(31 downto 0);
     signal bdo_cleared          : std_logic_vector(CCW-1 downto 0);
     signal len_SegLenCnt        : std_logic;
     signal en_SegLenCnt         : std_logic;
@@ -83,16 +80,10 @@ architecture PostProcessor of PostProcessor is
     signal load_SegLenCnt       : std_logic_vector(15 downto 0);
     signal last_flit_of_segment : std_logic;
 
-    signal HDR_TAG_internal     : std_logic_vector(31 downto 0);
-    signal data_seg_length      : std_logic_vector(W-1 downto 0);
-    signal tag_size_bytes       : std_logic_vector(16  -1 downto 0);
-    signal do_data_t16          : std_logic_vector(16  -1 downto 0);
-
 
     --Registers
     signal decrypt, nx_decrypt  : std_logic;
     signal eot, nx_eot          : std_logic;
-    signal dout_LenReg, nx_dout_LenReg : std_logic_vector(8   -1 downto 0);
 
     --Aliases
     alias cmd_opcode            : std_logic_vector( 3 downto 0) is cmd(W-1 downto W-4);
@@ -136,7 +127,7 @@ begin
 
     -- make sure we do not output intermeadiate data
     do_valid <= do_valid_internal;
-    do_data  <= do_data_internal when (do_valid_internal='1') else (others=>'Z');
+    do_data  <= do_data_internal when (do_valid_internal='1') else do_data_defaults;
 
 
     --! Segment Length Counter
@@ -180,6 +171,11 @@ FSM_32BIT: if (W=32) generate
     alias do_data_internal_flags    : std_logic_vector( 3 downto 0) is do_data_internal(27 downto 24);
     alias do_data_internal_reserved : std_logic_vector( 7 downto 0) is do_data_internal(23 downto 16);
     alias do_data_internal_length   : std_logic_vector(15 downto 0) is do_data_internal(15 downto  0);
+    
+    --sipo
+    signal bdo_valid_p              : std_logic;
+    signal bdo_ready_p              : std_logic;
+    signal bdo_p                    : std_logic_vector(31 downto 0);
 
     signal nx_state, pr_state       : t_state32;
 
@@ -486,6 +482,9 @@ FSM_16BIT: if (W=16) generate
 
     --! 16 Bit specific declarations
     signal nx_state, pr_state : t_state16;
+    signal HDR_TAG_internal     : std_logic_vector(31 downto 0);
+    signal data_seg_length      : std_logic_vector(W-1 downto 0);
+    signal tag_size_bytes       : std_logic_vector(16  -1 downto 0);
     
     begin
 
@@ -510,7 +509,7 @@ FSM_16BIT: if (W=16) generate
     --! Next state function
     process (pr_state, bdo_valid, do_ready, end_of_block, decrypt,
             cmd_valid, cmd, msg_auth_valid, msg_auth,  last_flit_of_segment,
-            dout_LenReg, eot, tag_size_bytes)
+            eot, tag_size_bytes)
 
     begin
         case pr_state is
@@ -671,7 +670,6 @@ FSM_16BIT: if (W=16) generate
 
             --HASH
             when S_HDR_HASH =>
-                cmd_ready                        <= do_ready;
                 do_valid_internal                <= '1';
                 do_data_internal(W-1 downto W-4) <= HDR_HASH_VALUE;
                 do_data_internal(W-5 downto W-7) <= "001";
@@ -680,7 +678,6 @@ FSM_16BIT: if (W=16) generate
 
 
             when S_HDR_HASHLEN =>
-                cmd_ready         <= do_ready;
                 do_valid_internal <='1';
                 do_data_internal  <= std_logic_vector(to_unsigned(HASHdiv8, 16));
 
@@ -770,7 +767,14 @@ end generate;
 FSM_8BIT: if (W=8) generate
 
     --! 8 Bit specific declarations
+    signal HDR_TAG_internal     : std_logic_vector(31 downto 0);
+    signal data_seg_length      : std_logic_vector(W-1 downto 0);
+    signal tag_size_bytes       : std_logic_vector(16  -1 downto 0);
+    signal do_data_t16          : std_logic_vector(16  -1 downto 0);
+    --Registers
     signal nx_state, pr_state: t_state8;
+    signal dout_LenReg, nx_dout_LenReg : std_logic_vector(8   -1 downto 0);
+
     
     begin
 
@@ -1010,24 +1014,20 @@ FSM_8BIT: if (W=8) generate
 
             --HASH
             when S_HDR_HASH =>
-                cmd_ready                        <= do_ready;
                 do_valid_internal                <= '1';
                 do_data_internal(W-1 downto W-4) <= HDR_HASH_VALUE;
                 do_data_internal(W-5 downto W-7) <= "001";
                 do_data_internal(W-8)            <= '1';
 
             when S_HDR_RESHASH =>
-                cmd_ready          <= do_ready;
                 do_valid_internal  <= '1';
                 do_data_internal   <= x"00";
 
             when S_HDR_HASHLEN_MSB =>
-                cmd_ready          <= do_ready;
                 do_valid_internal  <= '1';
                 do_data_internal   <= do_data_t16(15 downto 8);
 
             when S_HDR_HASHLEN_LSB =>
-                cmd_ready          <= do_ready;
                 do_valid_internal  <= '1';
                 do_data_internal   <= do_data_t16(7 downto 0);
 

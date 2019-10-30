@@ -87,7 +87,7 @@ architecture PreProcessor of PreProcessor is
     --! Flags
     signal bdi_valid_bytes_p : std_logic_vector(3 downto 0);
     signal bdi_pad_loc_p     : std_logic_vector(3 downto 0);
-    signal bdi_size_p        : std_logic_vector(2 downto 0);
+
     --!for simulation only
     signal received_wrong_header : boolean;
 
@@ -96,13 +96,11 @@ architecture PreProcessor of PreProcessor is
     signal eot_flag, nx_eot_flag                 : std_logic;
     signal hash_internal, nx_hash_internal       : std_logic;
     signal decrypt_internal, nx_decrypt_internal : std_logic;
-    signal dout_LenReg, nx_dout_LenReg           : std_logic_vector(7 downto 0);
 
 
     --Controller
     signal bdi_eoi_internal  : std_logic;
     signal bdi_eot_internal  : std_logic;
-    signal bdi_size_not_last : std_logic_vector(2 downto 0);
     constant zero_data       : std_logic_vector(W-1 downto 0):=(others=>'0');
 
 
@@ -128,13 +126,16 @@ architecture PreProcessor of PreProcessor is
                        S_HDR_RESMSG, S_HDR_MSGLEN_MSB, S_HDR_MSGLEN_LSB,
                        S_HDR_RESTAG, S_HDR_TAGLEN_MSB, S_HDR_TAGLEN_LSB,
                        S_HDR_RESHASH, S_HDR_HASHLEN_MSB, S_HDR_HASHLEN_LSB);
-                      
+
 begin
 
     --! for simulation only
-    assert not (received_wrong_header = true and received_wrong_header'stable)
-        report "Received unexpected header" severity failure;
-
+    process(clk) begin
+        if (rising_edge(clk)) then
+            assert not (received_wrong_header = true)
+               report "Received unexpected header" severity failure;
+        end if;
+    end process;
 
     --! Segment Length Counter
     SegLen: entity work.StepDownCountLd(StepDownCountLd)
@@ -201,8 +202,7 @@ FSM_32BIT: if (W=32) generate
     signal bdi_ready_p : std_logic;
     signal key_valid_p : std_logic;
     signal key_ready_p : std_logic;
-    signal bdi_eoi_p  : std_logic;
-    signal bdi_eot_p  : std_logic;
+    signal bdi_size_p  : std_logic_vector(2 downto 0);
 
     ---ALIAS
     alias pdi_opcode     : std_logic_vector( 3 downto 0) is pdi_data(31 downto 28);
@@ -220,8 +220,8 @@ FSM_32BIT: if (W=32) generate
     bdi_size_p <= dout_SegLenCnt(2 downto 0) when last_flit_of_segment='1' else "100";
 
     -- use preserved eoi and eot flags for bdi port
-    bdi_eoi_p  <= eoi_flag and last_flit_of_segment;
-    bdi_eot_p  <= eot_flag and last_flit_of_segment;
+    bdi_eoi_internal  <= eoi_flag and last_flit_of_segment;
+    bdi_eot_internal  <= eot_flag and last_flit_of_segment;
 
 
     --! KEY PISO
@@ -265,10 +265,10 @@ FSM_32BIT: if (W=32) generate
             pad_loc_p     => bdi_pad_loc_p,
 
             eoi_s         => bdi_eoi,
-            eoi_p         => bdi_eoi_p,
+            eoi_p         => bdi_eoi_internal,
 
             eot_s         => bdi_eot,
-            eot_p         => bdi_eot_p
+            eot_p         => bdi_eot_internal
         );
 
 
@@ -432,7 +432,7 @@ FSM_32BIT: if (W=32) generate
             when S_HDR_HASH=>
                 if (pdi_valid = '1') then
                     received_wrong_header <= pdi_opcode /= HDR_HASH_MSG;
-                    if (pdi_seg_length = x"0000" and eot_flag = '1') then
+                    if (pdi_seg_length = x"0000") then
                         nx_state <= S_EMPTY_HASH;
                     else
                         nx_state  <= S_LD_HASH;
@@ -632,8 +632,10 @@ FSM_16BIT: if (W=16) generate
 
     --! 16 Bit specific declarations
     signal data_seg_length    : std_logic_vector(W -1 downto 0);
-    signal nx_state, pr_state: t_state16;
-
+    signal bdi_size_not_last  : std_logic_vector(2 downto 0);
+    --Registers
+    signal nx_state, pr_state : t_state16;
+    
     begin
     
     --! Logics
@@ -676,7 +678,7 @@ FSM_16BIT: if (W=16) generate
     --!next state function
     process (pr_state, sdi_valid,pdi_valid, sdi_data, pdi_data,
             last_flit_of_segment, decrypt_internal, key_ready, bdi_ready,
-            cmd_ready, bdi_eot_internal, dout_lenreg,
+            cmd_ready, bdi_eot_internal,
             bdi_eoi_internal, eot_flag, eoi_flag)
 
     begin
@@ -759,7 +761,7 @@ FSM_16BIT: if (W=16) generate
 
             when S_HDR_ADLEN=>
                 if (pdi_valid = '1') then
-                    if (pdi_data = zero_data and eot_flag = '1') then
+                    if (pdi_data = zero_data) then
                         if (bdi_eoi_internal = '1') then
                             if (decrypt_internal = '1') then
                                 nx_state <= S_HDR_TAG;
@@ -1096,7 +1098,10 @@ end generate;
 FSM_8BIT: if (W=8) generate
     --! 8 Bit specific declarations
     signal nx_state, pr_state : t_state8;
+    signal bdi_size_not_last  : std_logic_vector(2 downto 0);
+    -- Registers
     signal data_seg_length    : std_logic_vector(W -1 downto 0);
+    signal dout_LenReg, nx_dout_LenReg : std_logic_vector(7 downto 0);
 
     begin
 
@@ -1420,7 +1425,7 @@ FSM_8BIT: if (W=8) generate
 
             when S_HDR_HASHLEN_LSB=>
                 if (pdi_valid = '1'and cmd_ready = '1') then
-                    if (dout_LenReg = x"00" and pdi_data(7 downto 0) = x"00" and eot_flag = '1')then
+                    if (dout_LenReg = x"00" and pdi_data(7 downto 0) = x"00")then
                         nx_state <= S_EMPTY_HASH;
                     else
                         nx_state <= S_LD_HASH;

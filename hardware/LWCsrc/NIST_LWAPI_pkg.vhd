@@ -31,6 +31,9 @@ package NIST_LWAPI_pkg is
     constant W       : integer :=32;
     constant SW      : integer :=W;
 
+    --! Default values for do_data bus
+    --! to avoid leaking intermeadiate values if do_valid = '0'.
+    constant do_data_defaults : std_logic_vector(W-1 downto 0) := (others => '0');
 
     -- DO NOT CHANGE ANYTHING BELOW!
     constant Wdiv8   : integer := W/8;

@@ -22,7 +22,6 @@ use ieee.numeric_std.all;
 use ieee.std_logic_textio.all;
 use work.std_logic_1164_additions.to_hstring; --needed, before VHDL-2008
 use work.NIST_LWAPI_pkg.all;
-use work.design_pkg.all;
 
 library std;
 use std.textio.all;
@@ -31,7 +30,7 @@ entity LWC_TB IS
     generic (
         --! Test parameters
         G_STOP_AT_FAULT     : boolean := True;
-        G_TEST_MODE         : integer := 1;
+        G_TEST_MODE         : integer := 0;
         G_TEST_IPSTALL      : integer := 10;
         G_TEST_ISSTALL      : integer := 100;
         G_TEST_OSTALL       : integer := 40;
