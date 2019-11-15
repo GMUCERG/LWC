@@ -36,9 +36,9 @@ entity LWC_TB IS
         G_TEST_OSTALL       : integer := 40;
         G_LOG2_FIFODEPTH    : integer := 8;
         G_PERIOD            : time    := 10 ns;
-        G_FNAME_PDI         : string  := "../KAT/KAT_MS_32/pdi.txt";
-        G_FNAME_SDI         : string  := "../KAT/KAT_MS_32/sdi.txt";
-        G_FNAME_DO          : string  := "../KAT/KAT_MS_32/do.txt";
+        G_FNAME_PDI         : string  := "../../../../../../dummy_lwc/KAT/KAT_MS_32/pdi.txt";
+        G_FNAME_SDI         : string  := "../../../../../../dummy_lwc/KAT/KAT_MS_32/sdi.txt";
+        G_FNAME_DO          : string  := "../../../../../../dummy_lwc/KAT/KAT_MS_32/do.txt";
         G_FNAME_LOG         : string  := "log.txt";
         G_FNAME_RESULT      : string  := "result.txt"
     );
