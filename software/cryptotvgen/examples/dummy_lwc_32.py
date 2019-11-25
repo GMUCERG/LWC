@@ -61,11 +61,19 @@ if __name__ == '__main__':
         1,      0,          100,        500,        0
         ''']
     gen_single = ['--gen_single',
-        '1',                                # Encrypt(0)/decrypt(1)
+        '1',                                # AEAD Encrypt(0)/AEAD Decrypt(1)/Hash(2)
         '000102030405060708090A0B0C0D0E0F', #Key
         '000102030405060708090A0B',         #Npub
         '000102030405060708090A0B0C0D0E0F', #Nsec (Ignored: nsec_size=0)
         '000102030405060708090A0B0C0D0E0F', #AD
+        '000102030405060708090A0B0C0D0E0F', #DATA
+        ]
+    gen_single_hash = ['--gen_single',
+        '2',                                # AEAD Encrypt(0)/AEAD Decrypt(1)/Hash(2)
+        '00000000000000000000000000000000', #Key
+        '000000000000000000000000',         #Npub
+        '00000000000000000000000000000000', #Nsec (Ignored: nsec_size=0)
+        '00000000000000000000000000000000', #AD
         '000102030405060708090A0B0C0D0E0F', #DATA
         ]
 

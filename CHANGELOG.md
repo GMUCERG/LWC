@@ -6,7 +6,7 @@ All notable changes to this  will be documented in this file.
 ## [Unreleased]
 
 ### Added
-- Nothing.
+- Support for hash in Cryptotvgen's `--gen_single` option.
 
 ### Changed
 - Fixed potential stall in the handshaking of the [PreProcessor's](hardware/LWCsrc/PreProcessor.vhd) cmd interface.

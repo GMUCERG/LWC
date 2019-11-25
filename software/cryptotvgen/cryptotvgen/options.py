@@ -260,30 +260,34 @@ class ValidateGenSingle(argparse.Action):
             values[0] = 1
         elif values[0].lower() == 'false':
             values[0] = 0
-
+                   
         # Check hex
         for val in values[1:]:
             if len(val) == 0:
                 continue
             int(val, 16)
-
-        txt = ['KEY', 'NPUB', 'NSEC']
-        exp = [args.key_size, args.npub_size, args.nsec_size]
-        for j, val in enumerate(exp):
-            i = j+1
-            if (val > 0 and len(values[i])*4 != val):
-                raise argparse.ArgumentError(
-                    self, '{}:{}(size={}) must have the size of {}'
-                    .format(txt[j], values[i], len(values[i])*4, val))
-
+            
+        if (values[0] == 0 or values[0] == 1): # Only validate these parameters for AEAD encrypt/decrypt
+            txt = ['KEY', 'NPUB', 'NSEC']
+            exp = [args.key_size, args.npub_size, args.nsec_size]
+            for j, val in enumerate(exp):
+                i = j+1 # offset to KEY
+                if (val > 0 and len(values[i])*4 != val):
+                    raise argparse.ArgumentError(
+                        self, '{}:{}(size={}) must have the size of {}'
+                        .format(txt[j], values[i], len(values[i])*4, val))
+        
         # Check
         try:
             routine = getattr(args, 'routines')
             routine.append(routines.index(self.dest))
+            input   = getattr(args, 'gen_single')            
+            input.append(values)            
         except AttributeError:
             routine = [routines.index(self.dest), ]
+            input   = [values, ]
         setattr(args, 'routines', routine)
-        setattr(args, self.dest, values)
+        setattr(args, self.dest, input)
 
 class InvalidateArgument(argparse.Action):
     def __call__(self, parser, args, values, option_string=None):
@@ -613,7 +617,7 @@ def get_parser():
             '''))
     test.add_argument(
         '--gen_single', nargs=6,
-        metavar=('DECRYPT', 'KEY','NPUB','NSEC','AD','PT'),
+        metavar=('MODE', 'KEY', 'NPUB','NSEC','AD','PT'),
         action=ValidateGenSingle,
         help=textwrap.dedent('''\
             Generate a single test vector based on the provided values of
@@ -621,13 +625,16 @@ def get_parser():
             with AEAD)
 
             Example:
-            --gen_single 0 5555 0123456 789ABCD 010204 08090A
+            --gen_single 0 5555 0123456 789ABCD 010204 08090A   #Encrypt
+            --gen_single 2 0 0 0 0 1212121                      #Hash
 
             Note:
             KEY, NPUB and NSEC must have size equal to the expected
             value. Exception: NSEC is ignored --nsec_size is set to 0.
             All arguments must contain an even number of hexadecimal
             digits, e.g., 00 is valid; 0 is invalid.
+            
+            IS_DECRYPT, KEY, NPUB, NSEC, AD parameters are ignored in HASH mode.
             '''))
 
     optops = parser.add_argument_group(':::::Optional Parameters::::',

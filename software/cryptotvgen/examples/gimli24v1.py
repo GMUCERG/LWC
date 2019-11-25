@@ -65,7 +65,7 @@ if __name__ == '__main__':
         1,      0,          5,          10,     0
         ''']
     gen_single = ['--gen_single',
-        '1',                                                                # Encrypt(0)/decrypt(1)
+        '1',                                                                # AEAD Encrypt(0)/AEAD Decrypt(1)/Hash(2)
         '000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F', #Key
         '000102030405060708090A0B0C0D0E0F',                                 #Npub
         '000102030405060708090A0B0C0D0E0F',                                 #Nsec (Ignored: nsec_size=0)

@@ -42,6 +42,7 @@ def cryptotvgen(args):
     dataset = []
     msg_no = 1
     key_no = 1
+    gen_single_index = 0
 
     for routine in opts.routines:
         if routine == 0:
@@ -51,7 +52,8 @@ def cryptotvgen(args):
         elif routine == 2:
             data = gen_test_routine(opts, msg_no, key_no)
         elif routine == 3:   # Single
-            data = gen_single(opts, msg_no, key_no)
+            data = gen_single(opts, msg_no, key_no, gen_single_index)
+            gen_single_index += 1
         elif routine == 4:   # Hash
             data = gen_hash(opts, msg_no)
         else:                # Combined AEAD and Hash

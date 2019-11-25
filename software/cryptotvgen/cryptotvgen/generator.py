@@ -961,16 +961,20 @@ def gen_dataset(opts, routine, start_msg_no, start_key_no, mode=0):
                                   key, npub, nsec, ad, data, hashop))
     return dataset, i+start_msg_no, key_id
 
-def gen_single(opts, start_msg_no, start_key_no):
+def gen_single(opts, start_msg_no, start_key_no, index):
     if (opts.verbose):
         print('gen_single')
-    dataset = []
+    dataset = []       
+    decrypt = True if opts.gen_single[index][0] == 1 else False
+    hashop  = True if opts.gen_single[index][0] == 2 else False    
+    new_key = not hashop
     dataset.append(TestVector(opts, start_msg_no, start_key_no,
-                              1, opts.gen_single[0],
-                              opts.gen_single[1], opts.gen_single[2],
-                              opts.gen_single[3], opts.gen_single[4],
-                              opts.gen_single[5], 0))
-
+                              new_key, decrypt,
+                              opts.gen_single[index][1], opts.gen_single[index][2],
+                              opts.gen_single[index][3], opts.gen_single[index][4],
+                              opts.gen_single[index][5], hashop))
+    if hashop:
+        start_key_no = start_key_no - 1 
     return dataset, start_msg_no, start_key_no
 
 def gen_random(opts, start_msg_no, start_key_no):
