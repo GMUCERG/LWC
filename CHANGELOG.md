@@ -5,6 +5,15 @@ All notable changes to this  will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Nothing.
+
+### Changed
+- Fixed potential stall in the handshaking of the [PreProcessor's](hardware/LWCsrc/PreProcessor.vhd) cmd interface.
+
+### Removed
+- Unused IEEE library statement. This should increase compatiblity with Intel Quartus
+
 ## [1.0.1]
 ### Notes
 This release fixes several small bugs and enhances usability.

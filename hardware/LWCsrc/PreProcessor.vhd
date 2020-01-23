@@ -30,8 +30,6 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
-use IEEE.math_real."ceil";
-use IEEE.math_real."log2";
 use work.NIST_LWAPI_pkg.all;
 use work.design_pkg.all;
 
@@ -127,6 +125,7 @@ architecture PreProcessor of PreProcessor is
                        S_HDR_RESTAG, S_HDR_TAGLEN_MSB, S_HDR_TAGLEN_LSB,
                        S_HDR_RESHASH, S_HDR_HASHLEN_MSB, S_HDR_HASHLEN_LSB);
 
+                     
 begin
 
     --! for simulation only
@@ -287,7 +286,7 @@ FSM_32BIT: if (W=32) generate
     --! next state function
     process (pr_state, sdi_valid, last_flit_of_segment, decrypt_internal,
             pdi_valid, key_ready_p, bdi_ready_p, eot_flag, pdi_seg_length,
-            pdi_opcode, sdi_opcode)
+            pdi_opcode, sdi_opcode, cmd_ready)
 
     begin
 
@@ -301,9 +300,9 @@ FSM_32BIT: if (W=32) generate
                 if (pdi_valid = '1') then
                     if (pdi_opcode = INST_ACTKEY) then
                         nx_state <= S_INT_KEY;
-                    elsif (pdi_opcode = INST_ENC or pdi_opcode = INST_DEC) then
+                    elsif ((pdi_opcode = INST_ENC or pdi_opcode = INST_DEC) and cmd_ready = '1') then
                         nx_state <= S_HDR_NPUB;
-                    elsif (pdi_opcode = INST_HASH) then
+                    elsif (pdi_opcode = INST_HASH and cmd_ready = '1') then
                         nx_state <= S_HDR_HASH;
                     else
                         nx_state <= S_INT_MODE;
@@ -378,7 +377,7 @@ FSM_32BIT: if (W=32) generate
 
             -- Plaintext or Ciphertext
             when S_HDR_MSG=>
-                if (pdi_valid = '1') then
+                if (pdi_valid = '1' and cmd_ready = '1') then
                     received_wrong_header <= (pdi_opcode /= HDR_PT and pdi_opcode /= HDR_CT);
                     if (pdi_seg_length = x"0000" and eot_flag = '1') then
                         if (decrypt_internal = '1') then
@@ -506,12 +505,14 @@ FSM_32BIT: if (W=32) generate
                         -- pdi_data(28) is 1 if INST_DEC, else it is '0' if INST_ENC
                         nx_decrypt_internal <= pdi_data(28);
                         cmd_valid           <= '1'; --Forward instruction
+                        pdi_ready           <= cmd_ready;
                     end if;
 
                 elsif (pdi_opcode = INST_HASH) then
                     if (pdi_valid = '1') then
                         nx_hash_internal <= '1';
                         cmd_valid        <= '1'; --Forward instruction
+                        pdi_ready        <= cmd_ready;
                     end if;
                 end if;
 
@@ -564,7 +565,7 @@ FSM_32BIT: if (W=32) generate
 
             -- Plaintext or Ciphertext
             when S_HDR_MSG =>
-                cmd_valid       <=pdi_valid;
+                cmd_valid       <= pdi_valid;
                 pdi_ready       <= cmd_ready;
                 len_SegLenCnt   <= pdi_valid and cmd_ready;
                 if (pdi_valid = '1' and cmd_ready = '1') then
@@ -585,7 +586,7 @@ FSM_32BIT: if (W=32) generate
             -- TAG for AEAD
             when S_HDR_TAG =>
                 pdi_ready       <= '1';
-                len_SegLenCnt   <= pdi_valid and cmd_ready;
+                len_SegLenCnt   <= pdi_valid;
 
             when S_LD_TAG =>
                 bdi_type        <= HDR_TAG;
@@ -691,7 +692,7 @@ FSM_16BIT: if (W=16) generate
                         nx_state <= S_INT_KEY;
                     elsif (pdi_data(W-1 downto W-3) = INST_ENC(3 downto 1)) and (cmd_ready = '1') then
                         nx_state <= S_HDR_NPUB;
-                    elsif (pdi_data(W-1 downto W-4) = INST_HASH) then
+                    elsif (pdi_data(W-1 downto W-4) = INST_HASH and cmd_ready = '1') then
                         nx_state <= S_HDR_HASH;
                     else
                         nx_state <=S_INT_MODE;
@@ -791,7 +792,7 @@ FSM_16BIT: if (W=16) generate
 
             --MSG OR CIPHER TEXT
             when S_HDR_MSG=>
-            if (pdi_valid = '1' and (pdi_data(W-1 downto W-4) = HDR_PT
+            if (pdi_valid = '1' and cmd_ready = '1' and (pdi_data(W-1 downto W-4) = HDR_PT
                                  or  pdi_data(W-1 downto W-4) = HDR_CT)) then
                 nx_state <= S_HDR_MSGLEN;
             else
@@ -863,7 +864,7 @@ FSM_16BIT: if (W=16) generate
                 end if;
 
             when S_HDR_HASHLEN=>
-                if (pdi_valid = '1'and cmd_ready = '1') then
+                if (pdi_valid = '1') then
                     if (pdi_data = zero_data and eot_flag = '1') then
                         nx_state <= S_EMPTY_HASH;
                     else
@@ -943,13 +944,10 @@ FSM_16BIT: if (W=16) generate
                 elsif (pdi_data(W-1 downto W-4)=INST_HASH) then
                     nx_hash_internal <= '1';
                     if (pdi_valid = '1') then
-
-                        if (pdi_valid = '1') then
-                            nx_decrypt_internal <= pdi_data(W-4);
-                        end if;
-                        cmd_valid    <= pdi_valid;
-                        pdi_ready    <= cmd_ready;
+                        nx_decrypt_internal <= pdi_data(W-4);
                     end if;
+                    cmd_valid    <= pdi_valid;
+                    pdi_ready    <= cmd_ready;
                 end if;
 
             when S_INT_KEY        =>
@@ -1043,16 +1041,16 @@ FSM_16BIT: if (W=16) generate
 
             --HASH
             when S_HDR_HASH =>
-                pdi_ready       <= cmd_ready;
-                len_SegLenCnt   <= pdi_valid and cmd_ready;
-                if ((pdi_valid = '1') and (cmd_ready = '1')) then
+                pdi_ready       <= '1';
+                len_SegLenCnt   <= pdi_valid;
+                if (pdi_valid = '1') then
                     nx_eoi_flag <= pdi_data(W-6);
                     nx_eot_flag <= pdi_data(W-7);
                 end if;
 
             when S_HDR_HASHLEN =>
-                pdi_ready       <= cmd_ready;
-                len_SegLenCnt   <= pdi_valid and cmd_ready;
+                pdi_ready       <= '1';
+                len_SegLenCnt   <= pdi_valid;
 
             when S_EMPTY_HASH =>
                 bdi_valid       <= '1';
@@ -1067,11 +1065,11 @@ FSM_16BIT: if (W=16) generate
             --TAG
             when S_HDR_TAG =>
                 pdi_ready       <= '1';
-                len_SegLenCnt   <= pdi_valid and cmd_ready;
+                len_SegLenCnt   <= pdi_valid;
 
             when S_HDR_TAGLEN =>
                 pdi_ready       <='1';
-                len_SegLenCnt   <= pdi_valid and cmd_ready;
+                len_SegLenCnt   <= pdi_valid;
 
             when S_LD_TAG =>
                 bdi_type        <= HDR_TAG;
@@ -1168,7 +1166,7 @@ FSM_8BIT: if (W=8) generate
                         nx_state<= S_INT_KEY;
                     elsif (pdi_data(W-1 downto W-3) = INST_ENC(3 downto 1)) and (cmd_ready = '1') then
                         nx_state <= S_HDR_NPUB;
-                    elsif (pdi_data(W-1 downto W-4) = INST_HASH) then
+                    elsif (pdi_data(W-1 downto W-4) = INST_HASH and cmd_ready = '1') then
                         nx_state <= S_HDR_HASH;
                     else
                         nx_state <= S_INT_MODE;
@@ -1310,7 +1308,7 @@ FSM_8BIT: if (W=8) generate
 
             --MSG OR CIPHER TEXT
             when S_HDR_MSG=>
-                if (pdi_valid = '1' and (pdi_data(W-1 downto W-4) = HDR_PT
+                if (pdi_valid = '1' and cmd_ready = '1' and (pdi_data(W-1 downto W-4) = HDR_PT
                                      or  pdi_data(W-1 downto W-4) = HDR_CT)) then
                     nx_state <= S_HDR_RESMSG;
                 else
@@ -1410,21 +1408,21 @@ FSM_8BIT: if (W=8) generate
                 end if;
 
             when S_HDR_RESHASH =>
-                if (pdi_valid = '1' and cmd_ready = '1') then
+                if (pdi_valid = '1') then
                     nx_state <= S_HDR_HASHLEN_MSB;
                 else
                     nx_state <= S_HDR_RESHASH;
                 end if;
 
             when S_HDR_HASHLEN_MSB =>
-                if (pdi_valid = '1'and cmd_ready = '1') then
+                if (pdi_valid = '1') then
                     nx_state <= S_HDR_HASHLEN_LSB;
                 else
                     nx_state <= S_HDR_HASHLEN_MSB;
                 end if;
 
             when S_HDR_HASHLEN_LSB=>
-                if (pdi_valid = '1'and cmd_ready = '1') then
+                if (pdi_valid = '1') then
                     if (dout_LenReg = x"00" and pdi_data(7 downto 0) = x"00")then
                         nx_state <= S_EMPTY_HASH;
                     else
@@ -1504,14 +1502,12 @@ FSM_8BIT: if (W=8) generate
                     pdi_ready        <= '1';
                     nx_hash_internal <= '0';
                 elsif (pdi_data(W-1 downto W-4) = INST_HASH) then
+                    nx_hash_internal<= '1';
                     if (pdi_valid = '1') then
-                       nx_hash_internal<= '1';
-                       if (pdi_valid = '1') then
-                           nx_decrypt_internal <= pdi_data(W-4);
-                       end if;
-                       cmd_valid    <= pdi_valid;
-                       pdi_ready    <= cmd_ready;
+                        nx_decrypt_internal <= pdi_data(W-4);
                     end if;
+                    cmd_valid    <= pdi_valid;
+                    pdi_ready    <= cmd_ready;
                 end if;
 
             when S_INT_KEY        =>
@@ -1647,25 +1643,25 @@ FSM_8BIT: if (W=8) generate
 
             --HASH
             when S_HDR_HASH =>
-                pdi_ready       <= cmd_ready;
-                len_SegLenCnt   <= pdi_valid and cmd_ready;
-                if ((pdi_valid = '1') and (cmd_ready = '1')) then
+                pdi_ready       <= '1';
+                len_SegLenCnt   <= pdi_valid;
+                if (pdi_valid = '1') then
                     nx_eoi_flag <= pdi_data(W-6);
                     nx_eot_flag <= pdi_data(W-7);
                 end if;
 
             when S_HDR_RESHASH  =>
-                pdi_ready       <=cmd_ready;
+                pdi_ready       <= '1';
 
             when S_HDR_HASHLEN_MSB =>
-                pdi_ready       <= cmd_ready;
-                if ((pdi_valid = '1') and (cmd_ready = '1')) then
+                pdi_ready       <= '1';
+                if (pdi_valid = '1') then
                     nx_dout_LenReg <= data_seg_length(W-1 downto W-8);
                 end if;
 
             when S_HDR_HASHLEN_LSB =>
-                pdi_ready       <= cmd_ready;
-                len_SegLenCnt   <= pdi_valid and cmd_ready;
+                pdi_ready       <= '1';
+                len_SegLenCnt   <= pdi_valid;
 
             when S_EMPTY_HASH =>
                 bdi_valid       <= '1';
@@ -1680,7 +1676,7 @@ FSM_8BIT: if (W=8) generate
             --TAG
             when S_HDR_TAG =>
                 pdi_ready       <='1';
-                len_SegLenCnt   <= pdi_valid and cmd_ready;
+                len_SegLenCnt   <= pdi_valid;
 
             when S_HDR_RESTAG =>
                 pdi_ready       <='1';
