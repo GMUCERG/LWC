@@ -3,10 +3,11 @@
 All notable changes to this  will be documented in this file.
 
 
-## [Unreleased]
+## [1.0.2]
 
 ### Added
 - Support for hash in Cryptotvgen's `--gen_single` option.
+- [vivado.tcl](hardware/dummy_lwc/scripts/vivado.tcl) to support simulations using vivado. Thanks [@kammoh](https://github.com/kammoh).
 
 ### Changed
 - Fixed potential stall in the handshaking of the [PreProcessor's](hardware/LWCsrc/PreProcessor.vhd) cmd interface.
@@ -42,7 +43,8 @@ Nevertheless, it is also read by the [Pre-](hardware/LWCsrc/PreProcessor.vhd) an
 ## [1.0.0] 
 Initial release.
   
-[unreleased]: https://github.com/GMUCERG/LWC/compare/v1.0.1...HEAD
+[unreleased]: https://github.com/GMUCERG/LWC/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/GMUCERG/LWC/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/GMUCERG/LWC/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/GMUCERG/LWC/releases/tag/v1.0.0
 

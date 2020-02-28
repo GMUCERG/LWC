@@ -1,3 +1,14 @@
 libs/*
 modelsim.ini
+vsim.wlf
 transcript
+log.txt
+result.txt
+prj_LWC_TB.cache
+prj_LWC_TB.hw
+prj_LWC_TB.ip_user_files
+prj_LWC_TB.sim
+prj_LWC_TB.xpr
+vivado*.jou
+vivado*.log
+vivado_*.str
