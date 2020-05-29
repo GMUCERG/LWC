@@ -17,10 +17,13 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 
 package Design_pkg is
+
+    --! user specific, algorithm indepent parameters
+    -- This module implements three different variants of dummy_lwc
     type set_selector is (dummy_lwc_8, dummy_lwc_16, dummy_lwc_32);
 
     --! Select variant
-    constant variant : set_selector := dummy_lwc_16;
+    constant variant : set_selector := dummy_lwc_32;
     
     --! Adjust the bit counter widths to reduce ressource consumption.
     -- Range definition must not change.
@@ -30,19 +33,20 @@ package Design_pkg is
 --------------------------------------------------------------------------------
 ------------------------- DO NOT CHANGE ANYTHING BELOW -------------------------
 --------------------------------------------------------------------------------
-    --! design parameters needed by the Pre- and Postprocessor
-    constant TAG_SIZE        : integer := 128; --! Tag size
-    constant HASH_VALUE_SIZE : integer := 256; --! Hash value size
+    --! design parameters needed by the PreProcessor, PostProcessor, and LWC; assigned in the package body below!
+    constant TAG_SIZE        : integer; --! Tag size
+    constant HASH_VALUE_SIZE : integer; --! Hash value size
     
-    constant CCSW            : integer; --! variant dependent design parameters are assigned in body!
-    constant CCW             : integer; --! variant dependent design parameters are assigned in body!
+    constant CCSW            : integer; --! variant dependent design parameter!
+    constant CCW             : integer; --! variant dependent design parameter!
     constant CCWdiv8         : integer; --! derived from parameters above, assigned in body.
 
-    --! design parameters exclusivly used by the LWC core implementations
-    constant NPUB_SIZE       : integer := 96;  --! Npub size
-    constant DBLK_SIZE       : integer := 128; --! Block size
+    --! design parameters specific to the CryptoCore; assigned in the package body below!
+    --! place declarations of your constants here
+    constant NPUB_SIZE       : integer; --! Npub size
+    constant DBLK_SIZE       : integer; --! Block size
 
-    --! Functions
+    --! place declarations of your functions here
     --! Calculate the number of I/O words for a particular size
     function get_words(size: integer; iowidth:integer) return integer; 
     --! Calculate log2 and round up.
@@ -60,12 +64,13 @@ end Design_pkg;
 
 
 package body Design_pkg is
-    -- Package body is not visible to clients of the package.
-    -- Variant dependent parameters are assigned here.
+
+    -- The following construct is used to specify all varaint dependent parameters
+    -- and make them selectable by the constant "variant" of type "set_selector".
 
     type vector_of_constants_t is array (1 to 2) of integer; -- two variant dependent constants
     type set_of_vector_of_constants_t is array (set_selector) of vector_of_constants_t;
-
+    -- specify all variant dependent parameters (CCW, CCSW) for all variants (dummy_lwc_{8,16,32})
     constant set_of_vector_of_constants : set_of_vector_of_constants_t :=
       --   CCW
       --   |   CCSW
@@ -74,17 +79,24 @@ package body Design_pkg is
          (16, 16), -- dummy_lwc_16
          (32, 32)  -- dummy_lwc_32
       );
-
+    -- select the correct set of parameters
     alias vector_of_constants is set_of_vector_of_constants(variant);
 
-    constant CCW        : integer := vector_of_constants(1); --! bdo/bdi width
-    constant CCSW       : integer := vector_of_constants(2); --! key width
+
+    --! design parameters needed by the PreProcessor, PostProcessor, and LWC
+    constant TAG_SIZE        : integer := 128; --! Tag size
+    constant HASH_VALUE_SIZE : integer := 256; --! Hash value size
+    constant CCW             : integer := vector_of_constants(1); --! bdo/bdi width
+    constant CCSW            : integer := vector_of_constants(2); --! key width
+    constant CCWdiv8         : integer := CCW/8; -- derived from parameters above
 
 
-    -- derived from parameters above
-    constant CCWdiv8    : integer := CCW/8;
+    --! design parameters specific to the CryptoCore
+    constant NPUB_SIZE       : integer := 96;  --! Npub size
+    constant DBLK_SIZE       : integer := 128; --! Block size
 
 
+    --! define your functions here
     --! Calculate the number of words
     function get_words(size: integer; iowidth:integer) return integer is
     begin

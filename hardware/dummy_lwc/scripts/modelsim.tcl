@@ -101,14 +101,14 @@ alias run_wave {
 
 
 # ----------------------------------------
-# Compile all the design files and elaborate the top level design with -novopt
+# Compile all the design files and elaborate the top level design
 alias ldd {
     com
     set run_do_file [file isfile $CUSTOM_DO_FILE]
     if {$run_do_file == 1} {
-        vsim -novopt -t ps -L work $TOP_LEVEL_NAME -do $CUSTOM_DO_FILE  -gG_STOP_AT_FAULT=$STOP_AT_FAULT
+        vsim -t ps -L work $TOP_LEVEL_NAME -do $CUSTOM_DO_FILE  -gG_STOP_AT_FAULT=$STOP_AT_FAULT
     } else {
-      vsim -novopt -t ps -L work $TOP_LEVEL_NAME -gG_STOP_AT_FAULT=$STOP_AT_FAULT
+      vsim -t ps -L work $TOP_LEVEL_NAME -gG_STOP_AT_FAULT=$STOP_AT_FAULT
       run_wave
     }
     run 500 us

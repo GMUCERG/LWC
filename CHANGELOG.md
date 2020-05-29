@@ -1,10 +1,26 @@
 # Changelog
 
-All notable changes to this  will be documented in this file.
+All notable changes to this project will be documented in this file.
 
+## [1.0.3]
+### Notes
+This release adds templates for designers of implementations and basic documentation for the dummy_lwc implementation.
+
+### Added
+- Templates [CryptoCore_template.vhd](hardware/CryptoCore_template.vhd) and [design_pkg_template.vhd](hardware/design_pkg_template.vhd)
+- [assumptions.txt](hardware/dummy_lwc/docs/assumptions.txt) and [variants.txt](hardware/dummy_lwc/docs/variants.txt) for dummy_lwc.
+- [source_list.txt](hardware/dummy_lwc/src_rtl/source_list.txt) that specifies the compile hirachie.
+
+### Changed
+- Structure of [design_pkg.vhd](hardware/dummy_lwc/src_rtl/design_pkg.vhd) to match with our [template](hardware/CryptoCore_template.vhd).
+- Default variant of dummy_lwc to 32 bit in [design_pkg.vhd](hardware/dummy_lwc/src_rtl/design_pkg.vhd)
+- [LWC_TB](hardware/LWCsrc/LWC_TB.vhd): Changed severity of `report "---------Started verifying message number "` from `error` to `note`.
+
+### Removed
+- Unused `decrypt_out` signal from [CryptoCore.vhd](hardware/dummy_lwc/src_rtl/CryptoCore.vhd)
+- Deprecated option `-novopt` from [modelsim.tcl](dummy_lwc/scripts/modelsim.tcl) as suggested in [Issue #2](https://github.com/GMUCERG/LWC/issues/2). Thanks [@Rishub](https://github.com/shrub77).
 
 ## [1.0.2]
-
 ### Added
 - Support for hash in Cryptotvgen's `--gen_single` option.
 - [vivado.tcl](hardware/dummy_lwc/scripts/vivado.tcl) to support simulations using vivado. Thanks [@kammoh](https://github.com/kammoh).
@@ -25,7 +41,7 @@ We want to thank [Patrick Karl]() for the proposed bugfixes.
 ### Changed
 
 - Replaced the [Header Fifo](hardware/LWCsrc/fwft_fifo.vhd) with a new version to avoid routing and timing problems.
-- [LWC_TB](hardware/LWCsrc/LWC_TB.vhd):  Changed default value of `G_TEST_MODE` from `1` to `0`.
+- [LWC_TB](hardware/LWCsrc/LWC_TB.vhd): Changed default value of `G_TEST_MODE` from `1` to `0`.
 - [LWC_TB](hardware/LWCsrc/LWC_TB.vhd): Improved assertion handling.
 - [PostProcessor](hardware/LWCsrc/PostProcessor.vhd): Changed default value of `do_data` from `Z`to`0` and made it configurable in [NIST_LWAPI_pkg.](hardware/LWCsrc/NIST_LWAPI_pkg.vhd)
 - [PreProcessor](hardware/LWCsrc/PreProcessor.vhd): Fixed a stall, if the empty hash is the very first input.
@@ -43,7 +59,8 @@ Nevertheless, it is also read by the [Pre-](hardware/LWCsrc/PreProcessor.vhd) an
 ## [1.0.0] 
 Initial release.
   
-[unreleased]: https://github.com/GMUCERG/LWC/compare/v1.0.2...HEAD
+[unreleased]: https://github.com/GMUCERG/LWC/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/GMUCERG/LWC/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/GMUCERG/LWC/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/GMUCERG/LWC/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/GMUCERG/LWC/releases/tag/v1.0.0

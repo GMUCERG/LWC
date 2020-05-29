@@ -10,6 +10,8 @@ Hardware
 
 `$root/hardware`
 
+Templates for CryptoCore and design_pkg.
+
 * `./LWCsrc`
 
     Universal Pre- and Post-processors and the associated testbench.
@@ -42,6 +44,7 @@ Hardware
     * `./scripts`
     
         ModelSim script for a quick simulation.
+        Vivado script for a quick simulation.
 
 
 Software

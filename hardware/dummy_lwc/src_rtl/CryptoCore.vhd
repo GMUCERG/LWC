@@ -52,7 +52,6 @@ entity CryptoCore is
         bdo_type        : out  STD_LOGIC_VECTOR (4       -1 downto 0);
         bdo_valid_bytes : out  STD_LOGIC_VECTOR (CCWdiv8 -1 downto 0);
         end_of_block    : out  STD_LOGIC;
-        decrypt_out     : out  STD_LOGIC;
         msg_auth_valid  : out  STD_LOGIC;
         msg_auth_ready  : in   STD_LOGIC;
         msg_auth        : out  STD_LOGIC
@@ -184,7 +183,6 @@ begin
     end_of_block        <= end_of_block_s;
     msg_auth            <= msg_auth_s;
     msg_auth_valid      <= msg_auth_valid_s;
-    decrypt_out         <= decrypt_s;
 
     -- Utility signal: Indicates whether the input word is fully filled or not.
     -- If '1', word is only partially filled.

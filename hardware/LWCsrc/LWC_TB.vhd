@@ -463,7 +463,7 @@ begin
 
                     report "---------Started verifying message number "
                         & integer'image(msgid) & " at "
-                        & time'image(now) severity error;
+                        & time'image(now) severity note;
                 else
                     hread(line_data, word_block, read_result); --! read data
                 end if;
