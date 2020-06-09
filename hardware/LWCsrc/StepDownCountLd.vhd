@@ -11,7 +11,7 @@
 --!             http://www.gnu.org/licenses/gpl-3.0.txt                         
 --! @note       This is publicly available encryption source code that falls    
 --!             under the License Exception TSU (Technology and software-       
---!             —unrestricted)                                                  
+--!             unrestricted)                                                  
 --------------------------------------------------------------------------------
 --! Description
 --! N (Integer)  : Generic value to set the N

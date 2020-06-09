@@ -19,6 +19,7 @@ This release adds templates for designers of implementations and basic documenta
 ### Removed
 - Unused `decrypt_out` signal from [CryptoCore.vhd](hardware/dummy_lwc/src_rtl/CryptoCore.vhd)
 - Deprecated option `-novopt` from [modelsim.tcl](dummy_lwc/scripts/modelsim.tcl) as suggested in [Issue #2](https://github.com/GMUCERG/LWC/issues/2). Thanks [@Rishub](https://github.com/shrub77).
+- Non ascii character "--" (Em dash) from all comments.
 
 ## [1.0.2]
 ### Added
