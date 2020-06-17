@@ -671,7 +671,7 @@ FSM_16BIT: if (W=16) generate
                 do_data_internal(W-1 downto W-4) <= HDR_HASH_VALUE;
                 do_data_internal(W-5 downto W-7) <= "001";
                 do_data_internal(W-8)            <= '1';
-                do_data_internal(W-9 downto 0)   <= x"00";
+                do_data_internal(W-9 downto 0)   <= (others => '0');
 
 
             when S_HDR_HASHLEN =>
@@ -1018,7 +1018,7 @@ FSM_8BIT: if (W=8) generate
 
             when S_HDR_RESHASH =>
                 do_valid_internal  <= '1';
-                do_data_internal   <= x"00";
+                do_data_internal   <= (others => '0');
 
             when S_HDR_HASHLEN_MSB =>
                 do_valid_internal  <= '1';
