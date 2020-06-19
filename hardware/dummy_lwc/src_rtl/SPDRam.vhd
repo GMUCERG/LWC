@@ -58,10 +58,10 @@ begin
         if rising_edge(clk) then
             
             if (wen = '1') then
-                RAM(to_integer(unsigned(addr))) <= din; --Write data
+                RAM(to_integer(to_01(unsigned(addr)))) <= din; --Write data
             end if;            
         end if;
     end process;
-    dout <= RAM(to_integer(unsigned(addr)));    --Read data
+    dout <= RAM(to_integer(to_01(unsigned(addr))));    --Read data
     --place the "Read data" line here for asynchronous read.     
 end behavioral;

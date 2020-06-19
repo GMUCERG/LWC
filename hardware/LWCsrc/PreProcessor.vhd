@@ -153,10 +153,10 @@ begin
 
     -- if there are Wdiv8 or less bytes left, we processthe last flit
     last_flit_of_segment <= '1' when
-        (to_integer(unsigned(dout_SegLenCnt))<=Wdiv8) else '0';
+        (to_integer(to_01(unsigned(dout_SegLenCnt))) <= Wdiv8) else '0';
 
     -- set valid bytes
-    with (to_integer(unsigned(dout_SegLenCnt))) select
+    with (to_integer(to_01(unsigned(dout_SegLenCnt)))) select
     bdi_valid_bytes_p <= "1110" when 3,
                          "1100" when 2,
                          "1000" when 1,
@@ -164,7 +164,7 @@ begin
                          "1111" when others;
 
     -- set padding location
-    with (to_integer(unsigned(dout_SegLenCnt))) select
+    with (to_integer(to_01(unsigned(dout_SegLenCnt)))) select
     bdi_pad_loc_p     <= "0001" when 3,
                          "0010" when 2,
                          "0100" when 1,

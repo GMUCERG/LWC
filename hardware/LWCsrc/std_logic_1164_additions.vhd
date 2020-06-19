@@ -4,8 +4,8 @@
 -- This package should be compiled into "ieee_proposed" and used as follows:
 -- use ieee.std_logic_1164.all;
 -- use ieee_proposed.std_logic_1164_additions.all;
--- Last Modified: $Date: 2007-05-31 14:53:37-04 $
--- RCS ID: $Id: std_logic_1164_additions.vhdl,v 1.10 2007-05-31 14:53:37-04 l435385 Exp $
+-- Last Modified: $Date: 2007-09-11 14:52:13-04 $
+-- RCS ID: $Id: std_logic_1164_additions.vhdl,v 1.12 2007-09-11 14:52:13-04 l435385 Exp $
 --
 --  Created for VHDL-200X par, David Bishop (dbishop@vhdl.org)
 ------------------------------------------------------------------------------
@@ -28,10 +28,19 @@ package std_logic_1164_additions is
   alias to_slv is ieee.std_logic_1164.To_StdLogicVector [STD_ULOGIC_VECTOR return STD_LOGIC_VECTOR];
   alias to_std_logic_vector is ieee.std_logic_1164.To_StdLogicVector [BIT_VECTOR return STD_LOGIC_VECTOR];
   alias to_std_logic_vector is ieee.std_logic_1164.To_StdLogicVector [STD_ULOGIC_VECTOR return STD_LOGIC_VECTOR];
-  alias to_suv is ieee.std_logic_1164.To_StdULogicVector [BIT_VECTOR return STD_ULOGIC_VECTOR];
-  alias to_suv is ieee.std_logic_1164.To_StdULogicVector [STD_LOGIC_VECTOR return STD_ULOGIC_VECTOR];
+  alias to_sulv is ieee.std_logic_1164.To_StdULogicVector [BIT_VECTOR return STD_ULOGIC_VECTOR];
+  alias to_sulv is ieee.std_logic_1164.To_StdULogicVector [STD_LOGIC_VECTOR return STD_ULOGIC_VECTOR];
   alias to_std_ulogic_vector is ieee.std_logic_1164.To_StdULogicVector [BIT_VECTOR return STD_ULOGIC_VECTOR];
   alias to_std_ulogic_vector is ieee.std_logic_1164.To_StdULogicVector [STD_LOGIC_VECTOR return STD_ULOGIC_VECTOR];
+
+  function TO_01 (s : STD_ULOGIC_VECTOR; xmap : STD_ULOGIC := '0')
+    return STD_ULOGIC_VECTOR;
+  function TO_01 (s : STD_ULOGIC; xmap : STD_ULOGIC := '0')
+    return STD_ULOGIC;
+  function TO_01 (s : BIT_VECTOR; xmap : STD_ULOGIC := '0')
+    return STD_ULOGIC_VECTOR;
+  function TO_01 (s : BIT; xmap : STD_ULOGIC := '0')
+    return STD_ULOGIC;
 
   -------------------------------------------------------------------    
   -- overloaded shift operators
@@ -140,6 +149,7 @@ package std_logic_1164_additions is
   function \??\ (S : STD_ULOGIC) return BOOLEAN;
 
   -- rtl_synthesis off
+-- pragma synthesis_off
   function to_string (value : STD_ULOGIC) return STRING;
   function to_string (value : STD_ULOGIC_VECTOR) return STRING;
   function to_string (value : STD_LOGIC_VECTOR) return STRING;
@@ -175,10 +185,10 @@ package std_logic_1164_additions is
   alias OCTAL_READ is OREAD [LINE, STD_ULOGIC_VECTOR, BOOLEAN];
   alias OCTAL_READ is OREAD [LINE, STD_ULOGIC_VECTOR];
 
-  -- procedure HREAD (L : inout LINE; VALUE : out STD_ULOGIC_VECTOR; GOOD : out BOOLEAN);
-  -- procedure HREAD (L : inout LINE; VALUE : out STD_ULOGIC_VECTOR);
-  -- alias HEX_READ is HREAD [LINE, STD_ULOGIC_VECTOR, BOOLEAN];
-  -- alias HEX_READ is HREAD [LINE, STD_ULOGIC_VECTOR];
+  procedure HREAD (L : inout LINE; VALUE : out STD_ULOGIC_VECTOR; GOOD : out BOOLEAN);
+  procedure HREAD (L : inout LINE; VALUE : out STD_ULOGIC_VECTOR);
+  alias HEX_READ is HREAD [LINE, STD_ULOGIC_VECTOR, BOOLEAN];
+  alias HEX_READ is HREAD [LINE, STD_ULOGIC_VECTOR];
 
   alias BWRITE is WRITE [LINE, STD_ULOGIC_VECTOR, SIDE, WIDTH];
   alias BINARY_WRITE is WRITE [LINE, STD_ULOGIC_VECTOR, SIDE, WIDTH];
@@ -214,10 +224,10 @@ package std_logic_1164_additions is
   alias OCTAL_READ is OREAD [LINE, STD_LOGIC_VECTOR, BOOLEAN];
   alias OCTAL_READ is OREAD [LINE, STD_LOGIC_VECTOR];
 
-  -- procedure HREAD (L : inout LINE; VALUE : out STD_LOGIC_VECTOR; GOOD : out BOOLEAN);
-  -- procedure HREAD (L : inout LINE; VALUE : out STD_LOGIC_VECTOR);
-  -- alias HEX_READ is HREAD [LINE, STD_LOGIC_VECTOR, BOOLEAN];
-  -- alias HEX_READ is HREAD [LINE, STD_LOGIC_VECTOR];
+  procedure HREAD (L : inout LINE; VALUE : out STD_LOGIC_VECTOR; GOOD : out BOOLEAN);
+  procedure HREAD (L : inout LINE; VALUE : out STD_LOGIC_VECTOR);
+  alias HEX_READ is HREAD [LINE, STD_LOGIC_VECTOR, BOOLEAN];
+  alias HEX_READ is HREAD [LINE, STD_LOGIC_VECTOR];
 
   alias BWRITE is WRITE [LINE, STD_LOGIC_VECTOR, SIDE, WIDTH];
   alias BINARY_WRITE is WRITE [LINE, STD_LOGIC_VECTOR, SIDE, WIDTH];
@@ -230,6 +240,7 @@ package std_logic_1164_additions is
                     JUSTIFIED : in    SIDE := right; FIELD : in WIDTH := 0);
   alias HEX_WRITE is HWRITE [LINE, STD_LOGIC_VECTOR, SIDE, WIDTH];
   -- rtl_synthesis on
+-- pragma synthesis_on
   function maximum (l, r : STD_ULOGIC_VECTOR) return STD_ULOGIC_VECTOR;
   function maximum (l, r : STD_LOGIC_VECTOR) return STD_LOGIC_VECTOR;
   function maximum (l, r : STD_ULOGIC) return STD_ULOGIC;
@@ -243,6 +254,64 @@ package body std_logic_1164_additions is
   -----------------------------------------------------------------------------
   -- New/updated funcitons for VHDL-200X fast track
   -----------------------------------------------------------------------------
+  -- to_01
+  -------------------------------------------------------------------    
+  function TO_01 (s : STD_ULOGIC_VECTOR; xmap : STD_ULOGIC := '0')
+    return STD_ULOGIC_VECTOR is
+    variable RESULT      : STD_ULOGIC_VECTOR(s'length-1 downto 0);
+    variable BAD_ELEMENT : BOOLEAN := false;
+    alias XS             : STD_ULOGIC_VECTOR(s'length-1 downto 0) is s;
+  begin
+    for I in RESULT'range loop
+      case XS(I) is
+        when '0' | 'L' => RESULT(I)   := '0';
+        when '1' | 'H' => RESULT(I)   := '1';
+        when others    => BAD_ELEMENT := true;
+      end case;
+    end loop;
+    if BAD_ELEMENT then
+      for I in RESULT'range loop
+        RESULT(I) := XMAP;              -- standard fixup
+      end loop;
+    end if;
+    return RESULT;
+  end function TO_01;
+  -------------------------------------------------------------------    
+  function TO_01 (s : STD_ULOGIC; xmap : STD_ULOGIC := '0')
+    return STD_ULOGIC is
+  begin
+    case s is
+      when '0' | 'L' => RETURN '0';
+      when '1' | 'H' => RETURN '1';
+      when others    => return xmap;
+    end case;
+  end function TO_01;
+  -------------------------------------------------------------------    
+  function TO_01 (s : BIT_VECTOR; xmap : STD_ULOGIC := '0')
+    return STD_ULOGIC_VECTOR is
+    variable RESULT : STD_ULOGIC_VECTOR(s'length-1 downto 0);
+    alias XS        : BIT_VECTOR(s'length-1 downto 0) is s;
+  begin
+    for I in RESULT'range loop
+      case XS(I) is
+        when '0' => RESULT(I) := '0';
+        when '1' => RESULT(I) := '1';
+      end case;
+    end loop;
+    return RESULT;
+  end function TO_01;
+  -------------------------------------------------------------------    
+  function TO_01 (s : BIT; xmap : STD_ULOGIC := '0')
+    return STD_ULOGIC is
+  begin
+    case s is
+      when '0' => RETURN '0';
+      when '1' => RETURN '1';
+    end case;
+  end function TO_01;
+-- end Bugzilla issue #148
+  -------------------------------------------------------------------   
+
   -------------------------------------------------------------------    
   -- overloaded shift operators
   ------------------------------------------------------------------- 
@@ -991,6 +1060,7 @@ package body std_logic_1164_additions is
 -- %%% END FUNCTION "??";
 
   -- rtl_synthesis off
+-- pragma synthesis_off
   -----------------------------------------------------------------------------
   -- This section copied from "std_logic_textio"
   -----------------------------------------------------------------------------
@@ -1014,17 +1084,20 @@ package body std_logic_1164_additions is
   -- purpose: Skips white space
   procedure skip_whitespace (
     L : inout LINE) is
-    variable readOk : BOOLEAN;
     variable c : CHARACTER;
+    variable left : positive;
   begin
     while L /= null and L.all'length /= 0 loop
-      if (L.all(1) = ' ' or L.all(1) = NBSP or L.all(1) = HT) then
-        read (l, c, readOk);
+      left := L.all'left;
+      c := L.all(left);
+      if (c = ' ' or c = NBSP or c = HT) then
+        read (L, c);
       else
         exit;
       end if;
     end loop;
   end procedure skip_whitespace;
+
 
   procedure READ (L    : inout LINE; VALUE : out STD_ULOGIC;
                   GOOD : out   BOOLEAN) is
@@ -1257,115 +1330,115 @@ package body std_logic_1164_additions is
     end case;
   end procedure Char2QuadBits;
 
-  -- procedure HREAD (L    : inout LINE; VALUE : out STD_ULOGIC_VECTOR;
-                   -- GOOD : out   BOOLEAN) is
-    -- variable ok  : BOOLEAN;
-    -- variable c   : CHARACTER;
-    -- constant ne  : INTEGER := (VALUE'length+3)/4;
-    -- constant pad : INTEGER := ne*4 - VALUE'length;
-    -- variable sv  : STD_ULOGIC_VECTOR(0 to ne*4 - 1);
-    -- variable i   : INTEGER;
-    -- variable lastu  : BOOLEAN := false;       -- last character was an "_"
-  -- begin
-    -- VALUE := (VALUE'range => 'U'); -- initialize to a "U"
-    -- Skip_whitespace (L);
-    -- if VALUE'length > 0 then
-      -- read (l, c, ok);
-      -- i := 0;
-      -- while i < ne loop
-        -- -- Bail out if there was a bad read
-        -- if not ok then
-          -- good := false;
-          -- return;
-        -- elsif c = '_' then
-          -- if i = 0 then
-            -- good := false;                -- Begins with an "_"
-            -- return;
-          -- elsif lastu then
-            -- good := false;                -- "__" detected
-            -- return;
-          -- else
-            -- lastu := true;
-          -- end if;
-        -- else
-          -- Char2QuadBits(c, sv(4*i to 4*i+3), ok, false);
-          -- if not ok then
-            -- good := false;
-            -- return;
-          -- end if;
-          -- i := i + 1;
-          -- lastu := false;
-        -- end if;
-        -- if i < ne then
-          -- read(L, c, ok);
-        -- end if;
-      -- end loop;
-      -- if or_reduce (sv (0 to pad-1)) = '1' then  -- %%% replace with "or"
-        -- good := false;                           -- vector was truncated.
-      -- else
-        -- good  := true;
-        -- VALUE := sv (pad to sv'high);
-      -- end if;
-    -- else
-      -- good := true;                     -- Null input string, skips whitespace
-    -- end if;
-  -- end procedure HREAD;
+  procedure HREAD (L    : inout LINE; VALUE : out STD_ULOGIC_VECTOR;
+                   GOOD : out   BOOLEAN) is
+    variable ok  : BOOLEAN;
+    variable c   : CHARACTER;
+    constant ne  : INTEGER := (VALUE'length+3)/4;
+    constant pad : INTEGER := ne*4 - VALUE'length;
+    variable sv  : STD_ULOGIC_VECTOR(0 to ne*4 - 1);
+    variable i   : INTEGER;
+    variable lastu  : BOOLEAN := false;       -- last character was an "_"
+  begin
+    VALUE := (VALUE'range => 'U'); -- initialize to a "U"
+    Skip_whitespace (L);
+    if VALUE'length > 0 then
+      read (l, c, ok);
+      i := 0;
+      while i < ne loop
+        -- Bail out if there was a bad read
+        if not ok then
+          good := false;
+          return;
+        elsif c = '_' then
+          if i = 0 then
+            good := false;                -- Begins with an "_"
+            return;
+          elsif lastu then
+            good := false;                -- "__" detected
+            return;
+          else
+            lastu := true;
+          end if;
+        else
+          Char2QuadBits(c, sv(4*i to 4*i+3), ok, false);
+          if not ok then
+            good := false;
+            return;
+          end if;
+          i := i + 1;
+          lastu := false;
+        end if;
+        if i < ne then
+          read(L, c, ok);
+        end if;
+      end loop;
+      if or_reduce (sv (0 to pad-1)) = '1' then  -- %%% replace with "or"
+        good := false;                           -- vector was truncated.
+      else
+        good  := true;
+        VALUE := sv (pad to sv'high);
+      end if;
+    else
+      good := true;                     -- Null input string, skips whitespace
+    end if;
+  end procedure HREAD;
 
-  -- procedure HREAD (L : inout LINE; VALUE : out STD_ULOGIC_VECTOR) is
-    -- variable ok  : BOOLEAN;
-    -- variable c   : CHARACTER;
-    -- constant ne  : INTEGER := (VALUE'length+3)/4;
-    -- constant pad : INTEGER := ne*4 - VALUE'length;
-    -- variable sv  : STD_ULOGIC_VECTOR(0 to ne*4 - 1);
-    -- variable i   : INTEGER;
-    -- variable lastu  : BOOLEAN := false;       -- last character was an "_"
-  -- begin
-    -- VALUE := (VALUE'range => 'U'); -- initialize to a "U"
-    -- Skip_whitespace (L);
-    -- if VALUE'length > 0 then           -- non Null input string
-      -- read (l, c, ok);
-      -- i := 0;
-      -- while i < ne loop
-        -- -- Bail out if there was a bad read
-        -- if not ok then
-          -- report "STD_LOGIC_1164.HREAD "
-            -- & "End of string encountered"
-            -- severity error;
-          -- return;
-        -- end if;
-        -- if c = '_' then
-          -- if i = 0 then
-            -- report "STD_LOGIC_1164.HREAD "
-              -- & "String begins with an ""_""" severity error;
-            -- return;
-          -- elsif lastu then
-            -- report "STD_LOGIC_1164.HREAD "
-              -- & "Two underscores detected in input string ""__"""
-              -- severity error;
-            -- return;
-          -- else
-            -- lastu := true;
-          -- end if;
-        -- else
-          -- Char2QuadBits(c, sv(4*i to 4*i+3), ok, true);
-          -- if not ok then
-            -- return;
-          -- end if;
-          -- i := i + 1;
-          -- lastu := false;
-        -- end if;
-        -- if i < ne then
-          -- read(L, c, ok);
-        -- end if;
-      -- end loop;
-      -- if or_reduce (sv (0 to pad-1)) = '1' then  -- %%% replace with "or"
-        -- report "STD_LOGIC_1164.HREAD Vector truncated"
-          -- severity error;
-      -- else
-        -- VALUE := sv (pad to sv'high);
-      -- end if;
-    -- end if;
-  -- end procedure HREAD;
+  procedure HREAD (L : inout LINE; VALUE : out STD_ULOGIC_VECTOR) is
+    variable ok  : BOOLEAN;
+    variable c   : CHARACTER;
+    constant ne  : INTEGER := (VALUE'length+3)/4;
+    constant pad : INTEGER := ne*4 - VALUE'length;
+    variable sv  : STD_ULOGIC_VECTOR(0 to ne*4 - 1);
+    variable i   : INTEGER;
+    variable lastu  : BOOLEAN := false;       -- last character was an "_"
+  begin
+    VALUE := (VALUE'range => 'U'); -- initialize to a "U"
+    Skip_whitespace (L);
+    if VALUE'length > 0 then           -- non Null input string
+      read (l, c, ok);
+      i := 0;
+      while i < ne loop
+        -- Bail out if there was a bad read
+        if not ok then
+          report "STD_LOGIC_1164.HREAD "
+            & "End of string encountered"
+            severity error;
+          return;
+        end if;
+        if c = '_' then
+          if i = 0 then
+            report "STD_LOGIC_1164.HREAD "
+              & "String begins with an ""_""" severity error;
+            return;
+          elsif lastu then
+            report "STD_LOGIC_1164.HREAD "
+              & "Two underscores detected in input string ""__"""
+              severity error;
+            return;
+          else
+            lastu := true;
+          end if;
+        else
+          Char2QuadBits(c, sv(4*i to 4*i+3), ok, true);
+          if not ok then
+            return;
+          end if;
+          i := i + 1;
+          lastu := false;
+        end if;
+        if i < ne then
+          read(L, c, ok);
+        end if;
+      end loop;
+      if or_reduce (sv (0 to pad-1)) = '1' then  -- %%% replace with "or"
+        report "STD_LOGIC_1164.HREAD Vector truncated"
+          severity error;
+      else
+        VALUE := sv (pad to sv'high);
+      end if;
+    end if;
+  end procedure HREAD;
 
   procedure HWRITE (L         : inout LINE; VALUE : in STD_ULOGIC_VECTOR;
                     JUSTIFIED : in    SIDE := right; FIELD : in WIDTH := 0) is
@@ -1520,20 +1593,20 @@ package body std_logic_1164_additions is
 
   -- Hex Read and Write procedures for STD_LOGIC_VECTOR
 
-  -- procedure HREAD (L    : inout LINE; VALUE : out STD_LOGIC_VECTOR;
-                   -- GOOD : out   BOOLEAN) is
-    -- variable ivalue : STD_ULOGIC_VECTOR (VALUE'range);
-  -- begin
-    -- HREAD (L => L, VALUE => ivalue, GOOD => GOOD);
-    -- VALUE := to_stdlogicvector (ivalue);
-  -- end procedure HREAD;
+  procedure HREAD (L    : inout LINE; VALUE : out STD_LOGIC_VECTOR;
+                   GOOD : out   BOOLEAN) is
+    variable ivalue : STD_ULOGIC_VECTOR (VALUE'range);
+  begin
+    HREAD (L => L, VALUE => ivalue, GOOD => GOOD);
+    VALUE := to_stdlogicvector (ivalue);
+  end procedure HREAD;
 
-  -- procedure HREAD (L : inout LINE; VALUE : out STD_LOGIC_VECTOR) is
-    -- variable ivalue : STD_ULOGIC_VECTOR (VALUE'range);
-  -- begin
-    -- HREAD (L => L, VALUE => ivalue);
-    -- VALUE := to_stdlogicvector (ivalue);
-  -- end procedure HREAD;
+  procedure HREAD (L : inout LINE; VALUE : out STD_LOGIC_VECTOR) is
+    variable ivalue : STD_ULOGIC_VECTOR (VALUE'range);
+  begin
+    HREAD (L => L, VALUE => ivalue);
+    VALUE := to_stdlogicvector (ivalue);
+  end procedure HREAD;
 
   procedure HWRITE (L         : inout LINE; VALUE : in STD_LOGIC_VECTOR;
                     JUSTIFIED : in    SIDE := right; FIELD : in WIDTH := 0) is
@@ -1690,6 +1763,7 @@ package body std_logic_1164_additions is
   end function to_ostring;
 
   -- rtl_synthesis on
+-- pragma synthesis_on
   function maximum (L, R : STD_ULOGIC_VECTOR) return STD_ULOGIC_VECTOR is
   begin  -- function maximum
     if L > R then return L;

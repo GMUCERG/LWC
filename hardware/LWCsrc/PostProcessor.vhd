@@ -143,7 +143,7 @@ begin
                         count   =>  dout_SegLenCnt
                     );
 
-    last_flit_of_segment <= '1' when (to_integer(unsigned(dout_SegLenCnt))<= Wdiv8) else '0';
+    last_flit_of_segment <= '1' when (to_integer(to_01(unsigned(dout_SegLenCnt))) <= Wdiv8) else '0';
 
     --! Registers
     -- state register depends on W and is set in the corresponding if generate
