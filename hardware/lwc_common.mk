@@ -11,10 +11,9 @@ SOURCE_LIST_FILE ?= source_list.txt
 VHDL_FILES := $(shell cat $(SOURCE_LIST_FILE) | egrep .*\.vhdl?)
 VERILOG_FILES := $(shell cat $(SOURCE_LIST_FILE) | egrep .*\.s?v | egrep -v .*\.vhdl?)
 
+# expand variables inside `source_list.txt`
 $(eval  VHDL_FILES=$(VHDL_FILES))
 $(eval  VERILOG_FILES=$(VERILOG_FILES))
-
-# VHDL_FILES := $(eval VHDL_FILES)
 
 YOSYS_BIN := yosys
 YOSYS_GHDL_MODULE := -m ghdl
@@ -30,8 +29,6 @@ YOSYS_READ_VERILOG_CMD :=
 else
 YOSYS_READ_VERILOG_CMD := read_verilog $(VERILOG_FILES);
 endif
-
-
 
 LWC_TB = $(LWCSRC_DIR)/LWC_TB.vhd
 VHDL_ADDITIONS = $(LWCSRC_DIR)/std_logic_1164_additions.vhd
