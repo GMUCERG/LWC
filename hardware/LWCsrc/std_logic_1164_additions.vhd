@@ -1121,7 +1121,7 @@ package body std_logic_1164_additions is
 
   procedure READ (L    : inout LINE; VALUE : out STD_ULOGIC_VECTOR;
                   GOOD : out   BOOLEAN) is
-    variable m      : STD_ULOGIC;
+    -- variable m      : STD_ULOGIC;
     variable c      : CHARACTER;
     variable mv     : STD_ULOGIC_VECTOR(0 to VALUE'length-1);
     variable readOk : BOOLEAN;
@@ -1187,7 +1187,7 @@ package body std_logic_1164_additions is
   end procedure READ;
 
   procedure READ (L : inout LINE; VALUE : out STD_ULOGIC_VECTOR) is
-    variable m      : STD_ULOGIC;
+    -- variable m      : STD_ULOGIC;
     variable c      : CHARACTER;
     variable readOk : BOOLEAN;
     variable mv     : STD_ULOGIC_VECTOR(0 to VALUE'length-1);
