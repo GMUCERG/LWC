@@ -10,7 +10,6 @@ GHDL_ELAB_OPTS := --mb-comments
 GHDL_WARNS := -Wbinding -Wreserved -Wlibrary -Wvital-generic -Wdelayed-checks -Wbody -Wspecs -Wunused --warn-no-runtime-error
 GHDL_SIM_OPTS :=
 
-
 ifeq ($(strip $(VHDL_STD)),93)
 GHDL_OPT += --std=93c
 else
@@ -43,15 +42,11 @@ sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_VHDL_FILES) Makefile
 	$(GHDL) -e $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_TOP) 
 	$(GHDL) -r $(SIM_TOP) $(GHDL_SIM_OPTS) $(VCD_OPT) $(SIM_S:qTOP_OPT) 
 
-
 ifeq ($(strip $(VHDL_FILES)),)
 YOSYS_READ_VHDL_CMD := 
 else
 YOSYS_READ_VHDL_CMD := ghdl $(GHDL_OPT) $(GHDL_WARNS) $(TOP);
 endif
-
-
-SIM_VHDL_FILES_BASENAMES=
 
 clean-ghdl:
 	-@rm -f $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_TOP) $(patsubst %.vhd,%.o,$(patsubst %.vhdl,%.o,$(notdir $(SIM_VHDL_FILES))))
