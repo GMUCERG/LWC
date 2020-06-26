@@ -76,14 +76,14 @@ architecture structure of LWC is
     signal bdo_ready_cipher_out     : std_logic;
     ------!Cipher to Post-Processor
     signal end_of_block_cipher_out  : std_logic;
-    signal bdo_size_cipher_out      : std_logic_vector(3       -1 downto 0);
+    -- signal bdo_size_cipher_out      : std_logic_vector(3       -1 downto 0);
     signal bdo_valid_bytes_cipher_out:std_logic_vector(CCWdiv8 -1 downto 0);
     signal bdo_type_cipher_out      :std_logic_vector(4        -1 downto 0);
-    signal decrypt_cipher_out       : std_logic;
+    -- signal decrypt_cipher_out       : std_logic;
     signal msg_auth_valid           : std_logic;
     signal msg_auth_ready           : std_logic;
     signal msg_auth                 : std_logic;
-    signal done                     : std_logic;
+    -- signal done                     : std_logic;
     --==========================================================================
 
     --==========================================================================
@@ -131,7 +131,7 @@ begin
                 cmd_valid       => cmd_valid_FIFO_in                       ,
                 cmd_ready       => cmd_ready_FIFO_in
             );
-    Inst_Cipher: entity work.CryptoCore(behavioral)
+    Inst_Cipher: entity work.CryptoCore
         PORT MAP(
                 clk             => clk                                     ,
                 rst             => rst                                     ,

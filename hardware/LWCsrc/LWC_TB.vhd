@@ -19,8 +19,8 @@
 library ieee;
 use ieee.std_logic_1164.ALL;
 use ieee.numeric_std.all;
-use ieee.std_logic_textio.all;
 use work.std_logic_1164_additions.to_hstring; --needed, before VHDL-2008
+use work.std_logic_1164_additions.hread; --needed, before VHDL-2008
 use work.NIST_LWAPI_pkg.all;
 
 library std;
@@ -442,9 +442,9 @@ begin
                     instr_encoding := False;
                     read_result    := False;
                     opcode := tb_block(19 downto 16);
-                    keyid  := to_integer(unsigned(tb_block(15 downto 8)));
-                    msgid  := to_integer(unsigned(tb_block(7  downto 0)));
-                    TestVector<= to_integer(unsigned(tb_block(7  downto 0)));
+                    keyid  := to_integer(to_01(unsigned(tb_block(15 downto 8))));
+                    msgid  := to_integer(to_01(unsigned(tb_block(7  downto 0))));
+                    TestVector<= to_integer(to_01(unsigned(tb_block(7  downto 0))));
                     isEncrypt := False;
                     if ((opcode = INST_DEC or opcode = INST_ENC)
                         or (opcode = INST_SUCCESS or opcode = INST_FAILURE))

@@ -28,7 +28,8 @@
 --------------------------------------------------------------------------------
 LIBRARY ieee;
 USE ieee.std_logic_1164.all;
-USE ieee.std_logic_arith.all;
+USE ieee.numeric_std.all;
+
 --USE ieee.std_logic_unsigned.all;
 
 entity SPDRam is 
@@ -57,10 +58,10 @@ begin
         if rising_edge(clk) then
             
             if (wen = '1') then
-                RAM(conv_integer(unsigned(addr))) <= din; --Write data
+                RAM(to_integer(to_01(unsigned(addr)))) <= din; --Write data
             end if;            
         end if;
     end process;
-    dout <= RAM(conv_integer(unsigned(addr)));    --Read data
+    dout <= RAM(to_integer(to_01(unsigned(addr))));    --Read data
     --place the "Read data" line here for asynchronous read.     
 end behavioral;
