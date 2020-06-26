@@ -131,7 +131,7 @@ begin
                 cmd_valid       => cmd_valid_FIFO_in                       ,
                 cmd_ready       => cmd_ready_FIFO_in
             );
-    Inst_Cipher: entity work.CryptoCore(behavioral)
+    Inst_Cipher: entity work.CryptoCore
         PORT MAP(
                 clk             => clk                                     ,
                 rst             => rst                                     ,
