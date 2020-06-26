@@ -42,7 +42,7 @@ $(info GENERICS_OPTS=$(GENERICS_OPTS))
 
 ### GHDL analyze testbench files, elaborate, and run
 sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_VHDL_FILES) Makefile
-	$(GHDL) -a $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) --warn-no-unused $(SIM_VHDL_FILES) $(LWC_TB)
+	$(GHDL) -a $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_VHDL_FILES) $(LWC_TB)
 	$(GHDL) -e $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_TOP) 
 	$(GHDL) -r $(SIM_TOP) $(GHDL_SIM_OPTS) $(GENERICS_OPTS) $(VCD_OPT)
 
