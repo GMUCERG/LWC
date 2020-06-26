@@ -31,7 +31,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use work.NIST_LWAPI_pkg.all;
-use work.design_pkg.all;
+use work.Design_pkg.all;
 
 
 entity PreProcessor is
@@ -225,7 +225,7 @@ FSM_32BIT: if (W=32) generate
 
     --! KEY PISO
     -- for ccsw > SW: a piso is used for width conversion
-    keyPISO: entity work.key_piso(behavioral) port map
+    keyPISO: entity work.KEY_PISO(behavioral) port map
         (
             clk=> clk,
             rst=> rst,
@@ -241,7 +241,7 @@ FSM_32BIT: if (W=32) generate
 
     --! DATA PISO
     -- for ccw > W: a piso is used for width conversion
-    bdiPISO: entity work.data_piso(behavioral) port map
+    bdiPISO: entity work.DATA_PISO(behavioral) port map
         (
             clk=> clk,
             rst=> rst,
@@ -272,16 +272,28 @@ FSM_32BIT: if (W=32) generate
 
 
     --! State register
-    process (clk)
-    begin
-        if (rising_edge(clk)) then
-            if (rst = '1')  then
+    GEN_porc_SYNC_RST: if (not ASYNC_RSTN) generate
+        process (clk)
+        begin
+            if rising_edge(clk) then
+                if(rst='1')  then
+                    pr_state <= S_INT_MODE;
+                else
+                    pr_state <= nx_state;
+                end if;
+            end if;
+        end process;
+    end generate GEN_porc_SYNC_RST;
+    GEN_porc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+        process (clk, rst)
+        begin
+            if(rst='0')  then
                 pr_state <= S_INT_MODE;
-            else
+            elsif rising_edge(clk) then
                 pr_state <= nx_state;
             end if;
-        end if;
-    end process;  
+        end process;
+    end generate GEN_porc_ASYNC_RSTN;
  
     --! next state function
     process (pr_state, sdi_valid, last_flit_of_segment, decrypt_internal,
@@ -664,16 +676,28 @@ FSM_16BIT: if (W=16) generate
     key <= sdi_data;
     
      --! State register
-    process (clk)
-    begin
-        if (rising_edge(clk)) then
-            if (rst = '1')  then
+    GEN_porc_SYNC_RST: if (not ASYNC_RSTN) generate
+        process (clk)
+        begin
+            if rising_edge(clk) then
+                if(rst='1')  then
+                    pr_state <= S_INT_MODE;
+                else
+                    pr_state <= nx_state;
+                end if;
+            end if;
+        end process;
+    end generate GEN_porc_SYNC_RST;
+    GEN_porc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+        process (clk, rst)
+        begin
+            if(rst='0')  then
                 pr_state <= S_INT_MODE;
-            else
+            elsif rising_edge(clk) then
                 pr_state <= nx_state;
             end if;
-        end if;
-    end process;
+        end process;
+    end generate GEN_porc_ASYNC_RSTN;
 
  
     --!next state function
@@ -1138,23 +1162,35 @@ FSM_8BIT: if (W=8) generate
 
     
     --! State register
-    process (clk)
-    begin
-        if (rising_edge(clk)) then
-            if (rst = '1')  then
+    GEN_porc_SYNC_RST: if (not ASYNC_RSTN) generate
+        process (clk)
+        begin
+            if rising_edge(clk) then
+                if(rst='1')  then
+                    pr_state <= S_INT_MODE;
+                else
+                    pr_state <= nx_state;
+                end if;
+            end if;
+        end process;
+    end generate GEN_porc_SYNC_RST;
+    GEN_porc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+        process (clk, rst)
+        begin
+            if(rst='0')  then
                 pr_state <= S_INT_MODE;
-            else
+            elsif rising_edge(clk) then
                 pr_state <= nx_state;
             end if;
-        end if;
-    end process;
+        end process;
+    end generate GEN_porc_ASYNC_RSTN;
 
 
     --!next state function
     process (pr_state, sdi_valid, pdi_valid, sdi_data, pdi_data,
             last_flit_of_segment, decrypt_internal, key_ready, bdi_ready,
-            cmd_ready, bdi_eot_internal, dout_lenreg,
-            bdi_eoi_internal, eot_flag, eoi_flag)
+            cmd_ready, dout_LenReg,
+            bdi_eoi_internal, eot_flag)
 
     begin
         case pr_state is
@@ -1699,8 +1735,6 @@ FSM_8BIT: if (W=8) generate
                     en_SegLenCnt <= pdi_valid and bdi_ready;
                 end if;
 
-            when others =>
-                 null;
         end case;
     end process;
 
