@@ -81,8 +81,8 @@ package NIST_LWAPI_pkg is
 
     --! =======================================================================
     --! Deprecated parameters from CAESAR-LWAPI! DO NOT CHANGE!
-    --! asynchronous reset is not supported
-    constant ASYNC_RSTN   : boolean := FALSE;
+    --! asynchronous and active-low reset (for ASIC targets)
+    constant ASYNC_RSTN    : boolean := False;
 
     --! =======================================================================
     --! Functions used by LWC Core, PreProcessor and PostProcessor

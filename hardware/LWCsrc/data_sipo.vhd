@@ -26,7 +26,7 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
-use work.design_pkg.all;
+use work.Design_pkg.all;
 use work.NIST_LWAPI_pkg.all;
 
 entity DATA_SIPO is 
@@ -63,16 +63,28 @@ begin
 
 
 CCW8_16: if CCW /= 32 generate
-    process (clk)
-    begin
-        if rising_edge(clk) then
-            if(rst='1')  then
+    GEN_porc_SYNC_RST: if (not ASYNC_RSTN) generate
+        process (clk)
+        begin
+            if rising_edge(clk) then
+                if(rst='1')  then
+                    state <= LD_1;
+                else
+                    state <= nx_state;
+                end if;
+            end if;
+        end process;
+    end generate GEN_porc_SYNC_RST;
+    GEN_porc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+        process (clk, rst)
+        begin
+            if(rst='0')  then
                 state <= LD_1;
-            else
+            elsif rising_edge(clk) then
                 state <= nx_state;
             end if;
-        end if;
-    end process;
+        end process;
+    end generate GEN_porc_ASYNC_RSTN;
     
 end generate CCW8_16;
 
@@ -257,8 +269,7 @@ CCW16: if CCW = 16 generate
        end if;
     end process;
 
-   data_p       <=                     data_s & x"00_00" when (mux = 1) else
-                   reg(31 downto 16) & data_s;
+   data_p       <=  data_s & x"00_00" when (mux = 1) else reg(31 downto 16) & data_s;
 
 end generate CCW16;
 

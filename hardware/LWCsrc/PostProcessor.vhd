@@ -35,7 +35,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use work.NIST_LWAPI_pkg.all;
-use work.design_pkg.all;
+use work.Design_pkg.all;
 
 entity PostProcessor is
 
@@ -182,7 +182,7 @@ FSM_32BIT: if (W=32) generate
 
     --! SIPO
     -- for ccw < W: a sipo is used for width conversion
-    bdoSIPO: entity work.data_sipo(behavioral) port map
+    bdoSIPO: entity work.DATA_SIPO(behavioral) port map
         (
             clk=> clk,
             rst=> rst,
@@ -200,16 +200,28 @@ FSM_32BIT: if (W=32) generate
         );
 
     --! State register
-    process (clk)
-    begin
-        if rising_edge(clk) then
-            if (rst = '1') then
+    GEN_porc_SYNC_RST: if (not ASYNC_RSTN) generate
+        process (clk)
+        begin
+            if rising_edge(clk) then
+                if(rst='1')  then
+                    pr_state <= S_INIT;
+                else
+                    pr_state <= nx_state;
+                end if;
+            end if;
+        end process;
+    end generate GEN_porc_SYNC_RST;
+    GEN_porc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+        process (clk, rst)
+        begin
+            if(rst='0')  then
                 pr_state <= S_INIT;
-            else
+            elsif rising_edge(clk) then
                 pr_state <= nx_state;
             end if;
-        end if;
-    end process;
+        end process;
+    end generate GEN_porc_ASYNC_RSTN;
 
 
     --! Next state function
@@ -492,21 +504,33 @@ FSM_16BIT: if (W=16) generate
     HDR_TAG_internal <= HDR_TAG & x"300"& tag_size_bytes(15 downto 0);
     
     --! State register
-    process (clk)
-    begin
-        if rising_edge(clk) then
-            if (rst = '1') then
+    GEN_porc_SYNC_RST: if (not ASYNC_RSTN) generate
+        process (clk)
+        begin
+            if rising_edge(clk) then
+                if(rst='1')  then
+                    pr_state <= S_INIT;
+                else
+                    pr_state <= nx_state;
+                end if;
+            end if;
+        end process;
+    end generate GEN_porc_SYNC_RST;
+    GEN_porc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+        process (clk, rst)
+        begin
+            if(rst='0')  then
                 pr_state <= S_INIT;
-            else
+            elsif rising_edge(clk) then
                 pr_state <= nx_state;
             end if;
-        end if;
-    end process;
+        end process;
+    end generate GEN_porc_ASYNC_RSTN;
+
 
     --! Next state function
     process (pr_state, bdo_valid, do_ready, end_of_block, decrypt,
-            cmd_valid, cmd, msg_auth_valid, msg_auth,  last_flit_of_segment,
-            eot, tag_size_bytes)
+            cmd_valid, cmd, msg_auth_valid, msg_auth,  last_flit_of_segment, eot)
 
     begin
         case pr_state is
@@ -791,16 +815,28 @@ FSM_8BIT: if (W=8) generate
     end process;
     
    --! State register
-    process (clk)
-    begin
-        if rising_edge(clk) then
-            if (rst = '1') then
+   GEN_porc_SYNC_RST: if (not ASYNC_RSTN) generate
+        process (clk)
+        begin
+            if rising_edge(clk) then
+                if(rst='1')  then
+                    pr_state <= S_INIT;
+                else
+                    pr_state <= nx_state;
+                end if;
+            end if;
+        end process;
+    end generate GEN_porc_SYNC_RST;
+    GEN_porc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+        process (clk, rst)
+        begin
+            if(rst='0')  then
                 pr_state <= S_INIT;
-            else
+            elsif rising_edge(clk) then
                 pr_state <= nx_state;
             end if;
-        end if;
-    end process;
+        end process;
+    end generate GEN_porc_ASYNC_RSTN;
 
     --! Next state function
     process (pr_state, bdo_valid, do_ready, end_of_block, decrypt,

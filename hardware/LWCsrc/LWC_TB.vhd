@@ -19,11 +19,10 @@
 library ieee;
 use ieee.std_logic_1164.ALL;
 use ieee.numeric_std.all;
-use work.std_logic_1164_additions.to_hstring; --needed, before VHDL-2008
-use work.std_logic_1164_additions.hread; --needed, before VHDL-2008
+use work.std_logic_1164_additions.TO_HSTRING; --needed, before VHDL-2008
+use work.std_logic_1164_additions.HREAD; --needed, before VHDL-2008
 use work.NIST_LWAPI_pkg.all;
 
-library std;
 use std.textio.all;
 
 entity LWC_TB IS
@@ -240,18 +239,29 @@ begin
 
     uut:  entity work.LWC(structure)
     port map (
-        rst          => rst,
-        clk          => clk,
-        pdi_data     => pdi_delayed,
-        pdi_ready    => pdi_ready,
-        pdi_valid    => pdi_valid,
-        sdi_data     => sdi_delayed,
-        sdi_ready    => sdi_ready,
-        sdi_valid    => sdi_valid,
-        do_data      => do,
-        do_valid     => do_valid,
-        do_last      => do_last,
-        do_ready     => do_ready
+        clk => clk,
+        
+        rst => rst,
+        
+        pdi_data => pdi_delayed,
+        
+        pdi_valid => pdi_valid,
+        
+        pdi_ready => pdi_ready,
+        
+        sdi_data => sdi_delayed,
+        
+        sdi_valid => sdi_valid,
+        
+        sdi_ready => sdi_ready,
+        
+        do_data => do,
+        
+        do_ready => do_ready,
+        
+        do_valid => do_valid,
+        
+        do_last => do_last
     );
     --! =================== --
     --! END OF PORT MAPPING --
@@ -269,8 +279,13 @@ begin
         variable temp_read      : string(1 to 6);
         variable valid_line     : boolean     := True;
     begin
-        rst <= '1';               wait for 5*clk_period;
-        rst <= '0';               wait for clk_period;
+    	if ASYNC_RSTN then
+	        rst <= '0';               wait for 5*clk_period;
+	        rst <= '1';               wait for clk_period;
+    	else
+	        rst <= '1';               wait for 5*clk_period;
+	        rst <= '0';               wait for clk_period;
+        end if;
 
         --! read header
         while ( not endfile (pdi_file)) and ( loop_enable = '1' ) loop
@@ -298,7 +313,7 @@ begin
                 fpdi_din_valid <= '1';
             end if;
 
-            hread( line_data, word_block, read_result );
+            HREAD( line_data, word_block, read_result );
             while (((read_result = False) or (valid_line = False))
                 and (not endfile( pdi_file )))
             loop
@@ -313,7 +328,7 @@ begin
                     valid_line := False;
                     fpdi_din_valid  <= '0';
                 end if;
-                hread( line_data, word_block, read_result ); --! read data
+                HREAD( line_data, word_block, read_result ); --! read data
             end loop;
             fpdi_din <= word_block;
                wait for io_clk_period;
@@ -362,7 +377,7 @@ begin
                 fsdi_din_valid <= '1';
             end if;
 
-            hread(line_data, word_block, read_result);
+            HREAD(line_data, word_block, read_result);
             while (((read_result = False) or (valid_line = False))
                 and (not endfile(sdi_file)))
             loop
@@ -377,7 +392,7 @@ begin
                     valid_line := False;
                     fsdi_din_valid  <= '0';
                 end if;
-                hread( line_data, word_block, read_result );    --! read data
+                HREAD( line_data, word_block, read_result );    --! read data
             end loop;
             fsdi_din <= word_block;
             wait for io_clk_period;
@@ -413,7 +428,7 @@ begin
 
         while (not endfile (do_file) and valid_line and (not force_exit)) loop
             --! Keep reading new line until a valid line is found
-            hread( line_data, word_block, read_result );
+            HREAD( line_data, word_block, read_result );
             while ((read_result = False or valid_line = False)
                   and (not endfile(do_file)))
             loop
@@ -437,8 +452,8 @@ begin
                     force_exit := True;
                 end if;
 
-                if (instr_encoding = True) then
-                    hread(line_data, tb_block, read_result); --! read data
+                if (instr_encoding) then
+                    HREAD(line_data, tb_block, read_result); --! read data
                     instr_encoding := False;
                     read_result    := False;
                     opcode := tb_block(19 downto 16);
@@ -465,7 +480,7 @@ begin
                         & integer'image(msgid) & " at "
                         & time'image(now) severity note;
                 else
-                    hread(line_data, word_block, read_result); --! read data
+                    HREAD(line_data, word_block, read_result); --! read data
                 end if;
             end loop;
 
@@ -495,8 +510,8 @@ begin
                         & string'(" word #") & integer'image(word_count));
                     writeline(log_file,logMsg);
                     write(logMsg, string'("[Log]     Expected: ")
-                        & to_hstring(word_block)
-                        & string'(" Received: ") & to_hstring(fdo_dout));
+                        & TO_HSTRING(word_block)
+                        & string'(" Received: ") & TO_HSTRING(fdo_dout));
                     writeline(log_file,logMsg);
 
                     --! Stop the simulation right away when an error is detected
@@ -506,10 +521,10 @@ begin
                         & " Word #" & integer'image(word_count)
                         & " at " & time'image(now) & " FAILS T_T --------"
                         severity error;
-                    report "Expected: " & to_hstring(word_block)
-                        & " Actual: " & to_hstring(fdo_dout) severity error;
+                    report "Expected: " & TO_HSTRING(word_block)
+                        & " Actual: " & TO_HSTRING(fdo_dout) severity error;
                     write(result_file, "fail");
-                    if (G_STOP_AT_FAULT = True) then
+                    if (G_STOP_AT_FAULT) then
                         force_exit := True;
                     else
                         if isEncrypt = False then
@@ -522,8 +537,8 @@ begin
                     end if;
                 else
                     write(logMsg, string'("[Log]     Expected: ")
-                        & to_hstring(word_block)
-                        & string'(" Received: ") & to_hstring(fdo_dout)
+                        & TO_HSTRING(word_block)
+                        & string'(" Received: ") & TO_HSTRING(fdo_dout)
                         & string'(" Matched!"));
                     writeline(log_file,logMsg);
                 end if;

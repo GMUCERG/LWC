@@ -54,7 +54,6 @@ entity CryptoCore is
         end_of_block    : out  STD_LOGIC;
         msg_auth_valid  : out  STD_LOGIC;
         msg_auth_ready  : in   STD_LOGIC;
-        msg_auth_dummy        : out  STD_LOGIC;
         msg_auth        : out  STD_LOGIC
     );
 end CryptoCore;
@@ -127,16 +126,21 @@ architecture behavioral of CryptoCore is
     signal len_word_s                   : std_logic_vector(CCW - 1 downto 0);
     -- Number of ad / msg bytes and their corresponding bit vectors (required for casting...)
     signal ad_byte_cnt_s                : unsigned(AD_CNT_WIDTH_C - 1 downto 0);
+    signal ad_byte_cnt_s_next           : unsigned(AD_CNT_WIDTH_C - 1 downto 0);
     signal ad_bit_cnt_vec_s             : std_logic_vector(DBLK_SIZE/2 - 1 downto 0);
     signal msg_byte_cnt_s               : unsigned(MSG_CNT_WIDTH_C - 1 downto 0);
+    signal msg_byte_cnt_s_next          : unsigned(MSG_CNT_WIDTH_C - 1 downto 0);
     signal msg_bit_cnt_vec_s            : std_logic_vector(DBLK_SIZE/2 - 1 downto 0);
     -- Counter for blocks will be casted to block number block_num_s according to specification
+    -- Counter for blocks will be casted to block number block_num_s according to specification
     signal block_cnt_s                  : unsigned(BLOCK_CNT_WIDTH_C - 1 downto 0);
+    signal block_cnt_s_next             : unsigned(BLOCK_CNT_WIDTH_C - 1 downto 0);
     signal block_num_s                  : std_logic_vector(DBLK_SIZE - 1 downto 0);
     signal block_num_word_s             : std_logic_vector(CCW - 1 downto 0);
 
     -- Word counter for address generation. Increases every time a word is transferred.
     signal word_cnt_s                   : integer range 0 to HASH_WORDS_C - 1;
+    signal word_cnt_s_next              : integer range 0 to HASH_WORDS_C - 1;
     signal ram_addr_s                   : std_logic_vector(ADDR_BITS_256_C - 1 downto 0);
 
     -- Internal Port signals
@@ -207,10 +211,13 @@ begin
     );
     -- Initialize the RAM with the key, afterwards absorb (xor) any incoming
     -- data (Npub, Len, AD, PT).
-    tag_din_s <=    key_din_s                       when (state_s = STORE_KEY and key_update = '1') else
-                    key_dout_s                      when (state_s = STORE_KEY and key_update = '0') else
-                    (others => '0')                 when (state_s = INIT_HASH)                      else
-                    data_to_tag_s xor tag_dout_s;
+    tag_din_s <=    std_logic_vector(resize(unsigned(key_din_s), tag_din_s'length))  
+    						when (state_s = STORE_KEY and key_update = '1') 
+    							else std_logic_vector(resize(unsigned(key_dout_s), tag_din_s'length))  
+    						when (state_s = STORE_KEY and key_update = '0')
+    							else (others => '0')
+							when (state_s = INIT_HASH)
+								else data_to_tag_s xor tag_dout_s;
 
     -- tag_wen_s set in decoder process for control logic.
 
@@ -273,7 +280,7 @@ begin
     ----------------------------------------------------------------------------
     --! Bdo multiplexer
     ----------------------------------------------------------------------------
-    p_bdo_mux : process(state_s, bdi_s, key_dout_s, block_cnt_s, word_cnt_s,
+    p_bdo_mux : process(state_s, bdi_s, key_dout_s, word_cnt_s,
                         bdi_valid_bytes_s, bdi_valid, bdi_eot, decrypt_s,
                         tag_dout_s, padd_npub_s, block_num_word_s, hash_s)
     begin
@@ -324,10 +331,35 @@ begin
     ----------------------------------------------------------------------------
     --! Registers for state and internal signals
     ----------------------------------------------------------------------------
-    p_reg : process(clk)
-    begin
-        if rising_edge(clk) then
-            if (rst = '1') then
+    GEN_p_reg_SYNC_RST: if (not ASYNC_RSTN) generate
+        p_reg : process(clk)
+        begin
+            if rising_edge(clk) then
+                if (rst = '1') then
+                    msg_auth_s          <= '1';
+                    eoi_s               <= '0';
+                    update_key_s        <= '0';
+                    decrypt_s           <= '0';
+                    hash_s              <= '0';
+                    empty_hash_s        <= '0';
+                    state_s             <= IDLE;
+                else
+                    msg_auth_s          <= n_msg_auth_s;
+                    eoi_s               <= n_eoi_s;
+                    update_key_s        <= n_update_key_s;
+                    decrypt_s           <= n_decrypt_s;
+                    hash_s              <= n_hash_s;
+                    empty_hash_s        <= n_empty_hash_s;
+                    state_s             <= n_state_s;
+                end if;
+            end if;
+        end process p_reg;
+    end generate GEN_p_reg_SYNC_RST;
+    
+    GEN_p_reg_ASYNC_RSTN: if (ASYNC_RSTN) generate
+        p_reg : process(clk, rst)
+        begin
+            if (rst = '0') then
                 msg_auth_s          <= '1';
                 eoi_s               <= '0';
                 update_key_s        <= '0';
@@ -335,7 +367,7 @@ begin
                 hash_s              <= '0';
                 empty_hash_s        <= '0';
                 state_s             <= IDLE;
-            else
+            elsif rising_edge(clk) then
                 msg_auth_s          <= n_msg_auth_s;
                 eoi_s               <= n_eoi_s;
                 update_key_s        <= n_update_key_s;
@@ -344,14 +376,14 @@ begin
                 empty_hash_s        <= n_empty_hash_s;
                 state_s             <= n_state_s;
             end if;
-        end if;
-    end process p_reg;
+        end process p_reg;
+    end generate GEN_p_reg_ASYNC_RSTN;
 
     ----------------------------------------------------------------------------
     --! Next_state FSM
     ----------------------------------------------------------------------------
     p_next_state : process(state_s, key_valid, key_ready_s, key_update, bdi_valid,
-                            bdi_ready_s, bdi_eot, bdi_eoi, eoi_s, bdi_type, bdi_pad_loc_s,
+                            bdi_ready_s, bdi_eot, bdi_eoi, eoi_s, bdi_type,
                             word_cnt_s, hash_in, decrypt_s, bdo_valid_s, bdo_ready,
                             msg_auth_valid_s, msg_auth_ready, bdi_partial_s)
     begin
@@ -522,9 +554,6 @@ begin
                     n_state_s <= EXTRACT_HASH_VALUE;
                 end if;
 
-            when others =>
-                n_state_s <= IDLE;
-
         end case;
     end process p_next_state;
 
@@ -532,11 +561,10 @@ begin
     ----------------------------------------------------------------------------
     --! Decoder process for control logic
     ----------------------------------------------------------------------------
-    p_decoder : process(state_s, n_state_s, key_valid, key_ready_s, key_update, update_key_s,
+    p_decoder : process(state_s, key_valid, key_ready_s, key_update, update_key_s,
                             bdi_s, bdi_valid, bdi_ready_s, bdi_eoi, bdi_valid_bytes_s, bdi_pad_loc_s,
                             bdi_size, bdi_type, eoi_s, hash_in, hash_s, empty_hash_s, decrypt_in, decrypt_s,
-                            bdo_s, bdo_ready, word_cnt_s, msg_auth_s, msg_auth_valid_s, msg_auth_ready,
-                            tag_dout_s, len_word_s)
+                            bdo_s, bdo_ready, msg_auth_s, tag_dout_s, len_word_s)
     begin
         -- Default values preventing latches
         key_ready_s         <= '0';
@@ -678,141 +706,177 @@ begin
     ----------------------------------------------------------------------------
     --! Word, Byte and Block counters
     ----------------------------------------------------------------------------
-    p_counters : process(clk)
-    begin
-        if rising_edge(clk) then
-            if (rst = '1') then
+    GEN_p_counters_SYNC_RST: if (not ASYNC_RSTN) generate  
+        p_counters : process(clk)
+        begin
+            if rising_edge(clk) then
+                if (rst = '1') then
+                    word_cnt_s      <= 0;
+                    block_cnt_s     <= to_unsigned(1, block_cnt_s'length);
+                    ad_byte_cnt_s   <= (others => '0');
+                    msg_byte_cnt_s  <= (others => '0');
+                else
+                    word_cnt_s      <= word_cnt_s_next;
+                    block_cnt_s     <= block_cnt_s_next;
+                    ad_byte_cnt_s   <= ad_byte_cnt_s_next;
+                    msg_byte_cnt_s  <= msg_byte_cnt_s_next;
+                end if;
+            end if;
+        end process p_counters;
+    end generate GEN_p_counters_SYNC_RST;
+
+    GEN_p_counters_ASYNC_RSTN: if (ASYNC_RSTN) generate  
+        p_counters : process(clk, rst)
+        begin
+            if (rst = '0') then
                 word_cnt_s      <= 0;
                 block_cnt_s     <= to_unsigned(1, block_cnt_s'length);
                 ad_byte_cnt_s   <= (others => '0');
                 msg_byte_cnt_s  <= (others => '0');
-            else
-                case state_s is
-                    -- Nothing to do here, reset counters
-                    when IDLE =>
-                        word_cnt_s      <= 0;
-                        block_cnt_s     <= to_unsigned(1, block_cnt_s'length);
-                        ad_byte_cnt_s   <= (others => '0');
-                        msg_byte_cnt_s  <= (others => '0');
-
-                    -- If key is to be updated, increase counter on every successful
-                    -- data transfer (valid and ready), else just count the cycles required
-                    -- to move key from key_ram to tag_ram.
-                    when STORE_KEY =>
-                        if (key_update = '1') then
-                            if (key_valid = '1' and key_ready_s = '1') then
-                                if (word_cnt_s >= BLOCK_WORDS_C - 1) then
-                                    word_cnt_s <= 0;
-                                else
-                                    word_cnt_s <= word_cnt_s + 1;
-                                end if;
-                            end if;
-                        else
-                            if (word_cnt_s >= BLOCK_WORDS_C - 1) then
-                                word_cnt_s <= 0;
-                            else
-                                word_cnt_s <= word_cnt_s + 1;
-                            end if;
-                        end if;
-
-                    -- Every time a word is transferred, increase counter
-                    -- up to NPUB_WORDS_C
-                    when ABSORB_NONCE =>
-                        if (bdi_valid = '1' and bdi_ready_s = '1') then
-                            if (word_cnt_s >= NPUB_WORDS_C - 1) then
-                                word_cnt_s <= 0;
-                            else
-                                word_cnt_s <= word_cnt_s + 1;
-                            end if;
-                        end if;
-
-                    -- On valid transfer, increase word counter until either
-                    -- the block size is reached or the last input word is obtained and the 0x80
-                    -- padding byte can already be inserted (indicated by last transfer being
-                    -- only partially filled -> bdi_eot and bdi_partial).
-                    -- Additionally count number of ad bytes.
-                    when ABSORB_AD =>
-                        if (bdi_valid = '1' and bdi_ready_s = '1') then
-                            if (word_cnt_s >= BLOCK_WORDS_C - 1 or (bdi_eot = '1' and bdi_partial_s = '1')) then
-                                word_cnt_s <= 0;
-                            else
-                                word_cnt_s <= word_cnt_s + 1;
-                            end if;
-                            ad_byte_cnt_s <= ad_byte_cnt_s + unsigned(bdi_size);
-                        end if;
-
-                    -- Increase word counter when transferring data.
-                    -- Reset word counter if block size is reached or the last msg word is received
-                    -- and only partially filled such that the 0x80 padding byte could be inserted.
-                    -- Additionally count number of msg bytes.
-                    when ABSORB_MSG =>
-                        if (bdi_valid = '1' and bdi_ready_s = '1') then
-                            if (word_cnt_s >= BLOCK_WORDS_C - 1 or (bdi_eot = '1' and bdi_partial_s = '1')) then
-                                word_cnt_s  <= 0;
-                                block_cnt_s <= block_cnt_s + 1;
-                            else
-                                word_cnt_s <= word_cnt_s + 1;
-                            end if;
-                            msg_byte_cnt_s <= msg_byte_cnt_s + unsigned(bdi_size);
-                        end if;
-
-                    -- Increase word counter when transferring data until either the block size
-                    -- for hash msg is reached or the last word is transferred and it's only
-                    -- partially filled (again such that 0x80 can be inserted).
-                    when ABSORB_HASH_MSG =>
-                        if (bdi_valid = '1' and bdi_ready_s = '1') then
-                            if (word_cnt_s >= HASH_WORDS_C - 1 or (bdi_eot = '1' and bdi_partial_s = '1')) then
-                                word_cnt_s <= 0;
-                            else
-                                word_cnt_s <= word_cnt_s + 1;
-                            end if;
-                        end if;
-
-                    -- Reset word counters here. Due to 10* padding, only one 0x80
-                    -- Byte has to be inserted in this state.
-                    when PADD_AD | PADD_MSG | PADD_HASH_MSG =>
-                        word_cnt_s <= 0;
-
-                    -- Increase word counter up to block size or hash block size
-                    -- depending on whether input is currently hashed or not.
-                    when ABSORB_LENGTH | INIT_HASH =>
-                        if (word_cnt_s >= BLOCK_WORDS_C - 1 and hash_s = '0')
-                        or (word_cnt_s >= HASH_WORDS_C - 1 and hash_s = '1') then
-                            word_cnt_s  <= 0;
-                        else
-                            word_cnt_s <= word_cnt_s + 1;
-                        end if;
-
-                    -- Increase word counter on valid bdo transfer until either
-                    -- block size or hash block size is reached depending on whether
-                    -- input is hashed or not.
-                    when EXTRACT_TAG | EXTRACT_HASH_VALUE =>
-                        if (bdo_valid_s = '1' and bdo_ready = '1') then
-                            if (word_cnt_s >= BLOCK_WORDS_C - 1 and hash_s = '0')
-                            or (word_cnt_s >= HASH_WORDS_C - 1 and hash_s = '1') then
-                                word_cnt_s  <= 0;
-                            else
-                                word_cnt_s <= word_cnt_s + 1;
-                            end if;
-                        end if;
-
-                    -- Increase word counter when transferring the received data (tag).
-                    when VERIFY_TAG =>
-                        if (bdi_valid = '1' and bdi_ready_s = '1') then
-                            if (word_cnt_s >= BLOCK_WORDS_C - 1) then
-                                word_cnt_s  <= 0;
-                            else
-                                word_cnt_s <= word_cnt_s + 1;
-                            end if;
-                        end if;
-
-                    when others =>
-                        null;
-
-                end case;
+            elsif rising_edge(clk) then
+                word_cnt_s      <= word_cnt_s_next;
+                block_cnt_s     <= block_cnt_s_next;
+                ad_byte_cnt_s   <= ad_byte_cnt_s_next;
+                msg_byte_cnt_s  <= msg_byte_cnt_s_next;
             end if;
-        end if;
-    end process p_counters;
+        end process p_counters;
+    end generate GEN_p_counters_ASYNC_RSTN; 
+    
+    p_counters_next : process(state_s, word_cnt_s, block_cnt_s, ad_byte_cnt_s, msg_byte_cnt_s, bdi_valid, bdi_ready_s, --
+        key_valid, key_ready_s, bdo_valid_s, bdo_ready, bdi_eot, bdi_partial_s, hash_s, bdi_size, key_update) -- combinational
+    begin
+        -- defulat: no change
+        word_cnt_s_next      <= word_cnt_s;
+        block_cnt_s_next     <= block_cnt_s;
+        ad_byte_cnt_s_next   <= ad_byte_cnt_s;
+        msg_byte_cnt_s_next  <= msg_byte_cnt_s;
+
+        case state_s is
+            -- Nothing to do here, reset counters
+            when IDLE =>
+                word_cnt_s_next      <= 0;
+                block_cnt_s_next     <= to_unsigned(1, block_cnt_s'length);
+                ad_byte_cnt_s_next   <= (others => '0');
+                msg_byte_cnt_s_next  <= (others => '0');
+
+            -- If key is to be updated, increase counter on every successful
+            -- data transfer (valid and ready), else just count the cycles required
+            -- to move key from key_ram to tag_ram.
+            when STORE_KEY =>
+                if (key_update = '1') then
+                    if (key_valid = '1' and key_ready_s = '1') then
+                        if (word_cnt_s >= BLOCK_WORDS_C - 1) then
+                            word_cnt_s_next <= 0;
+                        else
+                            word_cnt_s_next <= word_cnt_s + 1;
+                        end if;
+                    end if;
+                else
+                    if (word_cnt_s >= BLOCK_WORDS_C - 1) then
+                        word_cnt_s_next <= 0;
+                    else
+                        word_cnt_s_next <= word_cnt_s + 1;
+                    end if;
+                end if;
+
+            -- Every time a word is transferred, increase counter
+            -- up to NPUB_WORDS_C
+            when ABSORB_NONCE =>
+                if (bdi_valid = '1' and bdi_ready_s = '1') then
+                    if (word_cnt_s >= NPUB_WORDS_C - 1) then
+                        word_cnt_s_next <= 0;
+                    else
+                        word_cnt_s_next <= word_cnt_s + 1;
+                    end if;
+                end if;
+
+            -- On valid transfer, increase word counter until either
+            -- the block size is reached or the last input word is obtained and the 0x80
+            -- padding byte can already be inserted (indicated by last transfer being
+            -- only partially filled -> bdi_eot and bdi_partial).
+            -- Additionally count number of ad bytes.
+            when ABSORB_AD =>
+                if (bdi_valid = '1' and bdi_ready_s = '1') then
+                    if (word_cnt_s >= BLOCK_WORDS_C - 1 or (bdi_eot = '1' and bdi_partial_s = '1')) then
+                        word_cnt_s_next <= 0;
+                    else
+                        word_cnt_s_next <= word_cnt_s + 1;
+                    end if;
+                    ad_byte_cnt_s_next <= ad_byte_cnt_s + unsigned(bdi_size);
+                end if;
+
+            -- Increase word counter when transferring data.
+            -- Reset word counter if block size is reached or the last msg word is received
+            -- and only partially filled such that the 0x80 padding byte could be inserted.
+            -- Additionally count number of msg bytes.
+            when ABSORB_MSG =>
+                if (bdi_valid = '1' and bdi_ready_s = '1') then
+                    if (word_cnt_s >= BLOCK_WORDS_C - 1 or (bdi_eot = '1' and bdi_partial_s = '1')) then
+                        word_cnt_s_next  <= 0;
+                        block_cnt_s_next <= block_cnt_s + 1;
+                    else
+                        word_cnt_s_next <= word_cnt_s + 1;
+                    end if;
+                    msg_byte_cnt_s_next <= msg_byte_cnt_s + unsigned(bdi_size);
+                end if;
+
+            -- Increase word counter when transferring data until either the block size
+            -- for hash msg is reached or the last word is transferred and it's only
+            -- partially filled (again such that 0x80 can be inserted).
+            when ABSORB_HASH_MSG =>
+                if (bdi_valid = '1' and bdi_ready_s = '1') then
+                    if (word_cnt_s >= HASH_WORDS_C - 1 or (bdi_eot = '1' and bdi_partial_s = '1')) then
+                        word_cnt_s_next <= 0;
+                    else
+                        word_cnt_s_next <= word_cnt_s + 1;
+                    end if;
+                end if;
+
+            -- Reset word counters here. Due to 10* padding, only one 0x80
+            -- Byte has to be inserted in this state.
+            when PADD_AD | PADD_MSG | PADD_HASH_MSG =>
+                word_cnt_s_next <= 0;
+
+            -- Increase word counter up to block size or hash block size
+            -- depending on whether input is currently hashed or not.
+            when ABSORB_LENGTH | INIT_HASH =>
+                if (word_cnt_s >= BLOCK_WORDS_C - 1 and hash_s = '0')
+                or (word_cnt_s >= HASH_WORDS_C - 1 and hash_s = '1') then
+                    word_cnt_s_next  <= 0;
+                else
+                    word_cnt_s_next <= word_cnt_s + 1;
+                end if;
+
+            -- Increase word counter on valid bdo transfer until either
+            -- block size or hash block size is reached depending on whether
+            -- input is hashed or not.
+            when EXTRACT_TAG | EXTRACT_HASH_VALUE =>
+                if (bdo_valid_s = '1' and bdo_ready = '1') then
+                    if (word_cnt_s >= BLOCK_WORDS_C - 1 and hash_s = '0')
+                    or (word_cnt_s >= HASH_WORDS_C - 1 and hash_s = '1') then
+                        word_cnt_s_next  <= 0;
+                    else
+                        word_cnt_s_next <= word_cnt_s + 1;
+                    end if;
+                end if;
+
+            -- Increase word counter when transferring the received data (tag).
+            when VERIFY_TAG =>
+                if (bdi_valid = '1' and bdi_ready_s = '1') then
+                    if (word_cnt_s >= BLOCK_WORDS_C - 1) then
+                        word_cnt_s_next <= 0;
+                    else
+                        word_cnt_s_next <= word_cnt_s + 1;
+                    end if;
+                end if;
+
+            when others =>
+                null;
+
+        end case;
+    end process p_counters_next;
+
+
     -- Cast the word counter to std_logic_vector for ram connection.
     ram_addr_s <= std_logic_vector(to_unsigned(word_cnt_s, ADDR_BITS_256_C));
 
