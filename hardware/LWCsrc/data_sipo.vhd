@@ -63,7 +63,7 @@ begin
 
 
 CCW8_16: if CCW /= 32 generate
-    GEN_porc_SYNC_RST: if (not ASYNC_RSTN) generate
+    GEN_proc_SYNC_RST: if (not ASYNC_RSTN) generate
         process (clk)
         begin
             if rising_edge(clk) then
@@ -74,8 +74,8 @@ CCW8_16: if CCW /= 32 generate
                 end if;
             end if;
         end process;
-    end generate GEN_porc_SYNC_RST;
-    GEN_porc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+    end generate GEN_proc_SYNC_RST;
+    GEN_proc_ASYNC_RSTN: if (ASYNC_RSTN) generate
         process (clk, rst)
         begin
             if(rst='0')  then
@@ -84,7 +84,7 @@ CCW8_16: if CCW /= 32 generate
                 state <= nx_state;
             end if;
         end process;
-    end generate GEN_porc_ASYNC_RSTN;
+    end generate GEN_proc_ASYNC_RSTN;
     
 end generate CCW8_16;
 

@@ -200,7 +200,7 @@ FSM_32BIT: if (W=32) generate
         );
 
     --! State register
-    GEN_porc_SYNC_RST: if (not ASYNC_RSTN) generate
+    GEN_proc_SYNC_RST: if (not ASYNC_RSTN) generate
         process (clk)
         begin
             if rising_edge(clk) then
@@ -211,8 +211,8 @@ FSM_32BIT: if (W=32) generate
                 end if;
             end if;
         end process;
-    end generate GEN_porc_SYNC_RST;
-    GEN_porc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+    end generate GEN_proc_SYNC_RST;
+    GEN_proc_ASYNC_RSTN: if (ASYNC_RSTN) generate
         process (clk, rst)
         begin
             if(rst='0')  then
@@ -221,7 +221,7 @@ FSM_32BIT: if (W=32) generate
                 pr_state <= nx_state;
             end if;
         end process;
-    end generate GEN_porc_ASYNC_RSTN;
+    end generate GEN_proc_ASYNC_RSTN;
 
 
     --! Next state function
@@ -504,7 +504,7 @@ FSM_16BIT: if (W=16) generate
     HDR_TAG_internal <= HDR_TAG & x"300"& tag_size_bytes(15 downto 0);
     
     --! State register
-    GEN_porc_SYNC_RST: if (not ASYNC_RSTN) generate
+    GEN_proc_SYNC_RST: if (not ASYNC_RSTN) generate
         process (clk)
         begin
             if rising_edge(clk) then
@@ -515,8 +515,8 @@ FSM_16BIT: if (W=16) generate
                 end if;
             end if;
         end process;
-    end generate GEN_porc_SYNC_RST;
-    GEN_porc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+    end generate GEN_proc_SYNC_RST;
+    GEN_proc_ASYNC_RSTN: if (ASYNC_RSTN) generate
         process (clk, rst)
         begin
             if(rst='0')  then
@@ -525,7 +525,7 @@ FSM_16BIT: if (W=16) generate
                 pr_state <= nx_state;
             end if;
         end process;
-    end generate GEN_porc_ASYNC_RSTN;
+    end generate GEN_proc_ASYNC_RSTN;
 
 
     --! Next state function
@@ -815,7 +815,7 @@ FSM_8BIT: if (W=8) generate
     end process;
     
    --! State register
-   GEN_porc_SYNC_RST: if (not ASYNC_RSTN) generate
+   GEN_proc_SYNC_RST: if (not ASYNC_RSTN) generate
         process (clk)
         begin
             if rising_edge(clk) then
@@ -826,8 +826,8 @@ FSM_8BIT: if (W=8) generate
                 end if;
             end if;
         end process;
-    end generate GEN_porc_SYNC_RST;
-    GEN_porc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+    end generate GEN_proc_SYNC_RST;
+    GEN_proc_ASYNC_RSTN: if (ASYNC_RSTN) generate
         process (clk, rst)
         begin
             if(rst='0')  then
@@ -836,7 +836,7 @@ FSM_8BIT: if (W=8) generate
                 pr_state <= nx_state;
             end if;
         end process;
-    end generate GEN_porc_ASYNC_RSTN;
+    end generate GEN_proc_ASYNC_RSTN;
 
     --! Next state function
     process (pr_state, bdo_valid, do_ready, end_of_block, decrypt,
