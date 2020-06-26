@@ -54,6 +54,7 @@ entity CryptoCore is
         end_of_block    : out  STD_LOGIC;
         msg_auth_valid  : out  STD_LOGIC;
         msg_auth_ready  : in   STD_LOGIC;
+        msg_auth_dummy        : out  STD_LOGIC;
         msg_auth        : out  STD_LOGIC
     );
 end CryptoCore;
