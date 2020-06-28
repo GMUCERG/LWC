@@ -15,6 +15,9 @@ VERILOG_FILES := $(shell cat $(SOURCE_LIST_FILE) | egrep .*\.s?v | egrep -v .*\.
 $(eval  VHDL_FILES=$(VHDL_FILES))
 $(eval  VERILOG_FILES=$(VERILOG_FILES))
 
+export VHDL_FILES
+export VERILOG_FILES
+
 YOSYS_BIN := yosys
 YOSYS_GHDL_MODULE := -m ghdl
 
