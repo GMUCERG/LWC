@@ -100,7 +100,7 @@ architecture structure of LWC is
     --==========================================================================
 begin
 
-    assert (ASYNC_RSTN = false) report "Asynchronous and active-low reset is enabled!" severity warning;
+    assert (ASYNC_RSTN = false) report "[LWC] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
 
     Inst_PreProcessor: entity work.PreProcessor(PreProcessor)
         PORT MAP(
