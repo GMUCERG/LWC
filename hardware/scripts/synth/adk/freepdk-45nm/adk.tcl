@@ -165,5 +165,7 @@ set ADK_MIN_BUF_CELL   "BUF_X1"
 set ADK_MIN_BUF_PORT_I "A"
 set ADK_MIN_BUF_PORT_O "Z"
 
+set ADK_LIB_NAME NangateOpenCellLibrary
+set ADK_NAND2_GATE NAND2_X1
 
 
