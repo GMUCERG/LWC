@@ -80,7 +80,6 @@ package NIST_LWAPI_pkg is
     constant CTR_SIZE_LIM   : integer := 16;
 
     --! =======================================================================
-    --! Deprecated parameters from CAESAR-LWAPI! DO NOT CHANGE!
     --! asynchronous and active-low reset (for ASIC targets)
     constant ASYNC_RSTN    : boolean := True;
 
