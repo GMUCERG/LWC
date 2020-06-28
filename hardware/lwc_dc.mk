@@ -5,7 +5,7 @@ LOGS_DIR=logs
 RESULTS_DIR=results
 RESULTS_DIR=reports
 
-SYNTH_FRAMEWORK_ROOT=$(realpath $(PWD)/../../scripts/synth)
+SYNTH_FRAMEWORK_ROOT=$(LWC_ROOT)/scripts/synth
 
 # configurable variables
 DC_CMD ?= dc_shell-xg-t -64bit -topographical_mode
