@@ -98,6 +98,37 @@ architecture structure of LWC is
     signal cmd_valid_FIFO_out       : std_logic;
     signal cmd_ready_FIFO_out       : std_logic;
     --==========================================================================
+    
+    component CryptoCore
+    	port(
+    		clk             : in  STD_LOGIC;
+    		rst             : in  STD_LOGIC;
+    		key             : in  STD_LOGIC_VECTOR(CCSW - 1 downto 0);
+    		key_valid       : in  STD_LOGIC;
+    		key_ready       : out STD_LOGIC;
+    		bdi             : in  STD_LOGIC_VECTOR(CCW - 1 downto 0);
+    		bdi_valid       : in  STD_LOGIC;
+    		bdi_ready       : out STD_LOGIC;
+    		bdi_pad_loc     : in  STD_LOGIC_VECTOR(CCWdiv8 - 1 downto 0);
+    		bdi_valid_bytes : in  STD_LOGIC_VECTOR(CCWdiv8 - 1 downto 0);
+    		bdi_size        : in  STD_LOGIC_VECTOR(3 - 1 downto 0);
+    		bdi_eot         : in  STD_LOGIC;
+    		bdi_eoi         : in  STD_LOGIC;
+    		bdi_type        : in  STD_LOGIC_VECTOR(4 - 1 downto 0);
+    		decrypt_in      : in  STD_LOGIC;
+    		key_update      : in  STD_LOGIC;
+    		hash_in         : in  std_logic;
+    		bdo             : out STD_LOGIC_VECTOR(CCW - 1 downto 0);
+    		bdo_valid       : out STD_LOGIC;
+    		bdo_ready       : in  STD_LOGIC;
+    		bdo_type        : out STD_LOGIC_VECTOR(4 - 1 downto 0);
+    		bdo_valid_bytes : out STD_LOGIC_VECTOR(CCWdiv8 - 1 downto 0);
+    		end_of_block    : out STD_LOGIC;
+    		msg_auth_valid  : out STD_LOGIC;
+    		msg_auth_ready  : in  STD_LOGIC;
+    		msg_auth        : out STD_LOGIC
+    	);
+    end component CryptoCore;
 begin
 
     assert (ASYNC_RSTN = false) report "[LWC] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
@@ -131,7 +162,7 @@ begin
                 cmd_valid       => cmd_valid_FIFO_in                       ,
                 cmd_ready       => cmd_ready_FIFO_in
             );
-    Inst_Cipher: entity work.CryptoCore
+    Inst_Cipher: CryptoCore
         PORT MAP(
                 clk             => clk                                     ,
                 rst             => rst                                     ,
