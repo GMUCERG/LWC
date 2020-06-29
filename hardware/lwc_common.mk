@@ -1,5 +1,10 @@
 ifndef LWC_ROOT
-$(error LWC_ROOT must be defined in core Makefile)
+$(error LWC_ROOT must be defined in design-specific Makefile)
+endif
+
+ifndef CORE_ROOT
+CORE_ROOT ?= $(PWD)
+$(warning CORE_ROOT was not defined in design-specific Makefile, defaulting to)
 endif
 
 LWCSRC_DIR := $(LWC_ROOT)/LWCsrc
@@ -7,7 +12,9 @@ LWCSRC_DIR := $(LWC_ROOT)/LWCsrc
 ifeq ($(strip $(LWC_COMMON_INCLUDED)),)
 LWC_COMMON_INCLUDED=1
 TOP ?= LWC
-SOURCE_LIST_FILE ?= source_list.txt
+SOURCE_LIST_FILE ?= $(CORE_ROOT)/source_list.txt
+PYTHON3_BIN ?= python3
+
 VHDL_FILES := $(shell cat $(SOURCE_LIST_FILE) | egrep .*\.vhdl?)
 VERILOG_FILES := $(shell cat $(SOURCE_LIST_FILE) | egrep .*\.s?v | egrep -v .*\.vhdl?)
 

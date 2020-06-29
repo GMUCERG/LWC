@@ -36,7 +36,7 @@ endif
 SIM_ONLY_VHDL_FILES := $(VHDL_ADDITIONS) $(LWC_TB) 
 SIM_VHDL_FILES = $(VHDL_FILES) $(SIM_ONLY_VHDL_FILES)
 
-GENERICS_OPTS=$(shell python3 $(LWC_ROOT)/scripts/config_parser.py)
+GENERICS_OPTS=$(shell $(PYTHON3) $(LWC_ROOT)/scripts/config_parser.py)
 
 ### GHDL analyze testbench files, elaborate, and run
 sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_VHDL_FILES) Makefile
@@ -52,4 +52,5 @@ endif
 
 clean-ghdl:
 	-@rm -f $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_TOP) $(patsubst %.vhd,%.o,$(patsubst %.vhdl,%.o,$(notdir $(SIM_VHDL_FILES))))
-endif
+
+endif #LWC_GHDL_INCLUDED
