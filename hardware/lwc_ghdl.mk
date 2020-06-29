@@ -40,7 +40,7 @@ GENERICS_OPTS=$(shell $(PYTHON3) $(LWC_ROOT)/scripts/config_parser.py)
 
 ### GHDL analyze testbench files, elaborate, and run
 sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_VHDL_FILES) Makefile
-	$(GHDL) -a $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_VHDL_FILES) $(LWC_TB)
+	$(GHDL) -a $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_VHDL_FILES)
 	$(GHDL) -e $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_TOP) 
 	$(GHDL) -r $(SIM_TOP) $(GHDL_SIM_OPTS) $(GENERICS_OPTS) $(VCD_OPT)
 
