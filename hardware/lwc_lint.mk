@@ -24,4 +24,4 @@ ifneq ($(strip $(VHDL_FILES)),)
 endif
 
 lint-yosys: $(WORK_LIB)-obj$(VHDL_STD).cf $(VERILOG_FILES)
-	$(YOSYS_BIN) $(YOSYS_GHDL_MODULE) -p "$(YOSYS_READ_VHDL_CMD) $(YOSYS_READ_VERILOG_CMD) proc; check -assert; hierarchy -check -top $(TOP)"
+	$(YOSYS_BIN) $(YOSYS_GHDL_MODULE) -p "$(YOSYS_READ_VHDL_CMD) $(YOSYS_READ_VERILOG_CMD) proc; check -assert; hierarchy -check -top $(TOP); ls"
