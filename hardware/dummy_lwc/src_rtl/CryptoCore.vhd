@@ -320,7 +320,7 @@ begin
             -- Default values.
             when others =>
                 bdo_s               <= (others => '0');
-                bdo_valid_bytes_s   <= (0 => '1', others => '0');
+                bdo_valid_bytes_s   <= (others => '0');
                 bdo_valid_s         <= '0';
                 end_of_block_s      <= '0';
                 bdo_type_s          <= HDR_TAG;
