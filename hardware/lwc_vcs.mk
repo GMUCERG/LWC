@@ -18,14 +18,15 @@ else
 VCS_VLOGAN_CMD := vlogan -full64 -nc -sverilog +v2k -work $(WORK_DIR) +warn=all  $(VERILOG_FILES)
 endif
 
+VCS_GENERICS_OPTS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/scripts/config_parser.py vcs_generics)
 
-$(VCS_SIMV) : Makefile $(WORK_DIR) $(SIM_VHDL_FILES) $(VERILOG_FILES) synopsys_sim.setup Makefile
+vcs-compile : Makefile $(WORK_DIR) $(SIM_VHDL_FILES) $(VERILOG_FILES) synopsys_sim.setup Makefile
 	$(VCS_VLOGAN_CMD)
 	vhdlan -full64 -nc -w WORK $(SIM_VHDL_FILES)
 	vcs $(SIM_TOP) -full64 -nc -j4 -l vcs.log
 
-sim-vcs.log : Makefile $(VCS_SIMV) 
-	./$(VCS_SIMV) -nc -l $@
+sim-vcs : clean-vcs vcs-compile
+	./$(VCS_SIMV) -nc -lca $(VCS_GENERICS_OPTS) -l $@
 
 
-sim-vcs : sim-vcs.log
+# sim-vcs : sim-vcs.log
