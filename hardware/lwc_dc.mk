@@ -3,7 +3,7 @@
 ## FIXME hardcoded in TCL
 LOGS_DIR=logs
 RESULTS_DIR=results
-RESULTS_DIR=reports
+REPORTS_DIR=reports
 
 SYNTH_FRAMEWORK_ROOT=$(LWC_ROOT)/scripts/synth
 
@@ -40,3 +40,6 @@ $(REPORTS_DIR):
 
 synth-dc: $(LOGS_DIR) $(RESULTS_DIR) $(REPORTS_DIR) $(VERILOG_FILES) $(VHDL_FILES)
 	$(DC_CMD) -f $(DC_START_TCL) -output_log_file $(LOGS_DIR)/dc.log
+
+clean-dc:
+	@rm -rf $(LOGS_DIR) $(RESULTS_DIR) $(REPORTS_DIR)
