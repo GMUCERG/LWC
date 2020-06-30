@@ -1,11 +1,17 @@
 import configparser
 from sys import argv
 
+def quote_strings(x):
+    if isinstance(x, str):
+        return f'\\"{x}\\"'
+    else:
+        return str(x)
+
 def ghdl_generics(config):
-    return ' '.join(["-g" + k + "=" + v.strip().strip('"') for k, v in config.items('Generics')])
+    return ' '.join([ f"-g{k}={v}" for k, v in config.items('Generics')])
 
 def vcs_generics(config):
-    return ' '.join([f"-gv {k}=\\\"{v}\\\"" for k, v in config.items('Generics')])
+    return ' '.join([f"-gv {k}={quote_strings(v)}" for k, v in config.items('Generics')])
 
 if __name__ == "__main__":
     config = configparser.ConfigParser()
