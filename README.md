@@ -79,8 +79,7 @@ Where `<RULENAME>` is any of the following available rules:
     - `synth-xilinx-yosys-xc7`: Yosys FPGA synthesis targeting Xilinx series-7 devices.
   - ASIC:
     - `synth-dc`: ASIC synthesis using Synopsys Design Compiler. PDK and standard-cell library can be configured. FreePDK-45/nangate library is included.
-
-Tool dependencies
+#### Tool dependencies (see Dockerfile section):
 - [GHDL](https://github.com/ghdl/ghdl) open-source VHDL simulator and synthesizer: Version 0.38 (upon release), master, or [nightly binaries](https://github.com/ghdl/ghdl/releases/tag/nightly)
 - [Verilator](https://github.com/verilator/verilator) fast open-source Verilog/SystemVerilog simulator: Version v4.036
 - [Yosys](https://github.com/YosysHQ/yosys) Open SYnthesis Suite: 0.9+ or master
@@ -88,6 +87,16 @@ Tool dependencies
 - Python 3.7+
 - GNU Make 4.2+
 
+#### Docker build
+Build the container
+- cd LWC/
+- docker build -t ghdl
+Run the container
+- cd LWC/
+- docker run -it  -v ${PWD}:/LWC ghdl /bin/bash
+Now in the docker container run sim-ghdl
+- cd LWC/dummy_lwc/src_rtl/
+- make sim-ghdl
 
 External core examples incorporating the framework:
 - Modified COMET-CHAM from Virginia Tech: https://github.com/kammoh/comet_cham_lwc_v2/tree/asic (`asic` branch)
