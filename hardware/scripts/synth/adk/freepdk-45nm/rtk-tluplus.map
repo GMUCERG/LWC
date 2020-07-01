@@ -1,0 +1,24 @@
+conducting_layers
+  active     active
+	poly	 poly
+	metal1	 M1	   
+	metal2	 M2	   
+	metal3	 M3	   
+	metal4	 M4
+	metal5	 M5	   
+	metal6	 M6	   
+	metal7	 M7	   
+	metal8	 M8	   
+	metal9	 M9		  
+	metal10	 M10		  
+via_layers
+	via1	 via1 
+	via2	 via2   	 
+	via3	 via3   	 
+	via4	 via4   	 
+	via5	 via5   	 
+	via6	 via6   	 
+	via7	 via7   	 
+	via8	 via8
+	via9	 via9
+	

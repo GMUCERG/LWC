@@ -78,12 +78,15 @@ open_mw_lib $milkyway_library
 
 # Set up TLU plus (if the files exist)
 
+puts "dc_topographical=$dc_topographical"
+puts "dc_tluplus_max=$dc_tluplus_max"
+puts "dc_tluplus_map=$dc_tluplus_map"                       
+
+# TODO if exists:  -min_tluplus  $dc_tluplus_min
 if { $dc_topographical == True } {
   if {[file exists [which $dc_tluplus_max]]} {
     set_tlu_plus_files -max_tluplus  $dc_tluplus_max \
-                       -min_tluplus  $dc_tluplus_min \
                        -tech2itf_map $dc_tluplus_map
-
     check_tlu_plus_files
   }
 }
@@ -138,12 +141,13 @@ set compile_seqmap_honor_sync_set_reset true
 
 set compile_optimize_unloaded_seq_logic_with_no_bound_opt true
 
+puts "--- DC setup completed ---"
 # Remove new variable info messages from the end of the log file
 
 set_app_var sh_new_variable_message false
 
 # Hook to drop into interactive Design Compiler shell after setup
 
-if {[info exists ::env(DC_EXIT_AFTER_SETUP)]} { set DC_SETUP_DONE true }
+#if {[info exists ::env(DC_EXIT_AFTER_SETUP)]} { set DC_SETUP_DONE true }
 
 
