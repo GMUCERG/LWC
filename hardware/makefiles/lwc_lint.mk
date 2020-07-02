@@ -1,7 +1,3 @@
-
-include $(LWC_ROOT)/lwc_common.mk
-include $(LWC_ROOT)/lwc_ghdl.mk
-
 VERILATOR_BIN ?= verilator
 YOSYS_BIN ?= yosys
 

@@ -1,1 +1,0 @@
-include $(LWC_ROOT)/lwc_dc.mk

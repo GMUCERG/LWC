@@ -1,10 +1,8 @@
 
 SYNTH_FRAMEWORK_ROOT=$(realpath $(LWC_ROOT)/scripts/synth)
 
-
 DC_CMD ?= dc_shell-xg-t -64bit -topographical_mode
 DC_START_TCL=$(SYNTH_FRAMEWORK_ROOT)/tools/dc/dc-start.tcl
-
 
 # configurable variables
 # see hardware/scripts/synth/tools/dc/compile-options.tcl

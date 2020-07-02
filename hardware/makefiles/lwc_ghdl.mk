@@ -1,4 +1,3 @@
-ifeq ($(strip $(LWC_GHDL_INCLUDED)),)
 LWC_GHDL_INCLUDED=1
 
 GHDL_BIN ?= ghdl
@@ -64,5 +63,3 @@ help-ghdl:
 
 clean-ghdl:
 	-@rm -f $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_TOP) e~*.o $(patsubst %.vhd,%.o,$(patsubst %.vhdl,%.o,$(notdir $(SIM_VHDL_FILES))))
-
-endif #LWC_GHDL_INCLUDED

@@ -1,6 +1,3 @@
-ifeq ($(strip $(LWC_COMMON_INCLUDED)),)
-LWC_COMMON_INCLUDED=1
-
 ifndef LWC_ROOT
 $(error LWC_ROOT must be defined in design-specific Makefile)
 endif
@@ -112,5 +109,3 @@ help-common:
 	@echo
 
 # @printf "%b" "\t - $(OK_COLOR) synth-vivado$(NO_COLOR) \t FPGA synthesis using Xilinx Vivado \n";
-
-endif

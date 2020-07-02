@@ -1,5 +1,3 @@
-include $(LWC_ROOT)/lwc_ghdl.mk
-
 YOSYS_FPGA ?= xc7
 
 ifeq ($(strip $(YOSYS_FPGA)),xc7)
