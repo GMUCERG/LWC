@@ -16,6 +16,16 @@ TOP ?= LWC
 SOURCE_LIST_FILE ?= $(CORE_ROOT)/source_list.txt
 PYTHON3_BIN ?= python3
 
+## test config parser:
+TEST_CONFIG_PARSER_OK=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/scripts/config_parser.py testx)
+
+ifneq ($(TEST_CONFIG_PARSER_OK),OK)
+$(error config_parser.py failed: $(TEST_CONFIG_PARSER_OK))
+endif
+
+
+
+
 VHDL_FILES := $(shell cat $(SOURCE_LIST_FILE) | egrep .*\.vhdl?)
 VERILOG_FILES := $(shell cat $(SOURCE_LIST_FILE) | egrep .*\.s?v | egrep -v .*\.vhdl?)
 
@@ -27,7 +37,7 @@ export VHDL_FILES
 export VERILOG_FILES
 
 
-YOSYS_BIN := yosys
+YOSYS_BIN := $(DOCKER_CMD) yosys
 YOSYS_GHDL_MODULE := -m ghdl
 
 VHDL_STD ?= 93
@@ -47,6 +57,11 @@ else
 YOSYS_READ_VERILOG_CMD := read_verilog $(VERILOG_FILES);
 endif
 
+
+ifneq ($(strip $(USE_DOCKER)),)
+docker pull ghdl/synth:beta
+DOCKER_CMD="$(command -v winpty) docker run --rm -it -v /$(LWC_ROOT)://lwc_root -v /$(pwd)://wrk -w //wrk"
+endif
 
 
 default: help
