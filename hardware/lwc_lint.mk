@@ -6,7 +6,7 @@ VERILATOR_BIN ?= verilator
 YOSYS_BIN ?= yosys
 
 VHDL_LINT_CMD := $(GHDL_BIN) -s --mb-comments $(GHDL_OPT) $(GHDL_WARNS)
-VERILOG_LINT_CMD := $(VERILATOR_BIN) -Wall --lint-only
+VERILOG_LINT_CMD := $(VERILATOR_BIN) --lint-only $(VERILATOR_LINT_FLAGS)
 
 lint: lint-verilog lint-vhdl lint-vhdl-synth lint-yosys
 

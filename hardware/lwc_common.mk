@@ -18,7 +18,7 @@ DOCKER_CMD := $(shell command -v winpty) docker run --rm -it -v /$(CORE_ROOT):/$
 PYTHON3_BIN := $(DOCKER_CMD) ghdl/synth:beta python3
 GHDL_BIN := $(DOCKER_CMD) ghdl/synth:beta ghdl
 YOSYS_BIN := $(DOCKER_CMD) ghdl/synth:beta yosys
-VERILATOR_BIN := $(DOCKER_CMD) verilator/verilator
+VERILATOR_BIN := $(DOCKER_CMD) verilator/verilator:4.036
 endif
 
 TOP ?= LWC
