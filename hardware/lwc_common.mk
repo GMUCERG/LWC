@@ -5,10 +5,7 @@ ifndef LWC_ROOT
 $(error LWC_ROOT must be defined in design-specific Makefile)
 endif
 
-ifndef CORE_ROOT
-CORE_ROOT ?= $(PWD)
-$(info CORE_ROOT was not defined in design-specific Makefile. Defaulting to current work directory: $(CORE_ROOT))
-endif
+CORE_ROOT := $(PWD)
 
 LWCSRC_DIR := $(LWC_ROOT)/LWCsrc
 SCRIPTS_DIR := $(LWC_ROOT)/scripts
@@ -16,7 +13,7 @@ SCRIPTS_DIR := $(LWC_ROOT)/scripts
 ifneq ($(strip $(USE_DOCKER)),)
 # docker pull ghdl/synth:beta
 $(info Using docker for Python3, GHDL, Yosys, and Verilator)
-DOCKER_CMD := $(shell command -v winpty) docker run --rm -it -v /$(CORE_ROOT):/$(CORE_ROOT) -v /$(LWC_ROOT):/$(LWC_ROOT) -v /$(PWD)://wrk -w //wrk
+DOCKER_CMD := $(shell command -v winpty) docker run --rm -it -v /$(CORE_ROOT):/$(CORE_ROOT) -v /$(LWC_ROOT):/$(LWC_ROOT) -v /$(PWD):/cwd -w /$(CORE_ROOT)
 
 PYTHON3_BIN := $(DOCKER_CMD) ghdl/synth:beta python3
 GHDL_BIN := $(DOCKER_CMD) ghdl/synth:beta ghdl
