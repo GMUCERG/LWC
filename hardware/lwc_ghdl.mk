@@ -51,12 +51,15 @@ YOSYS_READ_VHDL_CMD := ghdl $(GHDL_OPT) $(GHDL_WARNS) $(TOP);
 endif
 
 help-ghdl:
+	@printf "%b" "$(OBJ_COLOR)GHDL variables$(NO_COLOR):\n";
+	@printf "%b" "VHDL_STD \t VHDL standard to use: 87, 93 (using 93c), 00, 02, 08\n";
+	@echo
 	@printf "%b" "$(OBJ_COLOR)sim-ghdl variables$(NO_COLOR):\n";
-	@echo "VHDL_STD \t VHDL standard to use: 87, 93 (using 93c), 00, 02, 08"
-	@echo "VCD_FILE \t filename to generate VCD wave"
-	@echo "VCDGZ_FILE \t filename to generate VCD wave, gziped"
-	@echo "GHW_FILE \t filename to GHW wave (better support for VHDL types) "
-	@echo "GHDL_OPTIMIZE \t Set GHDL optimization, default: -O3"
+	@printf "%b" "VCD_FILE \t filename to generate VCD wave\n";
+	@printf "%b" "VCDGZ_FILE \t filename to generate VCD wave, gziped\n";
+	@printf "%b" "GHW_FILE \t filename to GHW wave (better support for VHDL types)\n";
+	@printf "%b" "GHDL_OPTIMIZE \t Set GHDL optimization, default: -O3\n";
+	@echo
 
 clean-ghdl:
 	-@rm -f $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_TOP) e~*.o $(patsubst %.vhd,%.o,$(patsubst %.vhdl,%.o,$(notdir $(SIM_VHDL_FILES))))

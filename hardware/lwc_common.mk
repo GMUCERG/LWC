@@ -69,7 +69,7 @@ endif
 
 
 
-default: help
+default: help-all
 
 COM_COLOR   = \033[0;34m
 OBJ_COLOR   = \033[0;36m
@@ -77,6 +77,8 @@ OK_COLOR    = \033[0;32m
 ERROR_COLOR = \033[0;31m
 WARN_COLOR  = \033[0;33m
 NO_COLOR    = \033[m
+
+help-all: help help-ghdl	help-yosys
 
 help:
 	@cat $(LWC_ROOT)/cerg.ascii
@@ -101,7 +103,9 @@ help:
 	@printf "%b" "$(OBJ_COLOR)* Synthesis$(NO_COLOR)\n";
 	@printf "%b" "\t - $(OK_COLOR) synth-dc $(NO_COLOR) \t\t ASIC synthesis using Synopsys Design Compiler \n";
 	@printf "%b" "\t - $(OK_COLOR) synth-yosys-fpga $(NO_COLOR) \t FPGA synthesis using Yosys and GHDL. \n";
-	
+	@echo
+	@echo
+
 # @printf "%b" "\t - $(OK_COLOR) synth-vivado$(NO_COLOR) \t FPGA synthesis using Xilinx Vivado \n";
 
 

@@ -20,6 +20,7 @@ synth-yosys-fpga-$(YOSYS_FPGA).json: $(WORK_LIB)-obj$(VHDL_STD).cf $(VERILOG_FIL
 
 synth-yosys-fpga: synth-yosys-fpga-$(YOSYS_FPGA).json
 
-help-synth:
+help-yosys:
 	@printf "%b" "$(OBJ_COLOR)synth-yosys-fpga$(NO_COLOR):\n";
-	@echo "\tYOSYS_FPGA \t Set target FPGA family: xc7, ic40, or ecp5"
+	@printf "%b" "YOSYS_FPGA \t Set target FPGA family: xc7, ic40, or ecp5\n";
+	@echo
