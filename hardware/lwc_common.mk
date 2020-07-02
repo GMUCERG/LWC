@@ -85,17 +85,19 @@ help:
 	@echo
 	@printf "%b" "\n $(ERROR_COLOR)Available Targets:$(NO_COLOR)\n\n";
 	@printf "%b" "$(OBJ_COLOR)* Lint (checking)$(NO_COLOR)\n";
-	@printf "%b" "\t - $(OK_COLOR) lint-vhdl $(NO_COLOR): \t lint VHDL files using GHDL\n";
-	@printf "%b" "\t - $(OK_COLOR) lint-verilog $(NO_COLOR): \t lint Verilog files using Verilator\n";
-	@printf "%b" "\t - $(OK_COLOR) lint-yosys $(NO_COLOR): \t lint full design (VHDL and Verilog) using yosys and ghdl-yosys-plugin \n";
+	@printf "%b" "\t - $(OK_COLOR) lint-vhdl $(NO_COLOR) \t\t lint VHDL files using GHDL\n";
+	@printf "%b" "\t - $(OK_COLOR) lint-vhdl-synth $(NO_COLOR) \t lint VHDL files using GHDL in synthesis mode\n";
+	@printf "%b" "\t - $(OK_COLOR) lint-verilog $(NO_COLOR) \t lint Verilog files using Verilator\n";
+	@printf "%b" "\t - $(OK_COLOR) lint-yosys $(NO_COLOR) \t lint full design (VHDL and Verilog) using yosys and ghdl-yosys-plugin \n";
+	@printf "%b" "\t - $(OK_COLOR) lint $(NO_COLOR) \t\t lint full design (VHDL and Verilog) using all available linters \n";
 	@echo
 	@printf "%b" "$(OBJ_COLOR)* Simulation$(NO_COLOR)\n";
-	@printf "%b" "\t - $(OK_COLOR) sim-ghdl $(NO_COLOR): \t\t simulate using GHDL (VHDL only) \n";
-	@printf "%b" "\t - $(OK_COLOR) sim-vcs $(NO_COLOR): \t\t simulate using Synopsys VCS (VHDL and Verilog) \n";
+	@printf "%b" "\t - $(OK_COLOR) sim-ghdl $(NO_COLOR) \t\t simulate using GHDL (VHDL only) \n";
+	@printf "%b" "\t - $(OK_COLOR) sim-vcs $(NO_COLOR) \t\t simulate using Synopsys VCS (VHDL and Verilog) \n";
 	@echo
 	@printf "%b" "$(OBJ_COLOR)* Synthesis$(NO_COLOR)\n";
-	@printf "%b" "\t - $(OK_COLOR) synth-dc $(NO_COLOR): \t\t ASIC synthesis using Synopsys Design Compiler \n";
-	@printf "%b" "\t - $(OK_COLOR) synth-yosys-x $(NO_COLOR): \t FPGA synthesis using Yosys and GHDL \n";
-	@printf "%b" "\t - $(OK_COLOR) synth-vivado$(NO_COLOR): \t FPGA synthesis using Xilinx Vivado \n";
+	@printf "%b" "\t - $(OK_COLOR) synth-dc $(NO_COLOR) \t\t ASIC synthesis using Synopsys Design Compiler \n";
+	@printf "%b" "\t - $(OK_COLOR) synth-yosys-fpga $(NO_COLOR) \t FPGA synthesis using Yosys and GHDL \n";
+	@printf "%b" "\t - $(OK_COLOR) synth-vivado$(NO_COLOR) \t FPGA synthesis using Xilinx Vivado \n";
 
 endif

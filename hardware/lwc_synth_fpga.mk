@@ -1,7 +1,22 @@
 include $(LWC_ROOT)/lwc_ghdl.mk
 
-yosys_synth_xc7.json: $(WORK_LIB)-obj$(VHDL_STD).cf $(VERILOG_FILES) Makefile
-	$(YOSYS_BIN) $(YOSYS_GHDL_MODULE) -p "$(YOSYS_READ_VERILOG_CMD) $(YOSYS_READ_VHDL_CMD) synth_xilinx -widemux 6 -flatten -nobram -arch xc7; write_json $@ ; check -assert; stat"
+YOSYS_FPGA ?= xc7
+
+ifeq ($(strip $(YOSYS_FPGA)),xc7)
+$(info Yosys FPGA target: Xilinx 7 Series)
+YOSYS_SYNTH_CMD := synth_xilinx -widemux 6 -flatten -retime -nobram -arch xc7
+else ifeq ($(strip $(YOSYS_FPGA)),ice40)
+$(info Yosys FPGA target: Lattice iCE40)
+YOSYS_SYNTH_CMD := synth_ice40 -retime -nobram
+else ifeq ($(strip $(YOSYS_FPGA)),ecp5)
+$(info Yosys FPGA target: Lattice ECP5)
+YOSYS_SYNTH_CMD := synth_ecp5 -retime -nobram
+else
+$(error unsupported YOSYS_FPGA=$(YOSYS_FPGA) )
+endif
+
+synth-yosys-fpga-$(YOSYS_FPGA).json: $(WORK_LIB)-obj$(VHDL_STD).cf $(VERILOG_FILES) Makefile
+	$(YOSYS_BIN) $(YOSYS_GHDL_MODULE) -p "$(YOSYS_READ_VERILOG_CMD) $(YOSYS_READ_VHDL_CMD) $(YOSYS_SYNTH_CMD) -top $(TOP); write_json $@ ; check -assert; stat"
 
 
-synth-xilinx-yosys-xc7: yosys_synth_xc7.json
+synth-yosys-fpga: synth-yosys-fpga-$(YOSYS_FPGA).json
