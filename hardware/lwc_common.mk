@@ -6,7 +6,7 @@ endif
 
 ifndef CORE_ROOT
 CORE_ROOT ?= $(PWD)
-$(warning CORE_ROOT was not defined in design-specific Makefile, defaulting to)
+$(info CORE_ROOT was not defined in design-specific Makefile and was set to $(CORE_ROOT))
 endif
 
 LWCSRC_DIR := $(LWC_ROOT)/LWCsrc

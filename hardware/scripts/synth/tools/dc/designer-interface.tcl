@@ -16,22 +16,21 @@
 # Parameters
 #-------------------------------------------------------------------------
 
-set dc_design_name                $::env(design_name)
-set dc_clock_period               $::env(clock_period)
-set dc_saif_instance              $::env(saif_instance)
-set dc_flatten_effort             $::env(flatten_effort)
-set dc_topographical              $::env(topographical)
-set dc_num_cores                  $::env(nthreads)
-set dc_high_effort_area_opt       $::env(high_effort_area_opt)
-set dc_gate_clock                 $::env(gate_clock)
-set dc_uniquify_with_design_name  $::env(uniquify_with_design_name)
+set dc_design_name                $::env(DESIGN_NAME)
+set dc_clock_period               $::env(CLOCK_PERIOD)
+set dc_saif_instance              $::env(SAIF_INSTANCE)
+set dc_flatten_effort             $::env(FLATTEN_EFFORT)
+set dc_topographical              $::env(TOPOGRAPHICAL)
+set dc_num_cores                  $::env(NTHREADS)
+set dc_high_effort_area_opt       $::env(HIGH_EFFORT_AREA_OPT)
+set dc_gate_clock                 $::env(GATE_CLOCK)
+set dc_uniquify_with_design_name  $::env(UNIQUIFY_WITH_DESIGN_NAME)
 
 #-------------------------------------------------------------------------
 # Inputs
 #-------------------------------------------------------------------------
 
-set dc_rtl_handoff              inputs/design.v
-set adk_dir                     $::env(adk_dir)
+set adk_dir                     $::env(ADK_DIR)
 
 # Extra libraries
 #
@@ -74,8 +73,6 @@ set dc_additional_search_path   $adk_dir
 # Directories
 #-------------------------------------------------------------------------
 
-set dc_reports_dir              reports
-set dc_results_dir              results
-set dc_alib_dir                 alib
-
-
+set dc_reports_dir              $::env(DC_REPORTS_DIR)
+set dc_results_dir              $::env(DC_RESULTS_DIR)
+set dc_alib_dir                 $::env(DC_ALIB_DIR)
