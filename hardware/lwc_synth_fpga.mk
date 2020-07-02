@@ -3,13 +3,13 @@ include $(LWC_ROOT)/lwc_ghdl.mk
 YOSYS_FPGA ?= xc7
 
 ifeq ($(strip $(YOSYS_FPGA)),xc7)
-$(info Yosys FPGA target: Xilinx 7 Series)
+# $(info Yosys FPGA target: Xilinx 7 Series)
 YOSYS_SYNTH_CMD := synth_xilinx -widemux 6 -flatten -retime -nobram -arch xc7
 else ifeq ($(strip $(YOSYS_FPGA)),ice40)
-$(info Yosys FPGA target: Lattice iCE40)
+# $(info Yosys FPGA target: Lattice iCE40)
 YOSYS_SYNTH_CMD := synth_ice40 -retime -nobram
 else ifeq ($(strip $(YOSYS_FPGA)),ecp5)
-$(info Yosys FPGA target: Lattice ECP5)
+# $(info Yosys FPGA target: Lattice ECP5)
 YOSYS_SYNTH_CMD := synth_ecp5 -retime -nobram
 else
 $(error unsupported YOSYS_FPGA=$(YOSYS_FPGA) )
@@ -18,5 +18,8 @@ endif
 synth-yosys-fpga-$(YOSYS_FPGA).json: $(WORK_LIB)-obj$(VHDL_STD).cf $(VERILOG_FILES) Makefile
 	$(YOSYS_BIN) $(YOSYS_GHDL_MODULE) -p "$(YOSYS_READ_VERILOG_CMD) $(YOSYS_READ_VHDL_CMD) $(YOSYS_SYNTH_CMD) -top $(TOP); write_json $@ ; check -assert; stat"
 
-
 synth-yosys-fpga: synth-yosys-fpga-$(YOSYS_FPGA).json
+
+help-synth:
+	@printf "%b" "$(OBJ_COLOR)synth-yosys-fpga$(NO_COLOR):\n";
+	@echo "\tYOSYS_FPGA \t Set target FPGA family: xc7, ic40, or ecp5"

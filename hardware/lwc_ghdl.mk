@@ -3,12 +3,12 @@ LWC_GHDL_INCLUDED=1
 
 GHDL_BIN ?= ghdl
 
-GHDL_OPTIMIZE := -O3
+GHDL_OPTIMIZE ?= -O3
 
 GHDL_OPT := -frelaxed-rules --warn-no-vital-generic -frelaxed $(GHDL_OPTIMIZE)
-GHDL_ELAB_OPTS := --mb-comments 
-GHDL_WARNS := -Wbinding -Wreserved -Wlibrary -Wvital-generic -Wdelayed-checks -Wbody -Wspecs -Wunused --warn-no-runtime-error
-GHDL_SIM_OPTS :=
+GHDL_WARNS ?= -Wbinding -Wreserved -Wlibrary -Wvital-generic -Wdelayed-checks -Wbody -Wspecs -Wunused --warn-no-runtime-error
+GHDL_ELAB_OPTS ?= --mb-comments 
+GHDL_SIM_OPTS ?=
 
 ifeq ($(strip $(VHDL_STD)),93)
 GHDL_OPT += --std=93c
@@ -49,6 +49,14 @@ YOSYS_READ_VHDL_CMD :=
 else
 YOSYS_READ_VHDL_CMD := ghdl $(GHDL_OPT) $(GHDL_WARNS) $(TOP);
 endif
+
+help-ghdl:
+	@printf "%b" "$(OBJ_COLOR)sim-ghdl variables$(NO_COLOR):\n";
+	@echo "VHDL_STD \t VHDL standard to use: 87, 93 (using 93c), 00, 02, 08"
+	@echo "VCD_FILE \t filename to generate VCD wave"
+	@echo "VCDGZ_FILE \t filename to generate VCD wave, gziped"
+	@echo "GHW_FILE \t filename to GHW wave (better support for VHDL types) "
+	@echo "GHDL_OPTIMIZE \t Set GHDL optimization, default: -O3"
 
 clean-ghdl:
 	-@rm -f $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_TOP) e~*.o $(patsubst %.vhd,%.o,$(patsubst %.vhdl,%.o,$(notdir $(SIM_VHDL_FILES))))

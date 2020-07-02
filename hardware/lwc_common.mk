@@ -82,6 +82,9 @@ help:
 	@cat $(LWC_ROOT)/cerg.ascii
 	@echo
 	@echo LWC Lint, Simulation, and Synthesis Framework
+	@echo 
+	@echo "set USE_DOCKER=1 to automatically run commands (Python3, GHDL, Yosys, Verilator) using Docker"
+	@echo
 	@echo
 	@printf "%b" "\n $(ERROR_COLOR)Available Targets:$(NO_COLOR)\n\n";
 	@printf "%b" "$(OBJ_COLOR)* Lint (checking)$(NO_COLOR)\n";
@@ -97,7 +100,9 @@ help:
 	@echo
 	@printf "%b" "$(OBJ_COLOR)* Synthesis$(NO_COLOR)\n";
 	@printf "%b" "\t - $(OK_COLOR) synth-dc $(NO_COLOR) \t\t ASIC synthesis using Synopsys Design Compiler \n";
-	@printf "%b" "\t - $(OK_COLOR) synth-yosys-fpga $(NO_COLOR) \t FPGA synthesis using Yosys and GHDL \n";
-	@printf "%b" "\t - $(OK_COLOR) synth-vivado$(NO_COLOR) \t FPGA synthesis using Xilinx Vivado \n";
+	@printf "%b" "\t - $(OK_COLOR) synth-yosys-fpga $(NO_COLOR) \t FPGA synthesis using Yosys and GHDL. \n";
+	
+# @printf "%b" "\t - $(OK_COLOR) synth-vivado$(NO_COLOR) \t FPGA synthesis using Xilinx Vivado \n";
+
 
 endif
