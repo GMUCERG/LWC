@@ -1,4 +1,3 @@
-include $(LWC_ROOT)/lwc_common.mk
 include $(LWC_ROOT)/lwc_ghdl.mk
 
 yosys_synth_xc7.json: $(WORK_LIB)-obj$(VHDL_STD).cf $(VERILOG_FILES) Makefile

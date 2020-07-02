@@ -1,7 +1,7 @@
 ifeq ($(strip $(LWC_GHDL_INCLUDED)),)
 LWC_GHDL_INCLUDED=1
 
-GHDL := ghdl
+GHDL_BIN ?= ghdl
 
 GHDL_OPTIMIZE := -O3
 
@@ -30,19 +30,19 @@ endif
 ### GHDL analyse
 $(WORK_LIB)-obj$(VHDL_STD).cf: $(VHDL_FILES) Makefile
 ifneq ($(strip $(VHDL_FILES)),)
-	$(GHDL) -a $(GHDL_OPT) $(GHDL_WARNS) $(VHDL_FILES)
+	$(GHDL_BIN) -a $(GHDL_OPT) $(GHDL_WARNS) $(VHDL_FILES)
 endif
 
 SIM_ONLY_VHDL_FILES := $(VHDL_ADDITIONS) $(LWC_TB) 
 SIM_VHDL_FILES = $(VHDL_FILES) $(SIM_ONLY_VHDL_FILES)
 
-GENERICS_OPTS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/scripts/config_parser.py)
+GENERICS_OPTS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/scripts/config_parser.py ghdl_generics)
 
 ### GHDL analyze testbench files, elaborate, and run
 sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_VHDL_FILES) Makefile
-	$(GHDL) -a $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_ONLY_VHDL_FILES)
-	$(GHDL) -e $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_TOP) 
-	$(GHDL) -r $(SIM_TOP) $(GHDL_SIM_OPTS) $(GENERICS_OPTS) $(VCD_OPT)
+	$(GHDL_BIN) -a $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_ONLY_VHDL_FILES)
+	$(GHDL_BIN) -e $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_TOP) 
+	$(GHDL_BIN) -r $(SIM_TOP) $(GHDL_SIM_OPTS) $(GENERICS_OPTS) $(VCD_OPT)
 
 ifeq ($(strip $(VHDL_FILES)),)
 YOSYS_READ_VHDL_CMD := 
@@ -51,6 +51,6 @@ YOSYS_READ_VHDL_CMD := ghdl $(GHDL_OPT) $(GHDL_WARNS) $(TOP);
 endif
 
 clean-ghdl:
-	-@rm -f $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_TOP) $(patsubst %.vhd,%.o,$(patsubst %.vhdl,%.o,$(notdir $(SIM_VHDL_FILES))))
+	-@rm -f $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_TOP) e~*.o $(patsubst %.vhd,%.o,$(patsubst %.vhdl,%.o,$(notdir $(SIM_VHDL_FILES))))
 
 endif #LWC_GHDL_INCLUDED

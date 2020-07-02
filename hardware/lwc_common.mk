@@ -1,4 +1,5 @@
 ifeq ($(strip $(LWC_COMMON_INCLUDED)),)
+LWC_COMMON_INCLUDED=1
 
 ifndef LWC_ROOT
 $(error LWC_ROOT must be defined in design-specific Makefile)
@@ -6,24 +7,33 @@ endif
 
 ifndef CORE_ROOT
 CORE_ROOT ?= $(PWD)
-$(info CORE_ROOT was not defined in design-specific Makefile and was set to $(CORE_ROOT))
+$(info CORE_ROOT was not defined in design-specific Makefile. Defaulting to current work directory: $(CORE_ROOT))
 endif
 
 LWCSRC_DIR := $(LWC_ROOT)/LWCsrc
+SCRIPTS_DIR := $(LWC_ROOT)/scripts
 
-LWC_COMMON_INCLUDED=1
+ifneq ($(strip $(USE_DOCKER)),)
+# docker pull ghdl/synth:beta
+$(info Using docker for Python3, GHDL, Yosys, and Verilator)
+DOCKER_CMD := $(shell command -v winpty) docker run --rm -it -v /$(CORE_ROOT):/$(CORE_ROOT) -v /$(LWC_ROOT):/$(LWC_ROOT) -v /$(PWD)://wrk -w //wrk
+
+PYTHON3_BIN := $(DOCKER_CMD) ghdl/synth:beta python3
+GHDL_BIN := $(DOCKER_CMD) ghdl/synth:beta ghdl
+YOSYS_BIN := $(DOCKER_CMD) ghdl/synth:beta yosys
+VERILATOR_BIN := $(DOCKER_CMD) verilator/verilator
+endif
+
 TOP ?= LWC
 SOURCE_LIST_FILE ?= $(CORE_ROOT)/source_list.txt
 PYTHON3_BIN ?= python3
 
 ## test config parser:
-TEST_CONFIG_PARSER_OK=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/scripts/config_parser.py testx)
-
+TEST_CONFIG_PARSER_OK=$(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py test)
 ifneq ($(TEST_CONFIG_PARSER_OK),OK)
 $(error config_parser.py failed: $(TEST_CONFIG_PARSER_OK))
 endif
-
-
+#######################
 
 
 VHDL_FILES := $(shell cat $(SOURCE_LIST_FILE) | egrep .*\.vhdl?)
@@ -36,8 +46,6 @@ $(eval  VERILOG_FILES=$(VERILOG_FILES))
 export VHDL_FILES
 export VERILOG_FILES
 
-
-YOSYS_BIN := $(DOCKER_CMD) yosys
 YOSYS_GHDL_MODULE := -m ghdl
 
 VHDL_STD ?= 93
@@ -58,10 +66,7 @@ YOSYS_READ_VERILOG_CMD := read_verilog $(VERILOG_FILES);
 endif
 
 
-ifneq ($(strip $(USE_DOCKER)),)
-docker pull ghdl/synth:beta
-DOCKER_CMD="$(command -v winpty) docker run --rm -it -v /$(LWC_ROOT)://lwc_root -v /$(pwd)://wrk -w //wrk"
-endif
+
 
 
 default: help

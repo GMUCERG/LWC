@@ -2,11 +2,13 @@
 include $(LWC_ROOT)/lwc_common.mk
 include $(LWC_ROOT)/lwc_ghdl.mk
 
-VHDL_LINT_CMD := $(GHDL) -s --mb-comments $(GHDL_OPT) $(GHDL_WARNS)
-VERILOG_LINT_CMD := verilator -Wall --lint-only
+VERILATOR_BIN ?= verilator
+YOSYS_BIN ?= yosys
 
-lint: lint-verilog lint-vhdl lint-yosys
+VHDL_LINT_CMD := $(GHDL_BIN) -s --mb-comments $(GHDL_OPT) $(GHDL_WARNS)
+VERILOG_LINT_CMD := $(VERILATOR_BIN) -Wall --lint-only
 
+lint: lint-verilog lint-vhdl lint-vhdl-synth lint-yosys
 
 lint-verilog: $(VERILOG_FILES)
 ifneq ($(strip $(VERILOG_FILES)),)
@@ -20,7 +22,7 @@ endif
 
 lint-vhdl-synth: $(WORK_LIB)-obj$(VHDL_STD).cf
 ifneq ($(strip $(VHDL_FILES)),)
-	$(GHDL) --synth $(GHDL_OPT) $(GHDL_WARNS) $(TOP) > /dev/null
+	$(GHDL_BIN) --synth $(GHDL_OPT) $(GHDL_WARNS) $(TOP) > /dev/null
 endif
 
 lint-yosys: $(WORK_LIB)-obj$(VHDL_STD).cf $(VERILOG_FILES)
