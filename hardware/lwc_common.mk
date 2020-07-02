@@ -5,6 +5,8 @@ ifndef LWC_ROOT
 $(error LWC_ROOT must be defined in design-specific Makefile)
 endif
 
+LWC_ROOT := $(realpath $(LWC_ROOT))
+
 CORE_ROOT := $(PWD)
 
 LWCSRC_DIR := $(LWC_ROOT)/LWCsrc
@@ -63,11 +65,10 @@ YOSYS_READ_VERILOG_CMD := read_verilog $(VERILOG_FILES);
 endif
 
 
+.PHONY: default help help-common help-docker help-ghdl	help-yosys
+default: help
 
-
-
-default: help-all
-
+CERG_COLOR  = \033[0;35m
 COM_COLOR   = \033[0;34m
 OBJ_COLOR   = \033[0;36m
 OK_COLOR    = \033[0;32m
@@ -75,7 +76,7 @@ ERROR_COLOR = \033[0;31m
 WARN_COLOR  = \033[0;33m
 NO_COLOR    = \033[m
 
-help-all: help help-docker help-ghdl	help-yosys
+help: help-common help-docker help-ghdl	help-yosys
 
 help-docker:
 	@echo
@@ -84,8 +85,10 @@ help-docker:
 	@echo
 	@echo
 
-help:
+help-common:
+	@printf "%b" "\n $(CERG_COLOR) \n";
 	@cat $(LWC_ROOT)/cerg.ascii
+	@printf "%b" "$(NO_COLOR)\n";
 	@echo
 	@echo LWC Lint, Simulation, and Synthesis Framework
 	@echo
@@ -109,6 +112,5 @@ help:
 	@echo
 
 # @printf "%b" "\t - $(OK_COLOR) synth-vivado$(NO_COLOR) \t FPGA synthesis using Xilinx Vivado \n";
-
 
 endif

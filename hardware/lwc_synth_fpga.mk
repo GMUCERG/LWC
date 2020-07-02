@@ -15,6 +15,8 @@ else
 $(error unsupported YOSYS_FPGA=$(YOSYS_FPGA) )
 endif
 
+.PHONY: synth-yosys-fpga help-yosys clean-vcs
+
 synth-yosys-fpga-$(YOSYS_FPGA).json: $(WORK_LIB)-obj$(VHDL_STD).cf $(VERILOG_FILES) Makefile
 	$(YOSYS_BIN) $(YOSYS_GHDL_MODULE) -p "$(YOSYS_READ_VERILOG_CMD) $(YOSYS_READ_VHDL_CMD) $(YOSYS_SYNTH_CMD) -top $(TOP); write_json $@ ; check -assert; stat"
 
@@ -24,3 +26,7 @@ help-yosys:
 	@printf "%b" "$(OBJ_COLOR)synth-yosys-fpga$(NO_COLOR):\n";
 	@printf "%b" "YOSYS_FPGA \t Set target FPGA family: xc7, ic40, or ecp5\n";
 	@echo
+
+clean-yosys-fpga :
+	-@rm -rf synth-yosys-fpga-*.json
+

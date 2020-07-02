@@ -37,6 +37,7 @@ $(DC_RESULTS_DIR):
 $(DC_REPORTS_DIR):
 	mkdir -p $@
 
+.PHONY: synth-dc clean-dc help-dc
 synth-dc: $(DC_LOGS_DIR) $(DC_RESULTS_DIR) $(DC_REPORTS_DIR) $(VERILOG_FILES) $(VHDL_FILES)
 	$(info ADK_DIR=$(ADK_DIR))
 	$(info Target frequency: $(shell echo 1000.0/${CLOCK_PERIOD} | bc) MHz)

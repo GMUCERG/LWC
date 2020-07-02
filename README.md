@@ -52,8 +52,8 @@ Core developers should provide their design specific Makefile which incorporates
 through a series of “include” statements.
 
 A core designers would a create a `Makefile` in their design directory. In this design-specific `Makefile`, they 
-would set the variable `LWC_ROOT` to point to the top LWC package directory (e.g. LWC added as a 
-[git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules))  and "include" the desired `lwc_*.mk` file(s) to 
+would set the variable `LWC_ROOT` to point to the top LWC package directory (e.g. relative path where LWC package is added as a 
+[git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules)) and "include" the desired `lwc.mk` file to 
 gain access to the corresponding tools through the use of make rules. 
 
 Please see the accompanying example `dummy_lwc` [Makefile](hardware/dummy_lwc/src_rtl/Makefile).

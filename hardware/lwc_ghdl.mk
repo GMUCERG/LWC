@@ -39,6 +39,7 @@ SIM_VHDL_FILES = $(VHDL_FILES) $(SIM_ONLY_VHDL_FILES)
 GENERICS_OPTS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/scripts/config_parser.py ghdl_generics)
 
 ### GHDL analyze testbench files, elaborate, and run
+.PHONY: sim-ghdl help-ghdl clean-ghdl
 sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_VHDL_FILES) Makefile
 	$(GHDL_BIN) -a $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_ONLY_VHDL_FILES)
 	$(GHDL_BIN) -e $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_TOP) 
