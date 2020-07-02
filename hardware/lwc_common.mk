@@ -78,14 +78,19 @@ ERROR_COLOR = \033[0;31m
 WARN_COLOR  = \033[0;33m
 NO_COLOR    = \033[m
 
-help-all: help help-ghdl	help-yosys
+help-all: help help-docker help-ghdl	help-yosys
+
+help-docker:
+	@echo
+	@echo "set USE_DOCKER=1 to automatically run commands (Python3, GHDL, Yosys, Verilator) using Docker"
+	@echo "Docker (https://docs.docker.com/get-docker/) needs to be installed"
+	@echo
+	@echo
 
 help:
 	@cat $(LWC_ROOT)/cerg.ascii
 	@echo
 	@echo LWC Lint, Simulation, and Synthesis Framework
-	@echo 
-	@echo "set USE_DOCKER=1 to automatically run commands (Python3, GHDL, Yosys, Verilator) using Docker"
 	@echo
 	@echo
 	@printf "%b" "\n $(ERROR_COLOR)Available Targets:$(NO_COLOR)\n\n";
