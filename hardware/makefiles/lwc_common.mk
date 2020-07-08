@@ -62,6 +62,19 @@ YOSYS_READ_VERILOG_CMD := read_verilog $(VERILOG_FILES);
 endif
 
 
+# common tool exports
+export CLOCK_PERIOD ?= 2.0
+export NTHREADS=$(shell nproc)
+
+ifdef REBUILD
+FORCE_REBUILD=force_rebuild
+endif
+
+.PHONY: force_rebuild
+force_rebuild:
+	echo "Forcing Rebuild"
+
+
 .PHONY: default help help-common help-docker help-ghdl	help-yosys
 default: help
 

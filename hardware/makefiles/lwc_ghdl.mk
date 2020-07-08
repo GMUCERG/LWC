@@ -27,7 +27,7 @@ endif
 
 
 ### GHDL analyse
-$(WORK_LIB)-obj$(VHDL_STD).cf: $(VHDL_FILES) Makefile
+$(WORK_LIB)-obj$(VHDL_STD).cf: $(VHDL_FILES) $(FORCE_REBUILD) Makefile
 ifneq ($(strip $(VHDL_FILES)),)
 	$(GHDL_BIN) -a $(GHDL_OPT) $(GHDL_WARNS) $(VHDL_FILES)
 endif
@@ -39,7 +39,7 @@ GENERICS_OPTS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/scripts/config_parser.py ghdl_g
 
 ### GHDL analyze testbench files, elaborate, and run
 .PHONY: sim-ghdl help-ghdl clean-ghdl
-sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_VHDL_FILES) Makefile
+sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_VHDL_FILES) $(FORCE_REBUILD) Makefile
 	$(GHDL_BIN) -a $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_ONLY_VHDL_FILES)
 	$(GHDL_BIN) -e $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_TOP) 
 	$(GHDL_BIN) -r $(SIM_TOP) $(GHDL_SIM_OPTS) $(GENERICS_OPTS) $(VCD_OPT)
