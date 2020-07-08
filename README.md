@@ -92,7 +92,7 @@ The open-source tools can be either run through Docker or directly from the the 
 #### Docker (recommended)
 Running through Docker is easy and recommended as it ensures that the correct version of the tools are being used.
 To run the EDA tools using docker:
-  - Install [Docker](https://docs.docker.com/get-docker/)
+  - Install [Docker](https://docs.docker.com/get-docker/). Make sure the docker daemon is running and `docker` is in your `PATH`.
   - `export USE_DOCKER=1` in the bash session, or add `USE_DOCKER=1` to every `make` command.
 
 #### Local installation
