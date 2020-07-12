@@ -26,13 +26,14 @@ if __name__ == "__main__":
     
     config_file = argv[2] if len(argv) == 3 else 'config.ini'
     
-    config.read(config_file)
-    
-    if argv[1] == 'ghdl_generics':
-        print(ghdl_generics(config))    
-    elif argv[1] == 'vcs_generics':
-        print(vcs_generics(config))    
-    elif argv[1] == 'test':
-        print("OK")
-    else:
-        sys.exit(f'[ERROR] config_parser.py: unknown args {argv[1]}\n')
+    with open(config_file) as cf:
+        config.read_file(cf)
+        
+        if argv[1] == 'ghdl_generics':
+            print(ghdl_generics(config))    
+        elif argv[1] == 'vcs_generics':
+            print(vcs_generics(config))    
+        elif argv[1] == 'test':
+            print("OK")
+        else:
+            sys.exit(f'[ERROR] config_parser.py: unknown args {argv[1]}\n')

@@ -134,12 +134,19 @@ saif_map -start
 # and the hdlin_ff_always_sync_set_reset variable is set to false.
 
 set hdlin_ff_always_sync_set_reset      true
+set hdlin_ff_always_async_set_reset     true 
 set compile_seqmap_honor_sync_set_reset true
 
 # When boundary optimizations are off, set this variable to true to still
 # allow unconnected registers to be removed.
 
 set compile_optimize_unloaded_seq_logic_with_no_bound_opt true
+
+
+####
+# hdlin_infer_mux = all
+set hdlin_infer_mux all
+
 
 puts "--- DC setup completed ---"
 # Remove new variable info messages from the end of the log file

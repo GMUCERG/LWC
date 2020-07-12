@@ -26,7 +26,10 @@
 
 puts "Info: Flattening effort = $dc_flatten_effort"
 
-set compile_ultra_options ""
+set_optimize_registers true
+set_compile_spg_mode icc2
+
+set compile_ultra_options " -spg -retime"
 if {$dc_flatten_effort == 0} {
   puts "Info: All design hierarchies are preserved unless otherwise specified."
   set_app_var compile_ultra_ungroup_dw false
@@ -45,7 +48,7 @@ if {$dc_flatten_effort == 0} {
   set_app_var compile_ultra_ungroup_dw true
   puts "Info: Design Compiler compile_ultra automatic ungrouping is enabled."
   puts "Info: Design Compiler compile_ultra boundary optimization is enabled."
-  append compile_ultra_options ""
+  # append compile_ultra_options ""
 
 } elseif {$dc_flatten_effort == 3} {
   set ungroup_start_level 2
@@ -55,7 +58,7 @@ if {$dc_flatten_effort == 0} {
   puts "Info: Design Compiler compile_ultra automatic ungrouping is enabled."
   puts "Info: Design Compiler compile_ultra boundary optimization is enabled."
   set_app_var compile_ultra_ungroup_dw true
-  append compile_ultra_options ""
+  # append compile_ultra_options ""
 
 } else {
   puts "Info: Unrecognizable flatten effort value: $dc_flatten_effort"
@@ -69,7 +72,7 @@ if {$dc_flatten_effort == 0} {
 puts "Info: Enable clock gating = $dc_gate_clock"
 
 if { $dc_gate_clock == True } {
-  append compile_ultra_options " -gate_clock"
+  append compile_ultra_options " -gate_clock -self_gating"
 }
 
 #-------------------------------------------------------------------------

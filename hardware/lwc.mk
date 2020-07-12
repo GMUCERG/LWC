@@ -4,3 +4,4 @@ include $(LWC_ROOT)/makefiles/lwc_lint.mk
 include $(LWC_ROOT)/makefiles/lwc_yosys_fpga.mk
 include $(LWC_ROOT)/makefiles/lwc_vcs.mk
 include $(LWC_ROOT)/makefiles/lwc_dc.mk
+include $(LWC_ROOT)/makefiles/lwc_vivado.mk

@@ -8,6 +8,7 @@
 # Pre-compile checks
 #-------------------------------------------------------------------------
 
+
 # The check_timing command checks for constraint problems such as
 # undefined clocking, undefined input arrival times, and undefined output
 # constraints. These constraint problems could cause you to overlook

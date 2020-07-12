@@ -26,6 +26,6 @@ lint-yosys: $(WORK_LIB)-obj$(VHDL_STD).cf $(VERILOG_FILES)
 	$(YOSYS_BIN) $(YOSYS_GHDL_MODULE) -p "$(YOSYS_READ_VERILOG_CMD) $(YOSYS_READ_VHDL_CMD) proc; check -assert; hierarchy -check -top $(TOP); ls"
 
 help-lint-verilog:
-	@printf "%b" "$(OBJ_COLOR)lint-verilog$(NO_COLOR):\n";
+	@printf "%b" "$(CYAN)lint-verilog$(NO_COLOR):\n";
 	@printf "%b" "VERILATOR_LINT_FLAGS \t extra options to pass to Verilator linting, e.g. add -Wno-<message> flags to globally supress warnings of type <message> or pass name of `.vlt` configuration file for more fine grained configuration. \n";
 	@echo

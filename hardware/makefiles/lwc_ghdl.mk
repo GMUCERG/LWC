@@ -35,11 +35,11 @@ endif
 SIM_ONLY_VHDL_FILES := $(VHDL_ADDITIONS) $(LWC_TB) 
 SIM_VHDL_FILES = $(VHDL_FILES) $(SIM_ONLY_VHDL_FILES)
 
-GENERICS_OPTS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/scripts/config_parser.py ghdl_generics)
+GENERICS_OPTS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/scripts/config_parser.py ghdl_generics $(CORE_ROOT)/config.ini)
 
 ### GHDL analyze testbench files, elaborate, and run
 .PHONY: sim-ghdl help-ghdl clean-ghdl
-sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_VHDL_FILES) $(FORCE_REBUILD) Makefile
+sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_VHDL_FILES) Makefile
 	$(GHDL_BIN) -a $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_ONLY_VHDL_FILES)
 	$(GHDL_BIN) -e $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_TOP) 
 	$(GHDL_BIN) -r $(SIM_TOP) $(GHDL_SIM_OPTS) $(GENERICS_OPTS) $(VCD_OPT)
@@ -51,10 +51,10 @@ YOSYS_READ_VHDL_CMD := ghdl $(GHDL_OPT) $(GHDL_WARNS) $(TOP);
 endif
 
 help-ghdl:
-	@printf "%b" "$(OBJ_COLOR)GHDL variables$(NO_COLOR):\n";
+	@printf "%b" "$(CYAN)GHDL variables$(NO_COLOR):\n";
 	@printf "%b" "VHDL_STD \t VHDL standard to use: 87, 93 (using 93c), 00, 02, 08\n";
 	@echo
-	@printf "%b" "$(OBJ_COLOR)sim-ghdl variables$(NO_COLOR):\n";
+	@printf "%b" "$(CYAN)sim-ghdl variables$(NO_COLOR):\n";
 	@printf "%b" "VCD_FILE \t filename to generate VCD wave\n";
 	@printf "%b" "VCDGZ_FILE \t filename to generate VCD wave, gziped\n";
 	@printf "%b" "GHW_FILE \t filename to GHW wave (better support for VHDL types)\n";
