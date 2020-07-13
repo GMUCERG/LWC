@@ -9,7 +9,7 @@ CORE_ROOT := $(PWD)
 LWCSRC_DIR := $(LWC_ROOT)/LWCsrc
 SCRIPTS_DIR := $(LWC_ROOT)/scripts
 
-ifneq ($(strip $(USE_DOCKER)),1)
+ifeq ($(strip $(USE_DOCKER)),1)
 # docker pull ghdl/synth:beta
 $(info Using docker for Python3, GHDL, Yosys, and Verilator)
 WINPTY := $(shell command -v winpty)
