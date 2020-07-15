@@ -16,6 +16,9 @@ def ghdl_generics(config):
 def vcs_generics(config):
     return ' '.join([f"-gv {k}={quote_strings(v)}" for k, v in config.items('Generics')])
 
+def variables(config):
+    return '\n'.join([f"{k}={v}" for k, v in config.items('Variables')])
+
 if __name__ == "__main__":
     config = configparser.ConfigParser()
     config.optionxform = str
@@ -35,5 +38,7 @@ if __name__ == "__main__":
             print(vcs_generics(config))    
         elif argv[1] == 'test':
             print("OK")
+        elif argv[1] == 'vars':
+            print(variables(config))
         else:
             sys.exit(f'[ERROR] config_parser.py: unknown args {argv[1]}\n')

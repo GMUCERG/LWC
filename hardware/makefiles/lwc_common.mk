@@ -30,6 +30,18 @@ TOP ?= LWC
 SOURCE_LIST_FILE ?= $(CORE_ROOT)/source_list.txt
 PYTHON3_BIN ?= python3
 
+
+default: help
+
+.DEFAULT: help
+
+.PHONY: FORCE test-config-parser config-vars
+
+## test config parser:
+test-config-parser:
+	@[ $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py test $(CORE_ROOT)/config.ini) = OK ] || (echo "Running config_parser.py with python3 failed"; exit 1)
+
+
 ## test config parser:
 TEST_CONFIG_PARSER_OK=$(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py test $(CORE_ROOT)/config.ini)
 ifneq ($(TEST_CONFIG_PARSER_OK),OK)
@@ -37,6 +49,23 @@ $(error Running config_parser.py using python3 failed: $(TEST_CONFIG_PARSER_OK))
 endif
 #######################
 
+
+# VARS:=$(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CORE_ROOT)/config.ini')
+
+## reset
+VARS :=
+
+.PHONY: .env
+
+config-vars: test-config-parser FORCE
+	$(eval VARS := $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CORE_ROOT)/config.ini ))
+	@echo Variables from config.ini:
+	$(file >env,$(VARS))
+	@$(foreach v,$(VARS),$(eval $(v)))
+
+.env: config-vars
+	@echo "" > $@
+	@$(foreach O,$(VARS),echo $O >> $@;)
 
 VHDL_FILES := $(shell cat $(SOURCE_LIST_FILE) | egrep .*\.vhdl?)
 VERILOG_FILES := $(shell cat $(SOURCE_LIST_FILE) | egrep .*\.s?v | egrep -v .*\.vhdl?)
@@ -72,14 +101,13 @@ endif
 
 
 # common tool exports
-export CLOCK_PERIOD ?= 2.0
+export CLOCK_PERIOD ?= 20.0
 export NTHREADS=$(shell nproc)
 
 ifdef REBUILD
 FORCE_REBUILD=force_rebuild
 endif
 
-default: help
 
 force_rebuild:
 	@echo "Forcing Rebuild"
@@ -99,11 +127,11 @@ help: help-top help-common help-ghdl help-yosys help-vivado
 help-common:
 	@printf "%b" "$(CYAN)common variables$(NO_COLOR):\n";
 	@echo "set USE_DOCKER=1 to automatically run tools using Docker"
-	@echo "\tA functional installation of Docker is required (https://docs.docker.com/get-docker/)"
+	@echo "\tA functional installation of Docker is required (https://docs.docker.com/config-docker/)"
 	@echo "\tDocker deamon needs to be running and the 'docker' executable should be in the PATH"
-	@echo "\tTools/dependencies supported by docker include: Python3, GHDL, Yosys, Verilator, and Vivado"
+	@echo "\tTools supported to run under Docker include: Python3, GHDL, Yosys, Verilator, and Vivado"
 	@echo
-	@echo "set REBUILD=1 to force the rebuild of any target"
+	@echo "set REBUILD=1 to force the rebuild of any tarconfig"
 	@echo
 
 help-top:
@@ -114,7 +142,7 @@ help-top:
 	@echo LWC Lint, Simulation, and Synthesis Framework
 	@echo
 	@echo
-	@printf "%b" "\n$(LIGHT_RED) Available Targets:$(NO_COLOR)\n\n";
+	@printf "%b" "\n$(LIGHT_RED) Available Tarconfigs:$(NO_COLOR)\n\n";
 	@printf "%b" "$(BLUE)* Lint (checking)$(NO_COLOR)\n";
 	@printf "%b" "\t - $(GREEN) lint-vhdl $(NO_COLOR) \t\t lint VHDL files using GHDL\n";
 	@printf "%b" "\t - $(GREEN) lint-vhdl-synth $(NO_COLOR) \t lint VHDL files using GHDL in synthesis mode\n";
@@ -133,4 +161,4 @@ help-top:
 	@echo
 	@echo
 
-# @printf "%b" "\t - $(GREEN) synth-vivado$(NO_COLOR) \t FPGA synthesis using Xilinx Vivado \n";
+FORCE:  ; 

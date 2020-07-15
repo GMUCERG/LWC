@@ -21,7 +21,7 @@ VIVADO_CMD=$(VIVADO_BIN) -mode batch -nojournal -notrace -source $(VIVADO_RUN_TC
 
 VIVADO_OUTPUT_DIR=vivado
 
-$(TOOL_RUN_DIR)/docker.env : $(TOOL_RUN_DIR) $(VERILOG_FILES) $(VHDL_FILES) $(FPGA_PART) $(SYNTH_OPTIONS) $(CLOCK_PERIOD)
+$(TOOL_RUN_DIR)/docker.env : $(TOOL_RUN_DIR) $(VERILOG_FILES) $(VHDL_FILES) $(FPGA_PART) $(SYNTH_OPTIONS) $(CLOCK_PERIOD) config-vars
 	@echo OUTPUT_DIR=$(VIVADO_OUTPUT_DIR) > $@
 	@echo FPGA_PART=$(FPGA_PART) >> $@
 	@echo SYNTH_OPTIONS=$(SYNTH_OPTIONS) >> $@
@@ -34,7 +34,7 @@ $(TOOL_RUN_DIR)/docker.env : $(TOOL_RUN_DIR) $(VERILOG_FILES) $(VHDL_FILES) $(FP
 	@echo DESIGN_NAME=$(TOP) >> $@
 	@echo CLOCK_PERIOD=$(CLOCK_PERIOD) >> $@
 
-synth-vivado: $(TOOL_RUN_DIR)/docker.env $(VERILOG_FILES) $(VHDL_FILES)
+synth-vivado: $(TOOL_RUN_DIR)/docker.env $(VERILOG_FILES) $(VHDL_FILES) $(TOOL_RUN_DIR)/docker.env
 	cd $(TOOL_RUN_DIR) && $(VIVADO_CMD)
 
 help-vivado:
