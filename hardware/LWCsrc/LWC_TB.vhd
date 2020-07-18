@@ -110,7 +110,7 @@ architecture behavior of LWC_TB is
     signal stall_pdi_valid      : std_logic := '0';
     signal stall_sdi_valid      : std_logic := '0';
     signal stall_do_full        : std_logic := '0';
-
+    signal stall_msg            : std_logic := '0';
     ------------- clock constant ------------------
     constant clk_period         : time := G_PERIOD;
     constant io_clk_period      : time := clk_period;
@@ -193,8 +193,8 @@ begin
         dout_ready   =>  fpdi_dout_ready
     );
 
-    fpdi_dout_ready     <= '0' when stall_pdi_valid = '1' else pdi_ready;
-    pdi_valid_selected  <= '0' when stall_pdi_valid = '1' else fpdi_dout_valid;
+    fpdi_dout_ready     <= '0' when (stall_pdi_valid = '1' or stall_msg = '1') else pdi_ready;
+    pdi_valid_selected  <= '0' when (stall_pdi_valid = '1' or stall_msg = '1') else fpdi_dout_valid;
     pdi_valid           <= pdi_valid_selected after 1/4*clk_period;
     pdi_delayed         <= fpdi_dout after 1/4*clk_period;
 
@@ -302,7 +302,7 @@ begin
                 fpdi_din_valid <= '1';
             end if;
 
-            HREAD( line_data, word_block, read_result );
+            hread( line_data, word_block, read_result );
             while (((read_result = False) or (valid_line = False))
                 and (not endfile( pdi_file )))
             loop
@@ -317,7 +317,7 @@ begin
                     valid_line := False;
                     fpdi_din_valid  <= '0';
                 end if;
-                HREAD( line_data, word_block, read_result ); --! read data
+                hread( line_data, word_block, read_result ); --! read data
             end loop;
             fpdi_din <= word_block;
                wait for io_clk_period;
@@ -366,7 +366,7 @@ begin
                 fsdi_din_valid <= '1';
             end if;
 
-            HREAD(line_data, word_block, read_result);
+            hread(line_data, word_block, read_result);
             while (((read_result = False) or (valid_line = False))
                 and (not endfile(sdi_file)))
             loop
@@ -381,7 +381,7 @@ begin
                     valid_line := False;
                     fsdi_din_valid  <= '0';
                 end if;
-                HREAD( line_data, word_block, read_result );    --! read data
+                hread( line_data, word_block, read_result );    --! read data
             end loop;
             fsdi_din <= word_block;
             wait for io_clk_period;
@@ -417,7 +417,7 @@ begin
 
         while (not endfile (do_file) and valid_line and (not force_exit)) loop
             --! Keep reading new line until a valid line is found
-            HREAD( line_data, word_block, read_result );
+            hread( line_data, word_block, read_result );
             while ((read_result = False or valid_line = False)
                   and (not endfile(do_file)))
             loop
@@ -441,8 +441,8 @@ begin
                     force_exit := True;
                 end if;
 
-                if (instr_encoding) then
-                    HREAD(line_data, tb_block, read_result); --! read data
+                if (instr_encoding = True) then
+                    hread(line_data, tb_block, read_result); --! read data
                     instr_encoding := False;
                     read_result    := False;
                     opcode := tb_block(19 downto 16);
@@ -469,7 +469,7 @@ begin
                         & integer'image(msgid) & " at "
                         & time'image(now) severity note;
                 else
-                    HREAD(line_data, word_block, read_result); --! read data
+                    hread(line_data, word_block, read_result); --! read data
                 end if;
             end loop;
 
@@ -499,8 +499,8 @@ begin
                         & string'(" word #") & integer'image(word_count));
                     writeline(log_file,logMsg);
                     write(logMsg, string'("[Log]     Expected: ")
-                        & TO_HSTRING(word_block)
-                        & string'(" Received: ") & TO_HSTRING(fdo_dout));
+                        & to_hstring(word_block)
+                        & string'(" Received: ") & to_hstring(fdo_dout));
                     writeline(log_file,logMsg);
 
                     --! Stop the simulation right away when an error is detected
@@ -510,10 +510,10 @@ begin
                         & " Word #" & integer'image(word_count)
                         & " at " & time'image(now) & " FAILS T_T --------"
                         severity error;
-                    report "Expected: " & TO_HSTRING(word_block)
-                        & " Actual: " & TO_HSTRING(fdo_dout) severity error;
+                    report "Expected: " & to_hstring(word_block)
+                        & " Actual: " & to_hstring(fdo_dout) severity error;
                     write(result_file, "fail");
-                    if (G_STOP_AT_FAULT) then
+                    if (G_STOP_AT_FAULT = True) then
                         force_exit := True;
                     else
                         if isEncrypt = False then
@@ -526,8 +526,8 @@ begin
                     end if;
                 else
                     write(logMsg, string'("[Log]     Expected: ")
-                        & TO_HSTRING(word_block)
-                        & string'(" Received: ") & TO_HSTRING(fdo_dout)
+                        & to_hstring(word_block)
+                        & string'(" Received: ") & to_hstring(fdo_dout)
                         & string'(" Matched!"));
                     writeline(log_file,logMsg);
                 end if;
@@ -561,6 +561,110 @@ begin
 
     --! =======================================================================
     --! =================== Test MODE =========================================
+
+    genSegmentStall : process
+        variable seg_cnt : integer := 0;
+        variable seg_last : std_logic;
+	variable seg_header : std_logic_vector(3 downto 0);
+        variable msg_start_time, latency_start, exec_time, latency_time : time;
+	variable pt_size, ct_size, ad_size, hash_size, new_key : integer := 0;
+	variable latency_measure : integer := 0;
+	variable msg_id: integer := 1;
+    begin
+        if G_TEST_MODE = 4 then
+            wait until rising_edge(io_clk);
+            if pdi_ready = '0' then
+                wait until falling_edge(io_clk) and pdi_ready = '1';
+            end if;
+	    stall_msg <= '0';
+	    latency_measure := 0;
+	    pt_size:=0; ct_size:=0; ad_size:=0; hash_size:=0; new_key := 0;
+	    seg_cnt := 0; seg_header := "0000";
+	    latency_time:=0 ns;
+	    exec_time:=0 ns;
+	    --check if this is an instruction
+            if pdi_delayed(31 downto 28) = INST_ENC  or pdi_delayed(31 downto 28) = INST_DEC or
+	       pdi_delayed(31 downto 28) = INST_HASH or pdi_delayed(31 downto 28) = INST_ACTKEY then 
+		if pdi_delayed(31 downto 28) = INST_ACTKEY then
+		    new_key := 1;
+		end if;
+                msg_start_time := now;
+                segment_loop : while True loop
+                    wait on pdi_delayed;
+                    if seg_cnt <= 0 then -- grab the segment header
+			-- Handle the case where there is no PT segments from previous message
+                        seg_cnt := to_integer(unsigned(pdi_delayed(15 downto 0)));
+                        seg_last := pdi_delayed(24);
+			seg_header := pdi_delayed(31 downto 28);
+			if seg_header = HDR_PT then
+			    pt_size := pt_size + seg_cnt;
+			elsif seg_header = HDR_CT then
+			    ct_size := ct_size + seg_cnt;
+			elsif seg_header = HDR_AD then
+			    ad_size := ad_size + seg_cnt;
+			elsif seg_header = HDR_HASH_MSG then
+			    hash_size := hash_size + seg_cnt;
+			end if;
+			if seg_cnt = 0 and seg_last = '1' and
+                               (seg_header = HDR_PT or seg_header = HDR_TAG or seg_header = HDR_HASH_MSG) then
+			    wait on pdi_delayed;
+                            stall_msg <= '1'; -- this is the last segment of the packet wait until cipher is done
+			    --report "waiting on do last ";
+                            wait until (do_last = '1' and (do(31 downto 28) = INST_SUCCESS or do(31 downto 28) = INST_FAILURE));
+			    exec_time := now-msg_start_time;
+			    msg_id := msg_id + 1;
+			    exit;
+			end if;
+                    else
+                        -- Measure latency
+			if (seg_header = HDR_PT or seg_header = HDR_CT) then
+		             if latency_measure = 0 then
+			         latency_measure := 1;
+                                 latency_start := now;
+		             elsif latency_measure = 1 and do_valid = '1' then
+				 latency_measure := 2;
+				 latency_time := now-latency_start;
+		             end if;
+			end if;
+                        -- if this word is the last word of the message, wait until status word
+                        if seg_cnt <= 4 and (seg_header = HDR_PT or seg_header = HDR_TAG or seg_header = HDR_HASH_MSG) and seg_last = '1' then
+			    wait on pdi_delayed;
+                            stall_msg <= '1'; -- this is the last segment of the packet wait until cipher is done
+			    --report "Waiting for do last";
+                            wait until (do_last = '1' and (do(31 downto 28) = INST_SUCCESS or do(31 downto 28) = INST_FAILURE));
+			    exec_time := now-msg_start_time;
+			    msg_id := msg_id + 1;
+                            exit;
+                        end if;
+                        seg_cnt := seg_cnt - 4;
+                    end if;
+                end loop segment_loop;
+		report "MsgId: " & integer'image(msg_id);
+		if new_key = 1 then
+		     report "New Key";
+		end if;
+		if seg_header = HDR_PT then
+                     report "Authenticated Encryption";
+                     report "AD size = " & integer'image(ad_size) & " bytes, PT size = " & integer'image(pt_size) & " bytes";
+		     report "Execution time = " & time'image(exec_time);
+		     report "Latency = " & time'image(latency_time);
+		elsif seg_header = HDR_TAG then
+		     report "Authenticated Decryption";
+                     report "AD size = " & integer'image(ad_size) & " bytes, CT size = " & integer'image(ct_size) & " bytes";
+		     report "Execution time = " & time'image(exec_time);
+		     report "Latency = " & time'image(latency_time);
+		elsif seg_header = HDR_HASH_MSG then
+		     report "Hashing";
+		     report "Hash msg size = " & integer'image(hash_size) & " bytes";
+		     report "Execution time = " & time'image(exec_time);
+		end if;
+            end if;
+        else
+            wait;
+        end if;
+    end process;
+
+
     genInputStall1 : process
     begin
         if G_TEST_MODE = 1 or G_TEST_MODE = 2 then
