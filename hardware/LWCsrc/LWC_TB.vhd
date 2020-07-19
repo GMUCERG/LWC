@@ -111,6 +111,7 @@ architecture behavior of LWC_TB is
     signal stall_sdi_valid      : std_logic := '0';
     signal stall_do_full        : std_logic := '0';
     signal stall_msg            : std_logic := '0';
+    signal clk_cycle_counter    : integer := 0;
     ------------- clock constant ------------------
     constant clk_period         : time := G_PERIOD;
     constant io_clk_period      : time := clk_period;
@@ -561,12 +562,18 @@ begin
 
     --! =======================================================================
     --! =================== Test MODE =========================================
+    --Simple process to count cycles
+    clock_conter: process
+    begin
+	wait until rising_edge(io_clk);
+	clk_cycle_counter <= clk_cycle_counter + 1;
+    end process;
 
     genSegmentStall : process
         variable seg_cnt : integer := 0;
         variable seg_last : std_logic;
 	variable seg_header : std_logic_vector(3 downto 0);
-        variable msg_start_time, latency_start, exec_time, latency_time : time;
+        variable msg_start_time, latency_start, exec_time, latency_time : integer;
 	variable pt_size, ct_size, ad_size, hash_size, new_key : integer := 0;
 	variable latency_measure : integer := 0;
 	variable msg_id: integer := 1;
@@ -580,15 +587,15 @@ begin
 	    latency_measure := 0;
 	    pt_size:=0; ct_size:=0; ad_size:=0; hash_size:=0; new_key := 0;
 	    seg_cnt := 0; seg_header := "0000";
-	    latency_time:=0 ns;
-	    exec_time:=0 ns;
+	    latency_time := 0;
+	    exec_time := 0;
 	    --check if this is an instruction
             if pdi_delayed(31 downto 28) = INST_ENC  or pdi_delayed(31 downto 28) = INST_DEC or
 	       pdi_delayed(31 downto 28) = INST_HASH or pdi_delayed(31 downto 28) = INST_ACTKEY then 
 		if pdi_delayed(31 downto 28) = INST_ACTKEY then
 		    new_key := 1;
 		end if;
-                msg_start_time := now;
+                msg_start_time := clk_cycle_counter;
                 segment_loop : while True loop
                     wait on pdi_delayed;
                     if seg_cnt <= 0 then -- grab the segment header
@@ -611,7 +618,7 @@ begin
                             stall_msg <= '1'; -- this is the last segment of the packet wait until cipher is done
 			    --report "waiting on do last ";
                             wait until (do_last = '1' and (do(31 downto 28) = INST_SUCCESS or do(31 downto 28) = INST_FAILURE));
-			    exec_time := now-msg_start_time;
+			    exec_time := clk_cycle_counter-msg_start_time;
 			    msg_id := msg_id + 1;
 			    exit;
 			end if;
@@ -620,10 +627,10 @@ begin
 			if (seg_header = HDR_PT or seg_header = HDR_CT) then
 		             if latency_measure = 0 then
 			         latency_measure := 1;
-                                 latency_start := now;
+                                 latency_start := clk_cycle_counter;
 		             elsif latency_measure = 1 and do_valid = '1' then
 				 latency_measure := 2;
-				 latency_time := now-latency_start;
+				 latency_time := clk_cycle_counter-latency_start;
 		             end if;
 			end if;
                         -- if this word is the last word of the message, wait until status word
@@ -632,7 +639,7 @@ begin
                             stall_msg <= '1'; -- this is the last segment of the packet wait until cipher is done
 			    --report "Waiting for do last";
                             wait until (do_last = '1' and (do(31 downto 28) = INST_SUCCESS or do(31 downto 28) = INST_FAILURE));
-			    exec_time := now-msg_start_time;
+			    exec_time := clk_cycle_counter-msg_start_time;
 			    msg_id := msg_id + 1;
                             exit;
                         end if;
@@ -646,17 +653,17 @@ begin
 		if seg_header = HDR_PT then
                      report "Authenticated Encryption";
                      report "AD size = " & integer'image(ad_size) & " bytes, PT size = " & integer'image(pt_size) & " bytes";
-		     report "Execution time = " & time'image(exec_time);
-		     report "Latency = " & time'image(latency_time);
+		     report "Execution time = " & integer'image(exec_time);
+		     report "Latency = " & integer'image(latency_time);
 		elsif seg_header = HDR_TAG then
 		     report "Authenticated Decryption";
                      report "AD size = " & integer'image(ad_size) & " bytes, CT size = " & integer'image(ct_size) & " bytes";
-		     report "Execution time = " & time'image(exec_time);
-		     report "Latency = " & time'image(latency_time);
+		     report "Execution time = " & integer'image(exec_time);
+		     report "Latency = " & integer'image(latency_time);
 		elsif seg_header = HDR_HASH_MSG then
 		     report "Hashing";
 		     report "Hash msg size = " & integer'image(hash_size) & " bytes";
-		     report "Execution time = " & time'image(exec_time);
+		     report "Execution time = " & integer'image(exec_time);
 		end if;
             end if;
         else
