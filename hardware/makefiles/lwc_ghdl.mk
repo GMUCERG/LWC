@@ -35,7 +35,7 @@ endif
 SIM_ONLY_VHDL_FILES := $(VHDL_ADDITIONS) $(LWC_TB) 
 SIM_VHDL_FILES = $(VHDL_FILES) $(SIM_ONLY_VHDL_FILES)
 
-GENERICS_OPTS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/scripts/config_parser.py ghdl_generics $(CORE_ROOT)/config.ini)
+GENERICS_OPTS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/hardware/scripts/config_parser.py ghdl_generics $(CONFIG_LOC))
 
 ### GHDL analyze testbench files, elaborate, and run
 .PHONY: sim-ghdl help-ghdl clean-ghdl

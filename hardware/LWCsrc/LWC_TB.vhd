@@ -239,29 +239,18 @@ begin
 
     uut:  entity work.LWC(structure)
     port map (
-        clk => clk,
-        
-        rst => rst,
-        
-        pdi_data => pdi_delayed,
-        
-        pdi_valid => pdi_valid,
-        
-        pdi_ready => pdi_ready,
-        
-        sdi_data => sdi_delayed,
-        
-        sdi_valid => sdi_valid,
-        
-        sdi_ready => sdi_ready,
-        
-        do_data => do,
-        
-        do_ready => do_ready,
-        
-        do_valid => do_valid,
-        
-        do_last => do_last
+        clk          => clk,
+        rst          => rst,
+        pdi_data     => pdi_delayed,
+        pdi_valid    => pdi_valid,
+        pdi_ready    => pdi_ready,
+        sdi_data     => sdi_delayed,
+        sdi_valid    => sdi_valid,
+        sdi_ready    => sdi_ready,
+        do_data      => do,
+        do_ready     => do_ready,
+        do_valid     => do_valid,
+        do_last      => do_last
     );
     --! =================== --
     --! END OF PORT MAPPING --

@@ -3,11 +3,12 @@ $(error LWC_ROOT must be defined in design-specific Makefile)
 endif
 
 LWC_ROOT := $(realpath $(LWC_ROOT))
+HW_DIR := $(LWC_ROOT)/hardware
 
 CORE_ROOT := $(PWD)
 
-LWCSRC_DIR := $(LWC_ROOT)/LWCsrc
-SCRIPTS_DIR := $(LWC_ROOT)/scripts
+LWCSRC_DIR := $(HW_DIR)/LWCsrc
+SCRIPTS_DIR := $(HW_DIR)/scripts
 
 ifeq ($(strip $(USE_DOCKER)),1)
 # docker pull ghdl/synth:beta
@@ -17,7 +18,7 @@ WINPTY := $(shell command -v winpty)
 
 TOOL_RUN_DIR = $(CORE_ROOT)/run_dir
 
-DOCKER_CMD = $(WINPTY) docker run --rm -it -v /$(CORE_ROOT):/$(CORE_ROOT) -v /$(LWC_ROOT):/$(LWC_ROOT) -w $(TOOL_RUN_DIR)
+DOCKER_CMD = $(WINPTY) docker run --rm -it -v /$(CORE_ROOT):/$(CORE_ROOT) -v /$(LWC_ROOT)/:/$(LWC_ROOT)/ -w $(TOOL_RUN_DIR)
 
 PYTHON3_BIN = $(DOCKER_CMD) ghdl/synth:beta python3
 GHDL_BIN = $(DOCKER_CMD) ghdl/synth:beta ghdl
@@ -29,6 +30,7 @@ endif
 TOP ?= LWC
 SOURCE_LIST_FILE ?= $(CORE_ROOT)/source_list.txt
 PYTHON3_BIN ?= python3
+CONFIG_LOC ?= $(CORE_ROOT)/config.ini
 
 
 default: help
@@ -39,18 +41,18 @@ default: help
 
 ## test config parser:
 test-config-parser:
-	@[ $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py test $(CORE_ROOT)/config.ini) = OK ] || (echo "Running config_parser.py with python3 failed"; exit 1)
+	@[ $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py test $(CONFIG_LOC)) = OK ] || (echo "Running config_parser.py with python3 failed"; exit 1)
 
 
 ## test config parser:
-TEST_CONFIG_PARSER_OK=$(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py test $(CORE_ROOT)/config.ini)
+TEST_CONFIG_PARSER_OK=$(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py test $(CONFIG_LOC))
 ifneq ($(TEST_CONFIG_PARSER_OK),OK)
 $(error Running config_parser.py using python3 failed: $(TEST_CONFIG_PARSER_OK))
 endif
 #######################
 
 
-# VARS:=$(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CORE_ROOT)/config.ini')
+# VARS:=$(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CONFIG_LOC)')
 
 ## reset
 VARS :=
@@ -58,7 +60,7 @@ VARS :=
 .PHONY: .env
 
 config-vars: test-config-parser FORCE
-	$(eval VARS := $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CORE_ROOT)/config.ini ))
+	$(eval VARS := $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CONFIG_LOC)))
 	@echo Variables from config.ini:
 	$(file >env,$(VARS))
 	@$(foreach v,$(VARS),$(eval $(v)))
@@ -136,7 +138,7 @@ help-common:
 
 help-top:
 	@printf "%b" "\n $(PURPLE) \n";
-	@cat $(LWC_ROOT)/cerg.ascii
+	@cat $(HW_DIR)/cerg.ascii
 	@printf "%b" "$(NO_COLOR)\n";
 	@echo
 	@echo LWC Lint, Simulation, and Synthesis Framework

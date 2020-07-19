@@ -1,5 +1,5 @@
 
-SYNTH_FRAMEWORK_ROOT=$(realpath $(LWC_ROOT)/scripts/synth)
+SYNTH_FRAMEWORK_ROOT=$(realpath $(LWC_ROOT)/hardware/scripts/synth)
 
 VIVADO_RUN_TCL=$(SYNTH_FRAMEWORK_ROOT)/tools/vivado/run.tcl
 
