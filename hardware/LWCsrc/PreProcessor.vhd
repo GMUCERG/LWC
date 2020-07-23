@@ -1142,7 +1142,7 @@ FSM_8BIT: if (W=8) generate
 
     bdi_valid_bytes(Wdiv8 -1 downto 0) <= bdi_valid_bytes_p(3 downto 4-Wdiv8);
 
-    data_seg_length   <= sdi_data when sel_sdi_length = true else pdi_data;
+    data_seg_length   <= sdi_data when sel_sdi_length else pdi_data;
     bdi_eoi_internal  <= eoi_flag and last_flit_of_segment;
     bdi_eot_internal  <= eot_flag and last_flit_of_segment;
     bdi_eoi           <= bdi_eoi_internal;

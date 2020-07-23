@@ -23,7 +23,7 @@ package Design_pkg is
     type set_selector is (dummy_lwc_8, dummy_lwc_16, dummy_lwc_32);
 
     --! Select variant
-    constant variant : set_selector := dummy_lwc_32;
+    constant variant : set_selector := dummy_lwc_8;
     
     --! Adjust the bit counter widths to reduce ressource consumption.
     -- Range definition must not change.
@@ -80,14 +80,14 @@ package body Design_pkg is
          (32, 32)  -- dummy_lwc_32
       );
     -- select the correct set of parameters
-    -- alias vector_of_constants is set_of_vector_of_constants(variant);
+    alias vector_of_constants is set_of_vector_of_constants(variant);
 
 
     --! design parameters needed by the PreProcessor, PostProcessor, and LWC
     constant TAG_SIZE        : integer := 128; --! Tag size
     constant HASH_VALUE_SIZE : integer := 256; --! Hash value size
-    constant CCW             : integer := 32; --vector_of_constants(1); --! bdo/bdi width
-    constant CCSW            : integer := 32; --vector_of_constants(2); --! key width
+    constant CCW             : integer := vector_of_constants(1); --! bdo/bdi width
+    constant CCSW            : integer := vector_of_constants(2); --! key width
     constant CCWdiv8         : integer := CCW/8; -- derived from parameters above
 
 
