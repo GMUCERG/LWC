@@ -50,16 +50,16 @@ def gen_custom_string_aead(new_key, enc_dec):
 
 def gen_custom_string_hash():
         hash_string = ""
-        hash_string += f"0,0,{5*block_size_msg_digest//8},0,1:"
-        hash_string += f"0,0,{4*block_size_msg_digest//8},0,1:"
-        hash_string += f"0,0,1536,0,1:"
-        hash_string += f"0,0,64,0,1:"
-        hash_string += f"0,0,16,0,1:"
+        hash_string += f"0,0,0,{5*block_size_msg_digest//8},1:"
+        hash_string += f"0,0,0,{4*block_size_msg_digest//8},1:"
+        hash_string += f"0,0,0,1536,1:"
+        hash_string += f"0,0,0,64,1:"
+        hash_string += f"0,0,0,16,1:"
         return hash_string
 
 def finish_custom():
     # Final message must not contain ":" at the end
-    return "0,0,0,0,0"
+    return "1,0,0,0,0"
 
 def blanket_message_test():
     return_string = ""
