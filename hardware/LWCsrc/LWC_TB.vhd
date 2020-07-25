@@ -576,7 +576,7 @@ begin
         variable msg_start_time, latency_start, exec_time, latency_time : integer;
 	variable pt_size, ct_size, ad_size, hash_size, new_key : integer := 0;
 	variable latency_measure : integer := 0;
-	variable msg_id: integer := 1;
+	variable msg_id: integer := 0;
     begin
         if G_TEST_MODE = 4 then
             wait until rising_edge(io_clk);

@@ -109,7 +109,18 @@ List of external core examples adopted to the latest framework:
 - [COMET-CHAM from Virginia Tech](https://github.com/kammoh/comet_cham_lwc_v2/tree/asic): VHDL (`asic` branch)
 - [SpoC from Virginia Tech](https://github.com/kammoh/comet_cham_lwc_v2/tree/asic): Verilog (`asic` branch)
 
+## Popular Configurable LWC Options
 
+### NIST_LWAPI.vhd
+ASYNC_RSTN (boolean): When True a active-low reset is used instead of an active-high synchrous reset
+W  (integer): Controls the width of the external bus for PDI data bits. (Valid values 8, 16, 32)
+SW (integer): Controls the width of the external bus for SDI data bits. (Valid values 8, 16, 32)
+
+### design_pkg.vhd
+TAG_SIZE (integer): Controls the tag size in bits
+HASH_VALUE_SIZE (integer) : Controls the hash size in bits
+CCSW, CCW, CCWdiv8 (integers) : Control the bus widths into the CryptoCore in bits
+ 
 Software
 ----------
 

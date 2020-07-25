@@ -30,6 +30,9 @@ package NIST_LWAPI_pkg is
     --! External bus: supported values are 8, 16 and 32 bits
     constant W       : integer := 8;
     constant SW      : integer :=W;
+    
+    --! asynchronous and active-low reset (for ASIC targets)
+    constant ASYNC_RSTN    : boolean := False;
 
     --! Default values for do_data bus
     --! to avoid leaking intermeadiate values if do_valid = '0'.
@@ -78,10 +81,6 @@ package NIST_LWAPI_pkg is
     --! Other
     --! Limit to the segment counter size
     constant CTR_SIZE_LIM   : integer := 16;
-
-    --! =======================================================================
-    --! asynchronous and active-low reset (for ASIC targets)
-    constant ASYNC_RSTN    : boolean := False;
 
     --! =======================================================================
     --! Functions used by LWC Core, PreProcessor and PostProcessor
