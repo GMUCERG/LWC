@@ -597,7 +597,7 @@ begin
 		end if;
                 msg_start_time := clk_cycle_counter;
                 segment_loop : while True loop
-                    wait on pdi_delayed;
+                wait on pdi_delayed;
                     if seg_cnt <= 0 then -- grab the segment header
 			-- Handle the case where there is no PT segments from previous message
                         seg_cnt := to_integer(unsigned(pdi_delayed(15 downto 0)));
@@ -614,7 +614,7 @@ begin
 			end if;
 			if seg_cnt = 0 and seg_last = '1' and
                                (seg_header = HDR_PT or seg_header = HDR_TAG or seg_header = HDR_HASH_MSG) then
-			    wait on pdi_delayed;
+			    wait until rising_edge(clk) and pdi_ready = '1';
                             stall_msg <= '1'; -- this is the last segment of the packet wait until cipher is done
 			    --report "waiting on do last ";
                             wait until (do_last = '1' and (do(31 downto 28) = INST_SUCCESS or do(31 downto 28) = INST_FAILURE));
@@ -635,7 +635,7 @@ begin
 			end if;
                         -- if this word is the last word of the message, wait until status word
                         if seg_cnt <= 4 and (seg_header = HDR_PT or seg_header = HDR_TAG or seg_header = HDR_HASH_MSG) and seg_last = '1' then
-			    wait on pdi_delayed;
+			    wait until rising_edge(clk) and pdi_ready = '1';
                             stall_msg <= '1'; -- this is the last segment of the packet wait until cipher is done
 			    --report "Waiting for do last";
                             wait until (do_last = '1' and (do(31 downto 28) = INST_SUCCESS or do(31 downto 28) = INST_FAILURE));
