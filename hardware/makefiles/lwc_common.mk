@@ -17,7 +17,9 @@ WINPTY := $(shell command -v winpty)
 
 TOOL_RUN_DIR = $(CORE_ROOT)/run_dir
 
-DOCKER_CMD = $(WINPTY) docker run --rm -it -v /$(CORE_ROOT):/$(CORE_ROOT) -v /$(LWC_ROOT):/$(LWC_ROOT) -w $(TOOL_RUN_DIR)
+$(shell mkdir -p $(TOOL_RUN_DIR))
+
+DOCKER_CMD = $(WINPTY) docker run --rm -it -v /$(CORE_ROOT):/$(CORE_ROOT) -v /$(LWC_ROOT):/$(LWC_ROOT) -w $(TOOL_RUN_DIR) --security-opt label=disable
 
 PYTHON3_BIN = $(DOCKER_CMD) ghdl/synth:beta python3
 GHDL_BIN = $(DOCKER_CMD) ghdl/synth:beta ghdl
