@@ -39,7 +39,7 @@ entity KEY_PISO is
             data_valid_s       : out STD_LOGIC;
             data_ready_s       : in  STD_LOGIC;
 
-            data_p             : in  STD_LOGIC_VECTOR(31 downto 0);
+            data_p             : in  STD_LOGIC_VECTOR(CCSW-1 downto 0);
             data_valid_p       : in  STD_LOGIC;
             data_ready_p       : out STD_LOGIC
 

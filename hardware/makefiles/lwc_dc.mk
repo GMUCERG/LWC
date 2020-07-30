@@ -1,5 +1,5 @@
 
-SYNTH_FRAMEWORK_ROOT=$(realpath $(LWC_ROOT)/scripts/synth)
+SYNTH_FRAMEWORK_ROOT=$(realpath $(LWC_ROOT)/hardware/scripts/synth)
 
 DC_CMD ?= dc_shell-xg-t -64bit -topographical_mode
 DC_START_TCL=$(SYNTH_FRAMEWORK_ROOT)/tools/dc/run.tcl

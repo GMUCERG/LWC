@@ -17,7 +17,7 @@ else
 VCS_VLOGAN_CMD := vlogan -full64 -nc -sverilog +v2k -work $(WORK_DIR) +warn=all $(VERILOG_FILES)
 endif
 
-VCS_GENERICS_OPTS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/scripts/config_parser.py vcs_generics $(CORE_ROOT)/config.ini)
+VCS_GENERICS_OPTS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/hardware/scripts/config_parser.py vcs_generics $(CONFIG_LOC))
 
 # TOOL_RUN_DIR = vcs
 
