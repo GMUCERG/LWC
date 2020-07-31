@@ -28,7 +28,7 @@ use IEEE.STD_LOGIC_1164.all;
 package NIST_LWAPI_pkg is
 
     --! External bus: supported values are 8, 16 and 32 bits
-    constant W       : integer :=32;
+    constant W       : integer := 8;
     constant SW      : integer :=W;
 
     --! Default values for do_data bus
@@ -81,7 +81,7 @@ package NIST_LWAPI_pkg is
 
     --! =======================================================================
     --! asynchronous and active-low reset (for ASIC targets)
-    constant ASYNC_RSTN    : boolean := True;
+    constant ASYNC_RSTN    : boolean := False;
 
     --! =======================================================================
     --! Functions used by LWC Core, PreProcessor and PostProcessor
