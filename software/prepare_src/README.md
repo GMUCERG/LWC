@@ -1,10 +1,27 @@
-The following instruction provides a step-by-step guide into preparing a shared library for use with cryptotvgen using prepare_src utility. The instruction assumes that all build environment is setup correctly.
+The following instruction provides a step-by-step guide into preparing a shared
+library for use with cryptotvgen using prepare_src utility. The instruction
+assumes that all build environment is setup correctly.
+
+### Note
+The `LWC/software/prepare_src/include` directory comes from the SUPERCOP
+`supercop/bench/*/include`. These directories may need to be replaced.
+This could be accomplished by updating the include path highlighted in
+the Makefile with text `UPDATE REQUIRED?`.
+
+If the supercop/bench/*/include directory does not exist it is
+suggested that the SUPERCOP do-part script is used to generate it.
+Example: > do-part crypto_aead acorn128
 
 Step 1: Prepare SUPERCOP source code using prepare_src utility.
 
-    This step searches all crypto_aead and crypto_hash folder inside SUPERCOP directory and look for a reference (ref) implemetation of an algorithm.
-    The reference code are copied to a work directory. SUPERCOP software API funtion declaration identifier is modified during this process to include is slightly modified to include export identifie
-    It then modify function declaration specifier of SUPERCOP software API to include additional identifier. Finally, it creates Makefile.paths pointing to all prepared reference algorithm.
+    This step searches all crypto_aead and crypto_hash folder inside SUPERCOP
+    directory and look for a reference (ref) implemetation of an algorithm.
+    The reference code are copied to a work directory. SUPERCOP software API
+    funtion declaration identifier is modified during this process to include
+    is slightly modified to include export identifier.
+    It then modify function declaration specifier of SUPERCOP software API to
+    include additional identifier. Finally, it creates Makefile.paths pointing
+    to all prepared reference algorithm.
 
     > python3 prepare_src.py -p <PATH>
     e.g.
@@ -12,7 +29,9 @@ Step 1: Prepare SUPERCOP source code using prepare_src utility.
 
 Step 2: Modify generated Makefile.paths
 
-    Most of the time, user likely interest only a single algorithm. Modify Makefile.paths only to the target algorithm of interest. Make sure to remove any trailing spaces.
+    Most of the time, user likely interest only a single algorithm. Modify
+    Makefile.paths only to the target algorithm of interest. Make sure to
+    remove any trailing spaces.
 
     > vi Makefile.paths
 

@@ -131,9 +131,85 @@ def prepare_file(src, tgt, is_hash):
         f.write('#include "../../../dll.h"\n')
         f.write(txt)
 
-def prepare_directory(src_dir_path, tgt_dir_path, is_hash):
+# Create the crypto_aead.h in a similar was to do-part from supercop
+def create_crypto_aead_h(header_file_path):
+    o="crypto_aead"
+    algorithm = os.path.basename(os.path.dirname(os.path.dirname(header_file_path)))
+    op = f"{o}_{algorithm}"
+
+    # Obtain values from api header
+    api_header = os.path.join(os.path.dirname(header_file_path), f"api.h")
+    if os.path.exists(api_header):
+        with open(api_header, "r") as f:
+            content = f.read()
+    else:
+        log.warn(f"{op} will not build successfully!")
+        return
+    api_header_dict = dict()
+    for x in content.splitlines():
+        x = x.split()
+        try:
+            if "define" in x[0]:
+                api_header_dict.update({x[1].split('_')[1]:x[2]})
+        except IndexError:
+            pass
+    if not os.path.exists(header_file_path):
+        with open(header_file_path, 'w') as f:
+            f.write(f'#ifndef {o}_H\n')
+            f.write(f'#define {o}_H\n')
+            f.write('\n')
+            f.write(f'#include "{op}.h"\n\n')
+            loop_list = ['encrypt', 'decrypt', 'KEYBYTES', 'NSECBYTES', 'NPUBBYTES',
+                    'ABYTES', 'NOOVERLAP', 'PRIMITIVE', 'IMPLEMENTATION', 'VERSION',
+                    ]
+            for x in loop_list:
+                if x in ["encrypt", "decrypt"]:
+                    f.write(f"//#define {o}_{x} {op}_{x}\n")
+                elif x == "PRIMITIVE":
+                    f.write(f'#define {o}_{x} "{algorithm}"\n')
+                else:
+                    f.write(f"#define {o}_{x} {op}_{x}\n")
+            f.write('\n')
+            f.write('#endif')
+        header_file_path_op = os.path.join(os.path.dirname(header_file_path), f"{op}.h")
+
+
+        with open(header_file_path_op, 'w') as f:
+            f.write(f"#ifndef {op}_H\n")
+            f.write(f"#define {op}_H\n")
+            f.write("\n")
+            # Needs to get values from api.h
+            short_loop_list = ["KEYBYTES", 'NSECBYTES', 'NPUBBYTES', 'ABYTES', 'NOOVERLAP']
+            for x in short_loop_list:
+                f.write(f'#define {op}_ref_{x} {api_header_dict.get(x, "")}\n')
+            f.write('\n#ifdef __cplusplus\nextern "C" {\n#endif\n')
+            f.write(f"extern int {op}_ref_encrypt(unsigned char *,unsigned long long *,const unsigned char *,unsigned long long,const unsigned char *,unsigned long long,const unsigned char *,const unsigned char *,const unsigned char *);\n")
+            f.write(f"extern int {op}_ref_decrypt(unsigned char *,unsigned long long *,unsigned char *,const unsigned char *,unsigned long long,const unsigned char *,unsigned long long,const unsigned char *,const unsigned char *);\n")
+            f.write('#ifdef __cplusplus\n}\n#endif\n')
+            for x in loop_list:
+                if x in ["PRIMITIVE","VERSION"]:
+                    continue
+                if x in ['IMPLEMENTATION']:
+                    f.write(f'#define {op}_{x} "{o}/{algorithm}/ref"\n')
+                else:
+                    f.write(f'#define {op}_{x} {op}_ref_{x}\n')
+            f.write(f'#ifndef {op}_ref_VERSION\n')
+            f.write(f'#define {op}_ref_VERSION "-"\n')
+            f.write("#endif\n")
+            f.write(f'#define {op}_VERSION {op}_ref_VERSION\n')
+            f.write("\n")
+            f.write("#endif")
+
+
+
+def prepare_directory(src_dir_path, tgt_dir_path):
     ''' Prepare a reference algorithm directory for library generation '''
 
+    log.debug(f"\n\nprepare {src_dir_path}\n\t target {tgt_dir_path}")
+    if "crypto_hash" in src_dir_path:
+        is_hash = True
+    else:
+        is_hash = False
     if (is_hash):
         regex = re.compile('int\Wcrypto_hash')
     else:
@@ -141,6 +217,7 @@ def prepare_directory(src_dir_path, tgt_dir_path, is_hash):
 
     b_has_header = False
     header_file_name = 'crypto_hash.h' if is_hash else 'crypto_aead.h'
+    log.debug(f"header file name {header_file_name}")
     for file in os.listdir(src_dir_path):
         src_file_path = os.path.join(src_dir_path, file)
         tgt_file_path = os.path.join(tgt_dir_path, file)
@@ -149,8 +226,10 @@ def prepare_directory(src_dir_path, tgt_dir_path, is_hash):
             b_has_header = True
             
         if (os.path.isdir(src_file_path)):
+            log.info("src_file_path continue")     
             continue
         if (os.path.exists(tgt_file_path) and not opts.overwrite):
+            log.info("tgt_file_path continue")     
             continue
 
         b_needs_process = False
@@ -160,9 +239,8 @@ def prepare_directory(src_dir_path, tgt_dir_path, is_hash):
             found = re.findall(regex, f.read())
             if found:
                 b_needs_process = True
-
         if (b_needs_process):
-            log.info('Modifying %s ...', tgt_file_path)
+            log.debug('Modifying %s ...', tgt_file_path)
             prepare_file(src_file_path, tgt_file_path, is_hash)
         else:
             shutil.copy(src_file_path, tgt_file_path)
@@ -170,15 +248,18 @@ def prepare_directory(src_dir_path, tgt_dir_path, is_hash):
     # Add a dummy header file since some algorith needs it
     if not b_has_header:
         header_file_path = os.path.join(tgt_dir_path, header_file_name)
-        if not os.path.exists(header_file_path):
-            with open(header_file_path, 'w') as f:
-                f.write('')
+        try:
+            create_crypto_aead_h(header_file_path)
+        except Exception as e:
+            log.info(f"{e}", exc_info=True)
+            sys.exit()
+
 
     # Append the target directory path to the list of Makefile
     with open(MAKEFILE_PATH, 'a') as f:
         f.write(' \\\n    {}'.format(tgt_dir_path))
 
-def prepare_directories(crypto_class, crypto_class_path, is_hash):
+def prepare_directories(crypto_class, crypto_class_path):
     '''
     Prepare a class of cryptographic refrence directories from SuperCop for library generation.
     Only crypto_aead and crtypo_hash are supported.
@@ -193,14 +274,13 @@ def prepare_directories(crypto_class, crypto_class_path, is_hash):
     ref_paths = get_ref_paths(os.path.join(opts.path, crypto_class))
 
 
-    i=0
     for (algo_name, src_dir_path) in ref_paths:
         tgt_dir_path = os.path.join(crypto_class, algo_name, 'ref')
         if not os.path.exists(tgt_dir_path):
             log.info('Creating "%s" folder', tgt_dir_path)
             os.makedirs(tgt_dir_path)
         try:
-            prepare_directory(src_dir_path, tgt_dir_path, is_hash)
+            prepare_directory(src_dir_path, tgt_dir_path)
         except Exception as e:
             log.error('Error in algorithm "{}"'.format(algo_name), exc_info=True)           
 
@@ -208,7 +288,7 @@ def prepare_directories(crypto_class, crypto_class_path, is_hash):
 if __name__ == '__main__':
     has_aead = False;
     has_hash = False;
-
+    log.setLevel(logging.WARN)
     if (opts.overwrite or opts.clean):
         for dir in SUPPORTED_CRYPTO_CLASS:
             if os.path.exists(dir):
@@ -223,14 +303,11 @@ if __name__ == '__main__':
 
     for crypto_class in os.listdir(opts.path):
         if crypto_class in SUPPORTED_CRYPTO_CLASS:
-            if (crypto_class == 'crypto_aead'):
-                has_aead = True
-            else:
-                has_hash = True
+            log.info(f"\n\ncrypto_class {crypto_class}")
             crypto_class_path = os.path.join(opts.path, crypto_class)
-            prepare_directories(crypto_class, crypto_class_path, has_hash)
+            prepare_directories(crypto_class, crypto_class_path)
 
-    if (not has_aead):
-        log.warning("No crypto_aead found in opts.path")
-    if (not has_hash):
-        log.warning("No crypto_hash found in opts.path")
+    #if (not has_aead):
+    #    log.warning("No crypto_aead found in opts.path")
+    #if (not has_hash):
+    #    log.warning("No crypto_hash found in opts.path")
