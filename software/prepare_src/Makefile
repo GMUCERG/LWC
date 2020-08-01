@@ -22,11 +22,11 @@ CFLAGS      += -ggdb3 -O2
 DEBUG_FLAGS  = -DDBG
 
 LIBS         = -L/usr/local/bin
-INCLUDES     = -I/usr/local/include -T$(PWD)/include
+INCLUDES     = -I/usr/local/include -I$(PWD)/include
 
 # UPDATE REQUIRED? May need to be updated based on CPU
 #Example
-INCLUDES += -I~/supercop-20200702/bench/ubuntu/include/amd64
+INCLUDES += -I$(HOME)/supercop-20200702/bench/ubuntu/include/amd64
 
 LIBDIR       = libs
 BUILDDIR     = ${LIBDIR}/build
