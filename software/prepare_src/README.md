@@ -4,7 +4,10 @@ assumes that all build environment is setup correctly.
 
 ### Note
 The `LWC/software/prepare_src/include` directory comes from the SUPERCOP
-`supercop/bench/*/include`. These directories may need to be replaced.
+`supercop/bench/*/include`. It does not contain the sub directories that
+are typically found in that directory. If the desired algorithm does not
+build its lib out of the box by following the steps below. These directories
+may need to the include path in the Makefile.
 This could be accomplished by updating the include path highlighted in
 the Makefile with text `UPDATE REQUIRED?`.
 
