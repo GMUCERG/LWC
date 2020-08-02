@@ -108,6 +108,7 @@ if __name__ == '__main__':
     args += ['--gen_custom', gen_cus_string]
     cryptotvgen(args)
 
+    # Blanket test all possible message AD/PT message combinations between 0 and 2 x blocksize
     args = orig_args
     args += msg_format + ['--dest', os.path.join(dest_folder,"blanket_support_test")]
     gen_cus_string = blanket_message_test() + finish_custom()
