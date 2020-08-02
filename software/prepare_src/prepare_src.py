@@ -302,7 +302,12 @@ def prepare_directory(src_dir_path, tgt_dir_path):
 
         # Determine if any special processing needs to be done for the file
         with open(src_file_path, 'r') as f:
-            found = re.findall(regex, f.read())
+            try:
+                found = re.findall(regex, f.read())
+            except UnicodeDecodeError as e:
+                # Likely a PDF
+                log.info(f"{src_file_path} set to found false")
+                found = False
             if found:
                 b_needs_process = True
         if (b_needs_process):

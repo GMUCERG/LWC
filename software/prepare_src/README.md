@@ -22,6 +22,20 @@ Example:
     > do-part init
     > do-part crypto_aead acorn128
 
+### Known Issues
+
+Several of the algorithms have no implementation described as "ref",
+"simple", or "openssl". These algorithms will produce a warning when
+prepare_src.py is ran. If these algorthims are desired copy the correct
+variatant you wish to test and put it under i.e crypto_hash/AGLO/ref and
+manually add the implemnentation to the Makefile.paths.
+
+Most algorithms that make it into Makefile.paths will successfully compile.
+If desired algorithm does not compile the best course of action is to
+determine if it builds in SUPERCOP (see Notes).
+
+### Typical Steps
+
 Step 1: Prepare SUPERCOP source code using prepare_src utility.
 
     This step searches all crypto_aead and crypto_hash folder inside SUPERCOP
