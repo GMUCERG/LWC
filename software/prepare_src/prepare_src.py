@@ -103,13 +103,21 @@ def get_ref_paths(path):
 
         alg_ref_path = os.path.join(alg_path, 'ref')
         if not os.path.isdir(alg_ref_path):
-            log.warning('%s in %s has no reference folder', alg, path)
-            continue
-            
-        ref_paths.append((alg, alg_ref_path))
+            alg_simple_path = os.path.join(alg_path, 'simple')
+            if not os.path.isdir(alg_simple_path):
+                alg_openssl_path = os.path.join(alg_path, 'openssl')
+                if not os.path.isdir(alg_openssl_path):
+                    log.warning(f'{path}/{alg}/ has no subdirectories\n\t ref, simple or openssl')
+                    continue
+                else:
+                    ref_paths.append((alg, alg_openssl_path))
+            else:
+                ref_paths.append((alg, alg_simple_path))
+        else:    
+            ref_paths.append((alg, alg_ref_path))
     return ref_paths
 
-def prepare_file(src, tgt, is_hash):
+def prepare_file(src, tgt):
     ext = os.path.splitext(src)[1]
     b_src = False
     with open(tgt, 'w') as f:
@@ -131,19 +139,15 @@ def prepare_file(src, tgt, is_hash):
         f.write('#include "../../../dll.h"\n')
         f.write(txt)
 
-# Create the crypto_aead.h in a similar was to do-part from supercop
-def create_crypto_aead_h(header_file_path):
-    o="crypto_aead"
-    algorithm = os.path.basename(os.path.dirname(os.path.dirname(header_file_path)))
-    op = f"{o}_{algorithm}"
 
+def parse_api_h(header_file_path):
     # Obtain values from api header
     api_header = os.path.join(os.path.dirname(header_file_path), f"api.h")
     if os.path.exists(api_header):
         with open(api_header, "r") as f:
             content = f.read()
     else:
-        log.warn(f"{op} will not build successfully!")
+        log.warn(f"{header_file_path} will not build successfully!")
         return
     api_header_dict = dict()
     for x in content.splitlines():
@@ -153,6 +157,68 @@ def create_crypto_aead_h(header_file_path):
                 api_header_dict.update({x[1].split('_')[1]:x[2]})
         except IndexError:
             pass
+    return api_header_dict
+
+
+# Create the crypto_hash.h in a similar was to do-part from supercop
+# Filling out the headers as if it is the ref implementation even it
+# it is another version
+def create_crypto_hash_h(header_file_path):
+    o = "crypto_hash"
+    algorithm = os.path.basename(os.path.dirname(os.path.dirname(header_file_path)))
+    op = f"{o}_{algorithm}"
+
+    if not os.path.exists(header_file_path):
+        with open(header_file_path, 'w') as f:
+            f.write(f'#ifndef {o}_H\n')
+            f.write(f'#define {o}_H\n\n')
+            f.write(f'#include "{op}.h"\n\n')
+            f.write(f'//#define {o} {op}\n')
+            f.write(f'#define {o}_BYTES {op}_BYTES\n')
+            f.write(f'#define {o}_PRIMITIVE "{algorithm}"\n')
+            f.write(f'#define {o}_IMPLEMENTATION {op}_IMPLEMENTATION\n')
+            f.write(f'#define {o}_VERSION {op}_VERSION\n')
+            f.write(f'\n#endif')
+
+        header_file_path_op = os.path.join(os.path.dirname(header_file_path), f"{op}.h")
+        api_header_dict = parse_api_h(header_file_path)
+        with open(header_file_path_op, 'w') as f:
+            f.write(f'#ifndef {op}_H\n')
+            f.write(f'#define {op}_H\n\n')
+
+            f.write(f'#define {op}_ref_BYTES {api_header_dict.get("BYTES","")}\n')
+
+            f.write('\n#ifdef __cplusplus\nextern "C" {\n#endif\n')
+            f.write(f"extern int {op}_ref(unsigned char *,const unsigned char *,unsigned long long);\n")
+            f.write('#ifdef __cplusplus\n}\n#endif\n\n')
+
+            f.write(f'#define {op} {op}_ref\n')
+            f.write(f'#define {op}_BYTES {op}_ref_BYTES\n')
+            f.write(f'#define {op}_IMPLEMENTATION "{o}/{algorithm}/ref"\n')
+            f.write(f'#ifndef {op}_ref_VERSION\n')
+            f.write(f'#define {op}_ref_VERSION "-"\n')
+            f.write(f'#endif\n')
+            f.write(f'#define {op}_VERSION {op}_ref_VERSION\n\n')
+            f.write(f'#endif\n')
+    return
+
+
+# Create the crypto_aead.h in a similar was to do-part from supercop
+# Filling out the headers as if it is the ref implementation even it
+# it is another version
+def create_crypto_aead_h(header_file_path):
+    o="crypto_aead"
+    algorithm = os.path.basename(os.path.dirname(os.path.dirname(header_file_path)))
+    op = f"{o}_{algorithm}"
+
+    api_header_dict = parse_api_h(header_file_path)
+    if api_header_dict is None:
+        # Not sure how to file it out. 
+        # Giving it a header to include hoping for the best
+        with open(header_file_path, 'w') as f:
+            f.write('')
+        return
+
     if not os.path.exists(header_file_path):
         with open(header_file_path, 'w') as f:
             f.write(f'#ifndef {o}_H\n')
@@ -171,9 +237,9 @@ def create_crypto_aead_h(header_file_path):
                     f.write(f"#define {o}_{x} {op}_{x}\n")
             f.write('\n')
             f.write('#endif')
+
         header_file_path_op = os.path.join(os.path.dirname(header_file_path), f"{op}.h")
-
-
+            
         with open(header_file_path_op, 'w') as f:
             f.write(f"#ifndef {op}_H\n")
             f.write(f"#define {op}_H\n")
@@ -241,7 +307,7 @@ def prepare_directory(src_dir_path, tgt_dir_path):
                 b_needs_process = True
         if (b_needs_process):
             log.debug('Modifying %s ...', tgt_file_path)
-            prepare_file(src_file_path, tgt_file_path, is_hash)
+            prepare_file(src_file_path, tgt_file_path)
         else:
             shutil.copy(src_file_path, tgt_file_path)
             
@@ -249,9 +315,12 @@ def prepare_directory(src_dir_path, tgt_dir_path):
     if not b_has_header:
         header_file_path = os.path.join(tgt_dir_path, header_file_name)
         try:
-            create_crypto_aead_h(header_file_path)
+            if is_hash:
+                create_crypto_hash_h(header_file_path)
+            else:
+                create_crypto_aead_h(header_file_path)
         except Exception as e:
-            log.info(f"{e}", exc_info=True)
+            log.error(f"{e}", exc_info=True)
             sys.exit()
 
 
@@ -307,7 +376,3 @@ if __name__ == '__main__':
             crypto_class_path = os.path.join(opts.path, crypto_class)
             prepare_directories(crypto_class, crypto_class_path)
 
-    #if (not has_aead):
-    #    log.warning("No crypto_aead found in opts.path")
-    #if (not has_hash):
-    #    log.warning("No crypto_hash found in opts.path")

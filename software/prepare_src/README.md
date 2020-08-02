@@ -2,7 +2,12 @@ The following instruction provides a step-by-step guide into preparing a shared
 library for use with cryptotvgen using prepare_src utility. The instruction
 assumes that all build environment is setup correctly.
 
-### Note
+### Requirements
+
+- python3 >= 3.6
+- SUPERCOP directory: Setup of SUPERCOP maybe required(see Notes)
+
+### Notes
 The `LWC/software/prepare_src/include` directory comes from the SUPERCOP
 `supercop/bench/*/include`. It does not contain the sub directories that
 are typically found in that directory. If the desired algorithm does not
@@ -13,7 +18,9 @@ the Makefile with text `UPDATE REQUIRED?`.
 
 If the supercop/bench/*/include directory does not exist it is
 suggested that the SUPERCOP do-part script is used to generate it.
-Example: > do-part crypto_aead acorn128
+Example:
+    > do-part init
+    > do-part crypto_aead acorn128
 
 Step 1: Prepare SUPERCOP source code using prepare_src utility.
 

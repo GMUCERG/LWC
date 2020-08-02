@@ -27,6 +27,8 @@ INCLUDES     = -I/usr/local/include -I$(PWD)/include
 # UPDATE REQUIRED? May need to be updated based on CPU
 #Example
 INCLUDES += -I$(HOME)/supercop-20200702/bench/ubuntu/include/amd64
+# Libsodium
+INCLUDES += -I/usr/include/sodium
 
 LIBDIR       = libs
 BUILDDIR     = ${LIBDIR}/build
