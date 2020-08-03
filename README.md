@@ -109,7 +109,7 @@ List of external core examples adopted to the latest framework:
 - [COMET-CHAM from Virginia Tech](https://github.com/kammoh/comet_cham_lwc_v2/tree/asic): VHDL (`asic` branch)
 - [SpoC from Virginia Tech](https://github.com/kammoh/comet_cham_lwc_v2/tree/asic): Verilog (`asic` branch)
 
-## Popular Configurable LWC Options
+## Notable Configurable LWC Options
 
 ### NIST_LWAPI.vhd
 ASYNC_RSTN (boolean): When True a active-low reset is used instead of an active-high synchrous reset

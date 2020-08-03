@@ -303,7 +303,7 @@ begin
                 fpdi_din_valid <= '1';
             end if;
 
-            hread( line_data, word_block, read_result );
+            HREAD( line_data, word_block, read_result );
             while (((read_result = False) or (valid_line = False))
                 and (not endfile( pdi_file )))
             loop
@@ -318,7 +318,7 @@ begin
                     valid_line := False;
                     fpdi_din_valid  <= '0';
                 end if;
-                hread( line_data, word_block, read_result ); --! read data
+                HREAD( line_data, word_block, read_result ); --! read data
             end loop;
             fpdi_din <= word_block;
                wait for io_clk_period;
@@ -367,7 +367,7 @@ begin
                 fsdi_din_valid <= '1';
             end if;
 
-            hread(line_data, word_block, read_result);
+            HREAD(line_data, word_block, read_result);
             while (((read_result = False) or (valid_line = False))
                 and (not endfile(sdi_file)))
             loop
@@ -382,7 +382,7 @@ begin
                     valid_line := False;
                     fsdi_din_valid  <= '0';
                 end if;
-                hread( line_data, word_block, read_result );    --! read data
+                HREAD( line_data, word_block, read_result );    --! read data
             end loop;
             fsdi_din <= word_block;
             wait for io_clk_period;
@@ -418,7 +418,7 @@ begin
 
         while (not endfile (do_file) and valid_line and (not force_exit)) loop
             --! Keep reading new line until a valid line is found
-            hread( line_data, word_block, read_result );
+            HREAD( line_data, word_block, read_result );
             while ((read_result = False or valid_line = False)
                   and (not endfile(do_file)))
             loop
@@ -443,7 +443,7 @@ begin
                 end if;
 
                 if (instr_encoding = True) then
-                    hread(line_data, tb_block, read_result); --! read data
+                    HREAD(line_data, tb_block, read_result); --! read data
                     instr_encoding := False;
                     read_result    := False;
                     opcode := tb_block(19 downto 16);
@@ -470,7 +470,7 @@ begin
                         & integer'image(msgid) & " at "
                         & time'image(now) severity note;
                 else
-                    hread(line_data, word_block, read_result); --! read data
+                    HREAD(line_data, word_block, read_result); --! read data
                 end if;
             end loop;
 
@@ -500,8 +500,8 @@ begin
                         & string'(" word #") & integer'image(word_count));
                     writeline(log_file,logMsg);
                     write(logMsg, string'("[Log]     Expected: ")
-                        & to_hstring(word_block)
-                        & string'(" Received: ") & to_hstring(fdo_dout));
+                        & TO_HSTRING(word_block)
+                        & string'(" Received: ") & TO_HSTRING(fdo_dout));
                     writeline(log_file,logMsg);
 
                     --! Stop the simulation right away when an error is detected
@@ -511,8 +511,8 @@ begin
                         & " Word #" & integer'image(word_count)
                         & " at " & time'image(now) & " FAILS T_T --------"
                         severity error;
-                    report "Expected: " & to_hstring(word_block)
-                        & " Actual: " & to_hstring(fdo_dout) severity error;
+                    report "Expected: " & TO_HSTRING(word_block)
+                        & " Actual: " & TO_HSTRING(fdo_dout) severity error;
                     write(result_file, "fail");
                     if (G_STOP_AT_FAULT = True) then
                         force_exit := True;
@@ -527,8 +527,8 @@ begin
                     end if;
                 else
                     write(logMsg, string'("[Log]     Expected: ")
-                        & to_hstring(word_block)
-                        & string'(" Received: ") & to_hstring(fdo_dout)
+                        & TO_HSTRING(word_block)
+                        & string'(" Received: ") & TO_HSTRING(fdo_dout)
                         & string'(" Matched!"));
                     writeline(log_file,logMsg);
                 end if;
