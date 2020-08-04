@@ -579,7 +579,6 @@ begin
         variable latency_measure : integer := 0;
         variable msg_id: integer := 0;
     begin
-        -- 8 bit version
         if G_TEST_MODE = 4 then
             stall_msg <= '0';
             wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
@@ -612,6 +611,9 @@ begin
                             seg_cnt := to_integer(unsigned(pdi_delayed & "00000000"));
                             wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
                             seg_cnt := seg_cnt + to_integer(unsigned(pdi_delayed));
+                        elsif G_PWIDTH = 16 then
+                            wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1'; --wait segment length top
+                            seg_cnt := to_integer(unsigned(pdi_delayed));
                         else --G_PWIDTH 32
                             seg_cnt := to_integer(unsigned(pdi_delayed(15 downto 0)));
                         end if;
@@ -652,6 +654,16 @@ begin
                                 exit;
                             end if;
                             seg_cnt := seg_cnt - 1;
+                        elsif G_PWIDTH = 16 then
+                            if seg_cnt <= 2 and (seg_header = HDR_PT or seg_header = HDR_TAG or seg_header = HDR_HASH_MSG) and seg_last = '1' then
+                                stall_msg <= '1'; -- last segment  wait until cipher is done
+                                wait until (do_last = '1' and (do(15 downto 12) = INST_SUCCESS or do(15 downto 12) = INST_FAILURE));
+                                stall_msg <= '0';
+                                exec_time := clk_cycle_counter-msg_start_time;
+                                msg_id := msg_id + 1;
+                                exit;
+                            end if;
+                            seg_cnt := seg_cnt - 2;
                         else --G_PWIDTH = 32
                             if seg_cnt <= 4 and (seg_header = HDR_PT or seg_header = HDR_TAG or seg_header = HDR_HASH_MSG) and seg_last = '1' then
                                 stall_msg <= '1'; -- this is the last segment of the packet wait until cipher is done
