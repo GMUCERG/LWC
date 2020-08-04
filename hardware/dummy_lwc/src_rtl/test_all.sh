@@ -21,3 +21,4 @@ export CONFIG_LOC=$PWD/configs/8config.ini
 make sim-ghdl
 export CONFIG_LOC=$PWD/configs/8MSconfig.ini
 make sim-ghdl
+unset CONFIG_LOC
