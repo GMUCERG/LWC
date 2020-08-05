@@ -18,14 +18,14 @@ use IEEE.STD_LOGIC_1164.all;
 
 package Design_pkg is
 
-    --! user specific, algorithm indepent parameters
+    --! user specific, algorithm independent parameters
     -- This module implements three different variants of dummy_lwc
     type set_selector is (dummy_lwc_8, dummy_lwc_16, dummy_lwc_32);
 
     --! Select variant
     constant variant : set_selector := dummy_lwc_32;
     
-    --! Adjust the bit counter widths to reduce ressource consumption.
+    --! Adjust the bit counter widths to reduce resource consumption.
     -- Range definition must not change.
     constant AD_CNT_WIDTH    : integer range 4 to 64 := 32;  --! Width of AD Bit counter
     constant MSG_CNT_WIDTH   : integer range 4 to 64 := 32;  --! Width of MSG (PT/CT) Bit counter

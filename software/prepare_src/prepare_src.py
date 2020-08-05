@@ -167,7 +167,7 @@ def prepare_directory(src_dir_path, tgt_dir_path, is_hash):
         else:
             shutil.copy(src_file_path, tgt_file_path)
             
-    # Add a dummy header file since some algorith needs it
+    # Add a dummy header file since some algorithms needs it
     if not b_has_header:
         header_file_path = os.path.join(tgt_dir_path, header_file_name)
         if not os.path.exists(header_file_path):
@@ -180,7 +180,7 @@ def prepare_directory(src_dir_path, tgt_dir_path, is_hash):
 
 def prepare_directories(crypto_class, crypto_class_path, is_hash):
     '''
-    Prepare a class of cryptographic refrence directories from SuperCop for library generation.
+    Prepare a class of cryptographic reference directories from SuperCop for library generation.
     Only crypto_aead and crtypo_hash are supported.
     '''
 
