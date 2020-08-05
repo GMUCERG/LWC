@@ -27,16 +27,6 @@ use IEEE.STD_LOGIC_1164.all;
 
 package NIST_LWAPI_pkg is
 
-
---    constant ASYNC_RSTN    : boolean := False;
---    -- DO NOT CHANGE ANYTHING BELOW!
---    constant Wdiv8   : integer := W/8;
---    constant SWdiv8  : integer := SW/8;
-
-
---    constant do_data_defaults : std_logic_vector(W-1 downto 0) := (others => '0');
-
-
     --! INSTRUCTIONS (OPCODES)
     constant INST_HASH      : std_logic_vector(4    -1 downto 0):="1000";
     constant INST_ENC       : std_logic_vector(4    -1 downto 0):="0010";
