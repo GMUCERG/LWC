@@ -16,7 +16,13 @@ def ghdl_generics(config):
 def vcs_generics(config):
     return ' '.join([f"-gv {k}={quote_strings(v)}" for k, v in config.items('Generics')])
 
+def vivado_generics(config):
+    return ' '.join([f"-generic {k}={v}" for k, v in config.items('Generics')])
+
 def variables(config):
+    # TODO rewrite the whole script with hierarchical parsing and better error handling!
+    if not config.has_section('Variables'):
+        return " "
     return '\n'.join([f"{k}={v}" for k, v in config.items('Variables')])
 
 if __name__ == "__main__":
@@ -35,7 +41,9 @@ if __name__ == "__main__":
         if argv[1] == 'ghdl_generics':
             print(ghdl_generics(config))    
         elif argv[1] == 'vcs_generics':
-            print(vcs_generics(config))    
+            print(vcs_generics(config))           
+        elif argv[1] == 'vivado_generics':
+            print(vivado_generics(config))    
         elif argv[1] == 'test':
             print("OK")
         elif argv[1] == 'vars':
