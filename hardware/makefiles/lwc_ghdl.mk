@@ -35,14 +35,14 @@ endif
 SIM_ONLY_VHDL_FILES := $(VHDL_ADDITIONS) $(LWC_TB) 
 SIM_VHDL_FILES = $(VHDL_FILES) $(SIM_ONLY_VHDL_FILES)
 
-GENERICS_OPTS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/hardware/scripts/config_parser.py ghdl_generics $(CONFIG_LOC))
+GHDL_GENERICS_OPTS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/hardware/scripts/config_parser.py ghdl_generics $(CONFIG_LOC))
 
 ### GHDL analyze testbench files, elaborate, and run
 .PHONY: sim-ghdl help-ghdl clean-ghdl
 sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf $(SIM_VHDL_FILES) Makefile config-vars
 	$(GHDL_BIN) -a $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_ONLY_VHDL_FILES)
 	$(GHDL_BIN) -e $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_TOP) 
-	$(GHDL_BIN) -r $(SIM_TOP) $(GHDL_SIM_OPTS) $(GENERICS_OPTS) $(VCD_OPT)
+	$(GHDL_BIN) -r $(SIM_TOP) $(GHDL_SIM_OPTS) $(GHDL_GENERICS_OPTS) $(VCD_OPT)
 
 ifeq ($(strip $(VHDL_FILES)),)
 YOSYS_READ_VHDL_CMD := 
