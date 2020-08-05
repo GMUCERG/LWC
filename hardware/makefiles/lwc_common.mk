@@ -56,8 +56,8 @@ VARS :=
 
 config-vars: test-config-parser FORCE
 	$(eval VARS := $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CONFIG_LOC)))
-	@echo Variables from config.ini:
-	$(file >env,$(VARS))
+	#@echo Variables from config.ini:
+	#$(file >env,$(VARS))
 	@$(foreach v,$(VARS),$(eval $(v)))
 
 .env: config-vars

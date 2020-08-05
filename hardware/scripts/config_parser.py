@@ -17,9 +17,12 @@ def vcs_generics(config):
     return ' '.join([f"-gv {k}={quote_strings(v)}" for k, v in config.items('Generics')])
 
 def vivado_generics(config):
-    return ' '.join([f"-generic {k}={quote_strings(v)}" for k, v in config.items('Generics')])
+    return ' '.join([f"-generic {k}={v}" for k, v in config.items('Generics')])
 
 def variables(config):
+    # TODO rewrite the whole script with hierarchical parsing and better error handling!
+    if not config.has_section('Variables'):
+        return " "
     return '\n'.join([f"{k}={v}" for k, v in config.items('Variables')])
 
 if __name__ == "__main__":
