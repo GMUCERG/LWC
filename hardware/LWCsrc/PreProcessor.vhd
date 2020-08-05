@@ -35,15 +35,20 @@ use work.Design_pkg.all;
 
 
 entity PreProcessor is
+	generic (
+		G_W          : integer;
+		G_SW          : integer;
+		G_ASYNC_RSTN : boolean	
+	);
     port (  
             clk             : in  std_logic;
             rst             : in  std_logic;
             --! Public Data input (pdi) ========================================
-            pdi_data        : in  STD_LOGIC_VECTOR(W-1 downto 0);
+            pdi_data        : in  STD_LOGIC_VECTOR(G_W-1 downto 0);
             pdi_valid       : in  std_logic;
             pdi_ready       : out std_logic;
             --! Secret Data input (sdi) ========================================
-            sdi_data        : in  STD_LOGIC_VECTOR(SW-1 downto 0);
+            sdi_data        : in  STD_LOGIC_VECTOR(G_SW-1 downto 0);
             sdi_valid       : in  std_logic;
             sdi_ready       : out std_logic;
 
@@ -64,7 +69,7 @@ entity PreProcessor is
             hash            : out std_logic;
             key_update      : out std_logic;
             ---! Header FIFO ===================================================
-            cmd             : out std_logic_vector(W-1 downto 0);
+            cmd             : out std_logic_vector(G_W-1 downto 0);
             cmd_valid       : out std_logic;
             cmd_ready       : in  std_logic
         );
@@ -99,7 +104,7 @@ architecture PreProcessor of PreProcessor is
     --Controller
     signal bdi_eoi_internal  : std_logic;
     signal bdi_eot_internal  : std_logic;
-    constant zero_data       : std_logic_vector(W-1 downto 0):=(others=>'0');
+    constant zero_data       : std_logic_vector(G_W-1 downto 0):=(others=>'0');
 
 
     ---STATES
@@ -140,7 +145,7 @@ begin
     SegLen: entity work.StepDownCountLd(StepDownCountLd)
         generic map(
                 N       =>  16,
-                step    =>  Wdiv8
+                step    =>  (G_W/8)
                     )
         port map
                 (
@@ -151,9 +156,9 @@ begin
                 count   =>  dout_SegLenCnt
             );
 
-    -- if there are Wdiv8 or less bytes left, we processthe last flit
+    -- if there are (G_W/8) or less bytes left, we processthe last flit
     last_flit_of_segment <= '1' when
-        (to_integer(to_01(unsigned(dout_SegLenCnt))) <= Wdiv8) else '0';
+        (to_integer(to_01(unsigned(dout_SegLenCnt))) <= (G_W/8)) else '0';
 
     -- set valid bytes
     with (to_integer(to_01(unsigned(dout_SegLenCnt)))) select
@@ -193,7 +198,7 @@ begin
    --! 32 bit specific FSM -------------------------------------------------------------------------------
    -- ====================================================================================================
 
-FSM_32BIT: if (W=32) generate
+FSM_32BIT: if (G_W=32) generate
 
     --! 32 Bit specific declarations
     signal nx_state, pr_state: t_state32;
@@ -225,10 +230,13 @@ FSM_32BIT: if (W=32) generate
 
     --! KEY PISO
     -- for ccsw > SW: a piso is used for width conversion
-    keyPISO: entity work.KEY_PISO(behavioral) port map
-        (
-            clk=> clk,
-            rst=> rst,
+    keyPISO: entity work.KEY_PISO(behavioral)
+	    generic map(
+    		G_ASYNC_RSTN => G_ASYNC_RSTN
+    	)
+	    port map(
+            clk          => clk,
+            rst          => rst,
 
             data_s       => key,
             data_valid_s => key_valid,
@@ -241,7 +249,10 @@ FSM_32BIT: if (W=32) generate
 
     --! DATA PISO
     -- for ccw > W: a piso is used for width conversion
-    bdiPISO: entity work.DATA_PISO(behavioral) port map
+    bdiPISO: entity work.DATA_PISO(behavioral) 	generic map(
+    		G_ASYNC_RSTN => G_ASYNC_RSTN
+    	)
+    port map
         (
             clk=> clk,
             rst=> rst,
@@ -272,7 +283,7 @@ FSM_32BIT: if (W=32) generate
 
 
     --! State register
-    GEN_proc_SYNC_RST: if (not ASYNC_RSTN) generate
+    GEN_proc_SYNC_RST: if (not G_ASYNC_RSTN) generate
         process (clk)
         begin
             if rising_edge(clk) then
@@ -284,7 +295,7 @@ FSM_32BIT: if (W=32) generate
             end if;
         end process;
     end generate GEN_proc_SYNC_RST;
-    GEN_proc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+    GEN_proc_ASYNC_RSTN: if (G_ASYNC_RSTN) generate
         process (clk, rst)
         begin
             if(rst='0')  then
@@ -641,10 +652,10 @@ end generate;
    --! 16 bit specific FSM -------------------------------------------------------------------------------
    -- ====================================================================================================
 
-FSM_16BIT: if (W=16) generate
+FSM_16BIT: if (G_W=16) generate
 
     --! 16 Bit specific declarations
-    signal data_seg_length    : std_logic_vector(W -1 downto 0);
+    signal data_seg_length    : std_logic_vector(G_W -1 downto 0);
     signal bdi_size_not_last  : std_logic_vector(2 downto 0);
     --Registers
     signal nx_state, pr_state : t_state16;
@@ -655,16 +666,16 @@ FSM_16BIT: if (W=16) generate
 
     bdi_size    <= dout_SegLenCnt(2 downto 0) when last_flit_of_segment='1' else bdi_size_not_last;
 
-    with Wdiv8 select
+    with (G_W/8) select
     bdi_size_not_last <= "100" when 4,
                          "010" when 2,
                          "001" when 1,
                          "000" when others;
 
-    bdi_pad_loc    (Wdiv8 -1 downto 0) <= bdi_pad_loc_p(3 downto 4-Wdiv8);
-    bdi_valid_bytes(Wdiv8 -1 downto 0) <= bdi_valid_bytes_p(3 downto 4-Wdiv8);
+    bdi_pad_loc    ((G_W/8) -1 downto 0) <= bdi_pad_loc_p(3 downto 4-(G_W/8));
+    bdi_valid_bytes((G_W/8) -1 downto 0) <= bdi_valid_bytes_p(3 downto 4-(G_W/8));
     data_seg_length   <= sdi_data when sel_sdi_length=true else pdi_data;
-    load_SegLenCnt    <= data_seg_length(W-1 downto W-8*Wdiv8);
+    load_SegLenCnt    <= data_seg_length(G_W-1 downto G_W-8*(G_W/8));
 
     bdi_eoi_internal  <= eoi_flag and last_flit_of_segment;
     bdi_eot_internal  <= eot_flag and last_flit_of_segment;
@@ -676,7 +687,7 @@ FSM_16BIT: if (W=16) generate
     key <= sdi_data;
     
      --! State register
-    GEN_proc_SYNC_RST: if (not ASYNC_RSTN) generate
+    GEN_proc_SYNC_RST: if (not G_ASYNC_RSTN) generate
         process (clk)
         begin
             if rising_edge(clk) then
@@ -688,7 +699,7 @@ FSM_16BIT: if (W=16) generate
             end if;
         end process;
     end generate GEN_proc_SYNC_RST;
-    GEN_proc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+    GEN_proc_ASYNC_RSTN: if (G_ASYNC_RSTN) generate
         process (clk, rst)
         begin
             if(rst='0')  then
@@ -712,11 +723,11 @@ FSM_16BIT: if (W=16) generate
             ---MODE SET-
             when S_INT_MODE=>
                 if (pdi_valid = '1') then
-                    if (pdi_data(W-1 downto W-4) = INST_ACTKEY) then
+                    if (pdi_data(G_W-1 downto G_W-4) = INST_ACTKEY) then
                         nx_state <= S_INT_KEY;
-                    elsif (pdi_data(W-1 downto W-3) = INST_ENC(3 downto 1)) and (cmd_ready = '1') then
+                    elsif (pdi_data(G_W-1 downto G_W-3) = INST_ENC(3 downto 1)) and (cmd_ready = '1') then
                         nx_state <= S_HDR_NPUB;
-                    elsif (pdi_data(W-1 downto W-4) = INST_HASH and cmd_ready = '1') then
+                    elsif (pdi_data(G_W-1 downto G_W-4) = INST_HASH and cmd_ready = '1') then
                         nx_state <= S_HDR_HASH;
                     else
                         nx_state <=S_INT_MODE;
@@ -727,14 +738,14 @@ FSM_16BIT: if (W=16) generate
 
             ---load key
             when S_INT_KEY=>
-                if (sdi_valid = '1' and sdi_data(W-1 downto W-4) = INST_LDKEY) then
+                if (sdi_valid = '1' and sdi_data(G_W-1 downto G_W-4) = INST_LDKEY) then
                     nx_state <= S_HDR_KEY;
                 else
                     nx_state <= S_INT_KEY;
                 end if;
 
             when S_HDR_KEY=>
-                if (sdi_valid = '1' and sdi_data(W-1 downto W-4) = HDR_KEY) then
+                if (sdi_valid = '1' and sdi_data(G_W-1 downto G_W-4) = HDR_KEY) then
                     nx_state <= S_HDR_KEYLEN;
                 else
                     nx_state <= S_HDR_KEY;
@@ -756,7 +767,7 @@ FSM_16BIT: if (W=16) generate
 
             ---NPUB
             when S_HDR_NPUB=>
-                if(pdi_valid='1' and pdi_data(W-1 downto W-4) = HDR_NPUB) then
+                if(pdi_valid='1' and pdi_data(G_W-1 downto G_W-4) = HDR_NPUB) then
                     nx_state <= S_HDR_NPUBLEN;
                 else
                     nx_state <= S_HDR_NPUB;
@@ -778,7 +789,7 @@ FSM_16BIT: if (W=16) generate
 
             --AD
             when S_HDR_AD=>
-                if (pdi_valid = '1' and pdi_data(W-1 downto W-4) = HDR_AD) then
+                if (pdi_valid = '1' and pdi_data(G_W-1 downto G_W-4) = HDR_AD) then
                     nx_state <= S_HDR_ADLEN;
                 else
                     nx_state <= S_HDR_AD;
@@ -816,8 +827,8 @@ FSM_16BIT: if (W=16) generate
 
             --MSG OR CIPHER TEXT
             when S_HDR_MSG=>
-            if (pdi_valid = '1' and cmd_ready = '1' and (pdi_data(W-1 downto W-4) = HDR_PT
-                                 or  pdi_data(W-1 downto W-4) = HDR_CT)) then
+            if (pdi_valid = '1' and cmd_ready = '1' and (pdi_data(G_W-1 downto G_W-4) = HDR_PT
+                                 or  pdi_data(G_W-1 downto G_W-4) = HDR_CT)) then
                 nx_state <= S_HDR_MSGLEN;
             else
                 nx_state <= S_HDR_MSG;
@@ -855,7 +866,7 @@ FSM_16BIT: if (W=16) generate
 
             --TAG
             when S_HDR_TAG=>
-                if(pdi_valid='1' and pdi_data(W-1 downto W-4) = HDR_TAG) then
+                if(pdi_valid='1' and pdi_data(G_W-1 downto G_W-4) = HDR_TAG) then
                     nx_state <= S_HDR_TAGLEN;
                 else
                     nx_state <= S_HDR_TAG;
@@ -881,7 +892,7 @@ FSM_16BIT: if (W=16) generate
 
             --HASH
             when S_HDR_HASH =>
-                if (pdi_valid = '1' and pdi_data(W-1 downto W-3) = HDR_HASH_MSG(3 downto 1)) then
+                if (pdi_valid = '1' and pdi_data(G_W-1 downto G_W-3) = HDR_HASH_MSG(3 downto 1)) then
                     nx_state <= S_HDR_HASHLEN;
                 else
                     nx_state <= S_HDR_HASH;
@@ -954,21 +965,21 @@ FSM_16BIT: if (W=16) generate
             ---MODE
             when S_INT_MODE       =>
                 nx_hash_internal <= '0';
-                if (pdi_data(W-1 downto W-3) = INST_ENC(3 downto 1)) then
+                if (pdi_data(G_W-1 downto G_W-3) = INST_ENC(3 downto 1)) then
                     if (pdi_valid = '1') then
-                        nx_decrypt_internal <= pdi_data(W-4);
+                        nx_decrypt_internal <= pdi_data(G_W-4);
                     end if;
                     cmd_valid        <= pdi_valid;
                     pdi_ready        <= cmd_ready;
                     nx_hash_internal <= '0';
-                elsif (pdi_data(W-1 downto W-4)=INST_ACTKEY)then
+                elsif (pdi_data(G_W-1 downto G_W-4)=INST_ACTKEY)then
                     pdi_ready        <= '1';
                     nx_hash_internal <= '0';
 
-                elsif (pdi_data(W-1 downto W-4)=INST_HASH) then
+                elsif (pdi_data(G_W-1 downto G_W-4)=INST_HASH) then
                     nx_hash_internal <= '1';
                     if (pdi_valid = '1') then
-                        nx_decrypt_internal <= pdi_data(W-4);
+                        nx_decrypt_internal <= pdi_data(G_W-4);
                     end if;
                     cmd_valid    <= pdi_valid;
                     pdi_ready    <= cmd_ready;
@@ -983,8 +994,8 @@ FSM_16BIT: if (W=16) generate
                 len_SegLenCnt   <= sdi_valid;
                 sel_sdi_length  <= true;
                 if (sdi_valid = '1') then
-                    nx_eoi_flag <= pdi_data(W-6);
-                    nx_eot_flag <= pdi_data(W-7);
+                    nx_eoi_flag <= pdi_data(G_W-6);
+                    nx_eot_flag <= pdi_data(G_W-7);
                 end if;
 
             when S_HDR_KEYLEN     =>
@@ -1003,8 +1014,8 @@ FSM_16BIT: if (W=16) generate
                 pdi_ready       <='1';
                 len_SegLenCnt   <= pdi_valid;
                 if (pdi_valid = '1') then
-                    nx_eoi_flag <= pdi_data(W-6);
-                    nx_eot_flag <= pdi_data(W-7);
+                    nx_eoi_flag <= pdi_data(G_W-6);
+                    nx_eot_flag <= pdi_data(G_W-7);
                 end if;
 
             when S_HDR_NPUBLEN    =>
@@ -1022,8 +1033,8 @@ FSM_16BIT: if (W=16) generate
                 pdi_ready      <='1';
                 len_SegLenCnt  <= pdi_valid;
                 if (pdi_valid = '1') then
-                    nx_eoi_flag <= pdi_data(W-6);
-                    nx_eot_flag <= pdi_data(W-7);
+                    nx_eoi_flag <= pdi_data(G_W-6);
+                    nx_eot_flag <= pdi_data(G_W-7);
                 end if;
 
             when S_HDR_ADLEN      =>
@@ -1038,14 +1049,14 @@ FSM_16BIT: if (W=16) generate
 
             --MSG
             when S_HDR_MSG =>
-                if (pdi_data(W-1 downto W-4) = HDR_PT or pdi_data(W-1 downto W-4) = HDR_CT) then
+                if (pdi_data(G_W-1 downto G_W-4) = HDR_PT or pdi_data(G_W-1 downto G_W-4) = HDR_CT) then
                     cmd_valid   <=pdi_valid;
                 end if;
                 pdi_ready       <= cmd_ready;
                 len_SegLenCnt   <= pdi_valid and cmd_ready;
                 if ((pdi_valid = '1') and (cmd_ready = '1')) then
-                    nx_eoi_flag <= pdi_data(W-6);
-                    nx_eot_flag <= pdi_data(W-7);
+                    nx_eoi_flag <= pdi_data(G_W-6);
+                    nx_eot_flag <= pdi_data(G_W-7);
                 end if;
 
             when S_HDR_MSGLEN =>
@@ -1068,8 +1079,8 @@ FSM_16BIT: if (W=16) generate
                 pdi_ready       <= '1';
                 len_SegLenCnt   <= pdi_valid;
                 if (pdi_valid = '1') then
-                    nx_eoi_flag <= pdi_data(W-6);
-                    nx_eot_flag <= pdi_data(W-7);
+                    nx_eoi_flag <= pdi_data(G_W-6);
+                    nx_eot_flag <= pdi_data(G_W-7);
                 end if;
 
             when S_HDR_HASHLEN =>
@@ -1117,30 +1128,30 @@ end generate;
    --! 08 bit specific FSM -------------------------------------------------------------------------------
    -- ====================================================================================================
 
-FSM_8BIT: if (W=8) generate
+FSM_8BIT: if (G_W=8) generate
     --! 8 Bit specific declarations
     signal nx_state, pr_state : t_state8;
     signal bdi_size_not_last  : std_logic_vector(2 downto 0);
     -- Registers
-    signal data_seg_length    : std_logic_vector(W -1 downto 0);
+    signal data_seg_length    : std_logic_vector(G_W -1 downto 0);
     signal dout_LenReg, nx_dout_LenReg : std_logic_vector(7 downto 0);
 
     begin
 
     --! Logics
-    load_SegLenCnt <= dout_LenReg(7 downto 0) & data_seg_length(W-1 downto W-8);
+    load_SegLenCnt <= dout_LenReg(7 downto 0) & data_seg_length(G_W-1 downto G_W-8);
     bdi_size    <= dout_SegLenCnt(2 downto 0) when last_flit_of_segment='1' else
         bdi_size_not_last;
 
-    with Wdiv8 select
+    with (G_W/8) select
     bdi_size_not_last <= "100" when 4,
                          "010" when 2,
                          "001" when 1,
                          "000" when others;
 
-    bdi_pad_loc    (Wdiv8 -1 downto 0) <= bdi_pad_loc_p(3 downto 4-Wdiv8);
+    bdi_pad_loc    ((G_W/8) -1 downto 0) <= bdi_pad_loc_p(3 downto 4-(G_W/8));
 
-    bdi_valid_bytes(Wdiv8 -1 downto 0) <= bdi_valid_bytes_p(3 downto 4-Wdiv8);
+    bdi_valid_bytes((G_W/8) -1 downto 0) <= bdi_valid_bytes_p(3 downto 4-(G_W/8));
 
     data_seg_length   <= sdi_data when sel_sdi_length = true else pdi_data;
     bdi_eoi_internal  <= eoi_flag and last_flit_of_segment;
@@ -1162,7 +1173,7 @@ FSM_8BIT: if (W=8) generate
 
     
     --! State register
-    GEN_proc_SYNC_RST: if (not ASYNC_RSTN) generate
+    GEN_proc_SYNC_RST: if (not G_ASYNC_RSTN) generate
         process (clk)
         begin
             if rising_edge(clk) then
@@ -1174,7 +1185,7 @@ FSM_8BIT: if (W=8) generate
             end if;
         end process;
     end generate GEN_proc_SYNC_RST;
-    GEN_proc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+    GEN_proc_ASYNC_RSTN: if (G_ASYNC_RSTN) generate
         process (clk, rst)
         begin
             if(rst='0')  then
@@ -1198,11 +1209,11 @@ FSM_8BIT: if (W=8) generate
             ---MODE SET
             when S_INT_MODE=>
                 if (pdi_valid = '1') then
-                    if (pdi_data(W-1 downto W-4) = INST_ACTKEY) then
+                    if (pdi_data(G_W-1 downto G_W-4) = INST_ACTKEY) then
                         nx_state<= S_INT_KEY;
-                    elsif (pdi_data(W-1 downto W-3) = INST_ENC(3 downto 1)) and (cmd_ready = '1') then
+                    elsif (pdi_data(G_W-1 downto G_W-3) = INST_ENC(3 downto 1)) and (cmd_ready = '1') then
                         nx_state <= S_HDR_NPUB;
-                    elsif (pdi_data(W-1 downto W-4) = INST_HASH and cmd_ready = '1') then
+                    elsif (pdi_data(G_W-1 downto G_W-4) = INST_HASH and cmd_ready = '1') then
                         nx_state <= S_HDR_HASH;
                     else
                         nx_state <= S_INT_MODE;
@@ -1213,14 +1224,14 @@ FSM_8BIT: if (W=8) generate
 
             ---load key
             when S_INT_KEY=>
-                if (sdi_valid='1' and sdi_data(W-1 downto W-4) = INST_LDKEY) then
+                if (sdi_valid='1' and sdi_data(G_W-1 downto G_W-4) = INST_LDKEY) then
                     nx_state <= S_HDR_KEY;
                 else
                     nx_state <= S_INT_KEY;
                 end if;
 
             when S_HDR_KEY=>
-                if (sdi_valid = '1' and sdi_data(W-1 downto W-4) = HDR_KEY) then
+                if (sdi_valid = '1' and sdi_data(G_W-1 downto G_W-4) = HDR_KEY) then
                     nx_state <= S_HDR_RESKEY;
                 else
                     nx_state <= S_HDR_KEY;
@@ -1256,7 +1267,7 @@ FSM_8BIT: if (W=8) generate
 
             ---NPUB
             when S_HDR_NPUB=>
-                if (pdi_valid = '1' and pdi_data(W-1 downto W-4) = HDR_NPUB) then
+                if (pdi_valid = '1' and pdi_data(G_W-1 downto G_W-4) = HDR_NPUB) then
                     nx_state <= S_HDR_RESNPUB;
                 else
                     nx_state <= S_HDR_NPUB;
@@ -1292,7 +1303,7 @@ FSM_8BIT: if (W=8) generate
 
             --AD
             when S_HDR_AD=>
-                if (pdi_valid = '1' and pdi_data(W-1 downto W-4) = HDR_AD) then
+                if (pdi_valid = '1' and pdi_data(G_W-1 downto G_W-4) = HDR_AD) then
                     nx_state <= S_HDR_RESAD;
                 else
                     nx_state <= S_HDR_AD;
@@ -1344,8 +1355,8 @@ FSM_8BIT: if (W=8) generate
 
             --MSG OR CIPHER TEXT
             when S_HDR_MSG=>
-                if (pdi_valid = '1' and cmd_ready = '1' and (pdi_data(W-1 downto W-4) = HDR_PT
-                                     or  pdi_data(W-1 downto W-4) = HDR_CT)) then
+                if (pdi_valid = '1' and cmd_ready = '1' and (pdi_data(G_W-1 downto G_W-4) = HDR_PT
+                                     or  pdi_data(G_W-1 downto G_W-4) = HDR_CT)) then
                     nx_state <= S_HDR_RESMSG;
                 else
                     nx_state <= S_HDR_MSG;
@@ -1397,7 +1408,7 @@ FSM_8BIT: if (W=8) generate
 
             --TAG
             when S_HDR_TAG=>
-                if (pdi_valid = '1' and pdi_data(W-1 downto W-4) = HDR_TAG) then
+                if (pdi_valid = '1' and pdi_data(G_W-1 downto G_W-4) = HDR_TAG) then
                     nx_state <= S_HDR_RESTAG;
                 else
                     nx_state <= S_HDR_TAG;
@@ -1437,7 +1448,7 @@ FSM_8BIT: if (W=8) generate
 
             --HASH
             when S_HDR_HASH =>
-                if (pdi_valid = '1' and pdi_data(W-1 downto W-3) = HDR_HASH_MSG(3 downto 1)) then
+                if (pdi_valid = '1' and pdi_data(G_W-1 downto G_W-3) = HDR_HASH_MSG(3 downto 1)) then
                     nx_state <= S_HDR_RESHASH;
                 else
                     nx_state <= S_HDR_HASH;
@@ -1527,20 +1538,20 @@ FSM_8BIT: if (W=8) generate
             ---MODE
             when S_INT_MODE       =>
                 nx_hash_internal <= '0';
-                if (pdi_data(W-1 downto W-3) = INST_ENC(3 downto 1)) then
+                if (pdi_data(G_W-1 downto G_W-3) = INST_ENC(3 downto 1)) then
                     if (pdi_valid = '1') then
-                        nx_decrypt_internal <= pdi_data(W-4);
+                        nx_decrypt_internal <= pdi_data(G_W-4);
                     end if;
                     cmd_valid        <= pdi_valid;
                     pdi_ready        <= cmd_ready;
                     nx_hash_internal <= '0';
-                elsif (pdi_data(W-1 downto W-4) = INST_ACTKEY) then
+                elsif (pdi_data(G_W-1 downto G_W-4) = INST_ACTKEY) then
                     pdi_ready        <= '1';
                     nx_hash_internal <= '0';
-                elsif (pdi_data(W-1 downto W-4) = INST_HASH) then
+                elsif (pdi_data(G_W-1 downto G_W-4) = INST_HASH) then
                     nx_hash_internal<= '1';
                     if (pdi_valid = '1') then
-                        nx_decrypt_internal <= pdi_data(W-4);
+                        nx_decrypt_internal <= pdi_data(G_W-4);
                     end if;
                     cmd_valid    <= pdi_valid;
                     pdi_ready    <= cmd_ready;
@@ -1555,8 +1566,8 @@ FSM_8BIT: if (W=8) generate
                 len_SegLenCnt   <= sdi_valid;
                 sel_sdi_length  <= true;
                 if (sdi_valid = '1') then
-                    nx_eoi_flag <= pdi_data(W-6);
-                    nx_eot_flag <= pdi_data(W-7);
+                    nx_eoi_flag <= pdi_data(G_W-6);
+                    nx_eot_flag <= pdi_data(G_W-7);
                 end if;
 
             when S_HDR_RESKEY     =>
@@ -1567,7 +1578,7 @@ FSM_8BIT: if (W=8) generate
                 sdi_ready       <='1';
                 sel_sdi_length  <= true;
                 if (sdi_valid = '1') then
-                    nx_dout_LenReg <= data_seg_length(W-1 downto W-8);
+                    nx_dout_LenReg <= data_seg_length(G_W-1 downto G_W-8);
                 end if;
 
             when S_HDR_KEYLEN_LSB =>
@@ -1586,8 +1597,8 @@ FSM_8BIT: if (W=8) generate
                 pdi_ready       <='1';
                 len_SegLenCnt   <= pdi_valid;
                 if (pdi_valid = '1') then
-                    nx_eoi_flag <= pdi_data(W-6);
-                    nx_eot_flag <= pdi_data(W-7);
+                    nx_eoi_flag <= pdi_data(G_W-6);
+                    nx_eot_flag <= pdi_data(G_W-7);
                 end if;
 
             when S_HDR_RESNPUB    =>
@@ -1596,7 +1607,7 @@ FSM_8BIT: if (W=8) generate
             when S_HDR_NPUBLEN_MSB=>
                 pdi_ready       <='1';
                 if (pdi_valid = '1') then
-                    nx_dout_LenReg <= data_seg_length(W-1 downto W-8);
+                    nx_dout_LenReg <= data_seg_length(G_W-1 downto G_W-8);
                 end if;
 
             when S_HDR_NPUBLEN_LSB=>
@@ -1614,8 +1625,8 @@ FSM_8BIT: if (W=8) generate
                 pdi_ready       <='1';
                 len_SegLenCnt   <= pdi_valid;
                 if (pdi_valid = '1') then
-                    nx_eoi_flag <= pdi_data(W-6);
-                    nx_eot_flag <= pdi_data(W-7);
+                    nx_eoi_flag <= pdi_data(G_W-6);
+                    nx_eot_flag <= pdi_data(G_W-7);
                 end if;
 
             when S_HDR_RESAD      =>
@@ -1624,7 +1635,7 @@ FSM_8BIT: if (W=8) generate
             when S_HDR_ADLEN_MSB  =>
                 pdi_ready       <='1';
                 if (pdi_valid = '1') then
-                    nx_dout_LenReg <= data_seg_length(W-1 downto W-8);
+                    nx_dout_LenReg <= data_seg_length(G_W-1 downto G_W-8);
                 end if;
 
             when S_HDR_ADLEN_LSB  =>
@@ -1639,15 +1650,15 @@ FSM_8BIT: if (W=8) generate
 
             --MSG
             when S_HDR_MSG =>
-                if (pdi_data(W-1 downto W-4) = HDR_PT or
-                    pdi_data(W-1 downto W-4) = HDR_CT) then
+                if (pdi_data(G_W-1 downto G_W-4) = HDR_PT or
+                    pdi_data(G_W-1 downto G_W-4) = HDR_CT) then
                     cmd_valid   <= pdi_valid;
                 end if;
                 pdi_ready       <= cmd_ready;
                 len_SegLenCnt   <= pdi_valid and cmd_ready;
                 if ((pdi_valid = '1') and (cmd_ready = '1')) then
-                    nx_eoi_flag <= pdi_data(W-6);
-                    nx_eot_flag <= pdi_data(W-7);
+                    nx_eoi_flag <= pdi_data(G_W-6);
+                    nx_eot_flag <= pdi_data(G_W-7);
                 end if;
 
             when S_HDR_RESMSG =>
@@ -1657,7 +1668,7 @@ FSM_8BIT: if (W=8) generate
             when S_HDR_MSGLEN_MSB =>
                 pdi_ready       <= cmd_ready;
                 if ((pdi_valid = '1') and (cmd_ready = '1')) then
-                    nx_dout_LenReg <= data_seg_length(W-1 downto W-8);
+                    nx_dout_LenReg <= data_seg_length(G_W-1 downto G_W-8);
                 end if;
                 cmd_valid       <=pdi_valid;
 
@@ -1682,8 +1693,8 @@ FSM_8BIT: if (W=8) generate
                 pdi_ready       <= '1';
                 len_SegLenCnt   <= pdi_valid;
                 if (pdi_valid = '1') then
-                    nx_eoi_flag <= pdi_data(W-6);
-                    nx_eot_flag <= pdi_data(W-7);
+                    nx_eoi_flag <= pdi_data(G_W-6);
+                    nx_eot_flag <= pdi_data(G_W-7);
                 end if;
 
             when S_HDR_RESHASH  =>
@@ -1692,7 +1703,7 @@ FSM_8BIT: if (W=8) generate
             when S_HDR_HASHLEN_MSB =>
                 pdi_ready       <= '1';
                 if (pdi_valid = '1') then
-                    nx_dout_LenReg <= data_seg_length(W-1 downto W-8);
+                    nx_dout_LenReg <= data_seg_length(G_W-1 downto G_W-8);
                 end if;
 
             when S_HDR_HASHLEN_LSB =>
@@ -1720,7 +1731,7 @@ FSM_8BIT: if (W=8) generate
             when S_HDR_TAGLEN_MSB =>
                 pdi_ready       <= '1';
                 if (pdi_valid = '1') then
-                    nx_dout_LenReg <= data_seg_length(W-1 downto W-8);
+                    nx_dout_LenReg <= data_seg_length(G_W-1 downto G_W-8);
                 end if;
 
             when S_HDR_TAGLEN_LSB =>

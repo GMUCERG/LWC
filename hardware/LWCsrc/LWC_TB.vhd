@@ -27,7 +27,11 @@ use std.textio.all;
 
 entity LWC_TB IS
     generic (
-        --! Test parameters
+        --! External bus: supported values are 8, 16 and 32 bits
+        G_W                 : integer := 32;
+		G_SW                : integer := 32;
+        --! asynchronous and active-low reset (for ASIC targets)
+		G_ASYNC_RSTN        : boolean := False;
         G_STOP_AT_FAULT     : boolean := True;
         G_TEST_MODE         : integer := 0;
         G_TEST_IPSTALL      : integer := 10;
@@ -46,8 +50,8 @@ end LWC_TB;
 architecture behavior of LWC_TB is
 
     --! bus width. 
-    constant G_PWIDTH           : integer := W;
-    constant G_SWIDTH           : integer := SW;
+    constant G_PWIDTH           : integer := G_W;
+    constant G_SWIDTH           : integer := G_SW;
     -- for automated/scripted testing override:
     --    W and SW in work.NIST_LWAPI_pkg
     --    CCW and CCSW in work.design_pkg
@@ -130,8 +134,8 @@ architecture behavior of LWC_TB is
     ----------- end of string constant -------------
 
     ------------- debug constant ------------------
-    constant debug_input        : boolean := False;
-    constant debug_output       : boolean := False;
+--    constant debug_input        : boolean := False;
+--    constant debug_output       : boolean := False;
     ----------- end of clock constant -------------
 
     -------custom addon- need to be removed---
@@ -149,7 +153,7 @@ architecture behavior of LWC_TB is
     file log_file       : text open write_mode is G_FNAME_LOG;
     file result_file    : text open write_mode is G_FNAME_RESULT;
     ------------- end of input files --------------------
-    signal TestVector : integer;
+--    signal TestVector : integer;
 begin
 
     genClk: process
@@ -180,19 +184,20 @@ begin
     --! PORT MAPPING --
     --! ============ --
     genPDIfifo: entity work.fwft_fifo(structure)
-    generic map (
-        G_W          => G_PWIDTH,
-        G_LOG2DEPTH  => G_LOG2_FIFODEPTH)
-    port map (
-        clk          =>  io_clk,
-        rst          =>  rst,
-        din          =>  fpdi_din,
-        din_valid    =>  fpdi_din_valid,
-        din_ready    =>  fpdi_din_ready,
-        dout         =>  fpdi_dout,
-        dout_valid   =>  fpdi_dout_valid,
-        dout_ready   =>  fpdi_dout_ready
-    );
+	    generic map (
+	        G_ASYNC_RSTN => G_ASYNC_RSTN,
+	        G_W          => G_PWIDTH,
+	        G_LOG2DEPTH  => G_LOG2_FIFODEPTH)
+	    port map (
+	        clk          =>  io_clk,
+	        rst          =>  rst,
+	        din          =>  fpdi_din,
+	        din_valid    =>  fpdi_din_valid,
+	        din_ready    =>  fpdi_din_ready,
+	        dout         =>  fpdi_dout,
+	        dout_valid   =>  fpdi_dout_valid,
+	        dout_ready   =>  fpdi_dout_ready
+	    );
 
     fpdi_dout_ready     <= '0' when (stall_pdi_valid = '1' or stall_msg = '1') else pdi_ready;
     pdi_valid_selected  <= '0' when (stall_pdi_valid = '1' or stall_msg = '1') else fpdi_dout_valid;
@@ -200,19 +205,20 @@ begin
     pdi_delayed         <= fpdi_dout after 1/4*clk_period;
 
     genSDIfifo: entity work.fwft_fifo(structure)
-    generic map (
-        G_W          => G_SWIDTH,
-        G_LOG2DEPTH  => G_LOG2_FIFODEPTH)
-    port map (
-        clk          =>  io_clk,
-        rst          =>  rst,
-        din          =>  fsdi_din,
-        din_valid    =>  fsdi_din_valid,
-        din_ready    =>  fsdi_din_ready,
-        dout         =>  fsdi_dout,
-        dout_valid   =>  fsdi_dout_valid,
-        dout_ready   =>  fsdi_dout_ready
-    );
+	    generic map (
+	        G_ASYNC_RSTN => G_ASYNC_RSTN,
+	        G_W          => G_SWIDTH,
+	        G_LOG2DEPTH  => G_LOG2_FIFODEPTH)
+	    port map (
+	        clk          =>  io_clk,
+	        rst          =>  rst,
+	        din          =>  fsdi_din,
+	        din_valid    =>  fsdi_din_valid,
+	        din_ready    =>  fsdi_din_ready,
+	        dout         =>  fsdi_dout,
+	        dout_valid   =>  fsdi_dout_valid,
+	        dout_ready   =>  fsdi_dout_ready
+	    );
 
     fsdi_dout_ready     <= '0' when stall_sdi_valid = '1' else sdi_ready;
     sdi_valid_selected  <= '0' when stall_sdi_valid = '1' else fsdi_dout_valid;
@@ -220,39 +226,45 @@ begin
     sdi_delayed         <= fsdi_dout after 1/4*clk_period;
 
     genDOfifo: entity work.fwft_fifo(structure)
-    generic map (
-        G_W          => G_PWIDTH,
-        G_LOG2DEPTH  => G_LOG2_FIFODEPTH)
-    port map (
-        clk          =>  io_clk,
-        rst          =>  rst,
-        din          =>  do,
-        din_valid    =>  fdo_din_valid,
-        din_ready    =>  fdo_din_ready,
-        dout         =>  fdo_dout,
-        dout_valid   =>  fdo_dout_valid,
-        dout_ready   =>  fdo_dout_ready
-    );
+	    generic map (
+	        G_ASYNC_RSTN => G_ASYNC_RSTN,
+	        G_W          => G_PWIDTH,
+	        G_LOG2DEPTH  => G_LOG2_FIFODEPTH)
+	    port map (
+	        clk          =>  io_clk,
+	        rst          =>  rst,
+	        din          =>  do,
+	        din_valid    =>  fdo_din_valid,
+	        din_ready    =>  fdo_din_ready,
+	        dout         =>  fdo_dout,
+	        dout_valid   =>  fdo_dout_valid,
+	        dout_ready   =>  fdo_dout_ready
+	    );
 
     fdo_din_valid       <= '0' when stall_do_full = '1' else do_valid;
     do_ready_selected   <= '0' when stall_do_full = '1' else fdo_din_ready;
     do_ready            <= do_ready_selected after 1/4*clk_period;
 
-    uut:  entity work.LWC(structure)
-    port map (
-        clk          => clk,
-        rst          => rst,
-        pdi_data     => pdi_delayed,
-        pdi_valid    => pdi_valid,
-        pdi_ready    => pdi_ready,
-        sdi_data     => sdi_delayed,
-        sdi_valid    => sdi_valid,
-        sdi_ready    => sdi_ready,
-        do_data      => do,
-        do_ready     => do_ready,
-        do_valid     => do_valid,
-        do_last      => do_last
-    );
+    uut: entity work.LWC(structure)
+    	generic map(
+    		G_W          => G_W,
+    		G_SW         => G_SW,
+    		G_ASYNC_RSTN => G_ASYNC_RSTN
+    	)
+	    port map (
+	        clk          => clk,
+	        rst          => rst,
+	        pdi_data     => pdi_delayed,
+	        pdi_valid    => pdi_valid,
+	        pdi_ready    => pdi_ready,
+	        sdi_data     => sdi_delayed,
+	        sdi_valid    => sdi_valid,
+	        sdi_ready    => sdi_ready,
+	        do_data      => do,
+	        do_ready     => do_ready,
+	        do_valid     => do_valid,
+	        do_last      => do_last
+	    );
     --! =================== --
     --! END OF PORT MAPPING --
     --! =================== --
@@ -269,7 +281,7 @@ begin
         variable temp_read      : string(1 to 6);
         variable valid_line     : boolean     := True;
     begin
-    	if ASYNC_RSTN then
+    	if G_ASYNC_RSTN then
 	        rst <= '0';               wait for 5*clk_period;
 	        rst <= '1';               wait for clk_period;
     	else
@@ -449,7 +461,7 @@ begin
                     opcode := tb_block(19 downto 16);
                     keyid  := to_integer(to_01(unsigned(tb_block(15 downto 8))));
                     msgid  := to_integer(to_01(unsigned(tb_block(7  downto 0))));
-                    TestVector<= to_integer(to_01(unsigned(tb_block(7  downto 0))));
+--                    TestVector<= to_integer(to_01(unsigned(tb_block(7  downto 0))));
                     isEncrypt := False;
                     if ((opcode = INST_DEC or opcode = INST_ENC)
                         or (opcode = INST_SUCCESS or opcode = INST_FAILURE))

@@ -27,20 +27,15 @@ use IEEE.STD_LOGIC_1164.all;
 
 package NIST_LWAPI_pkg is
 
-    --! External bus: supported values are 8, 16 and 32 bits
-    constant W       : integer := 32;
-    constant SW      : integer := W;
-    
-    --! asynchronous and active-low reset (for ASIC targets)
-    constant ASYNC_RSTN    : boolean := False;
 
-    --! Default values for do_data bus
-    --! to avoid leaking intermeadiate values if do_valid = '0'.
-    constant do_data_defaults : std_logic_vector(W-1 downto 0) := (others => '0');
+--    constant ASYNC_RSTN    : boolean := False;
+--    -- DO NOT CHANGE ANYTHING BELOW!
+--    constant Wdiv8   : integer := W/8;
+--    constant SWdiv8  : integer := SW/8;
 
-    -- DO NOT CHANGE ANYTHING BELOW!
-    constant Wdiv8   : integer := W/8;
-    constant SWdiv8  : integer := SW/8;
+
+--    constant do_data_defaults : std_logic_vector(W-1 downto 0) := (others => '0');
+
 
     --! INSTRUCTIONS (OPCODES)
     constant INST_HASH      : std_logic_vector(4    -1 downto 0):="1000";

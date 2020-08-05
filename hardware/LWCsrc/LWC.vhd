@@ -28,20 +28,25 @@ use work.Design_pkg.all;
 use work.NIST_LWAPI_pkg.all;
 
 entity LWC is
+	generic (
+		G_W          : integer;
+		G_SW         : integer;
+		G_ASYNC_RSTN : boolean	
+	);
     port (
         --! Global ports
         clk             : in  std_logic;
         rst             : in  std_logic;
         --! Publica data ports
-        pdi_data        : in  std_logic_vector(W-1 downto 0);
+        pdi_data        : in  std_logic_vector(G_W-1 downto 0);
         pdi_valid       : in  std_logic;
         pdi_ready       : out std_logic;
         --! Secret data ports
-        sdi_data        : in  std_logic_vector(SW-1 downto 0);
+        sdi_data        : in  std_logic_vector(G_SW-1 downto 0);
         sdi_valid       : in  std_logic;
         sdi_ready       : out std_logic;
         --! Data out ports
-        do_data         : out std_logic_vector(W-1 downto 0);
+        do_data         : out std_logic_vector(G_W-1 downto 0);
         do_ready        : in  std_logic;
         do_valid        : out std_logic;
         do_last         : out std_logic
@@ -78,7 +83,7 @@ architecture structure of LWC is
     signal end_of_block_cipher_out  : std_logic;
     -- signal bdo_size_cipher_out      : std_logic_vector(3       -1 downto 0);
     signal bdo_valid_bytes_cipher_out:std_logic_vector(CCWdiv8 -1 downto 0);
-    signal bdo_type_cipher_out      :std_logic_vector(4        -1 downto 0);
+--    signal bdo_type_cipher_out      :std_logic_vector(4        -1 downto 0);
     -- signal decrypt_cipher_out       : std_logic;
     signal msg_auth_valid           : std_logic;
     signal msg_auth_ready           : std_logic;
@@ -90,16 +95,17 @@ architecture structure of LWC is
     --!FIFO
     --==========================================================================
     ------!Pre-Processor to FIFO
-    signal cmd_FIFO_in              : std_logic_vector(W-1 downto 0);
+    signal cmd_FIFO_in              : std_logic_vector(G_W-1 downto 0);
     signal cmd_valid_FIFO_in        : std_logic;
     signal cmd_ready_FIFO_in        : std_logic;
     ------!FIFO to Post_Processor
-    signal cmd_FIFO_out             : std_logic_vector(W-1 downto 0);
+    signal cmd_FIFO_out             : std_logic_vector(G_W-1 downto 0);
     signal cmd_valid_FIFO_out       : std_logic;
     signal cmd_ready_FIFO_out       : std_logic;
     --==========================================================================
     
     component CryptoCore
+    	generic(G_ASYNC_RSTN : boolean);
     	port(
     		clk             : in  STD_LOGIC;
     		rst             : in  STD_LOGIC;
@@ -131,10 +137,15 @@ architecture structure of LWC is
     end component CryptoCore;
 begin
 
-    assert (ASYNC_RSTN = false) report "[LWC] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
+    assert (G_ASYNC_RSTN = false) report "[LWC] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
 
     Inst_PreProcessor: entity work.PreProcessor(PreProcessor)
-        PORT MAP(
+    	generic map(
+        		G_W             => G_W,
+        		G_SW            => G_SW,
+        		G_ASYNC_RSTN    => G_ASYNC_RSTN
+			)
+        port map(
                 clk             => clk                                     ,
                 rst             => rst                                     ,
                 pdi_data        => pdi_data                                ,
@@ -163,7 +174,10 @@ begin
                 cmd_ready       => cmd_ready_FIFO_in
             );
     Inst_Cipher: CryptoCore
-        PORT MAP(
+        	generic map(
+        		G_ASYNC_RSTN    => G_ASYNC_RSTN
+        	)
+        port map(
                 clk             => clk                                     ,
                 rst             => rst                                     ,
                 key             => key_cipher_in                           ,
@@ -184,7 +198,7 @@ begin
                 bdo             => bdo_cipher_out                          ,
                 bdo_valid       => bdo_valid_cipher_out                    ,
                 bdo_ready       => bdo_ready_cipher_out                    ,
-                bdo_type        => bdo_type_cipher_out                     ,
+--                bdo_type        => bdo_type_cipher_out                     ,
                 bdo_valid_bytes => bdo_valid_bytes_cipher_out              ,
                 end_of_block    => end_of_block_cipher_out                 ,
                 msg_auth_valid  => msg_auth_valid                          ,
@@ -192,14 +206,18 @@ begin
                 msg_auth        => msg_auth
             );
     Inst_PostProcessor: entity work.PostProcessor(PostProcessor)
-        PORT MAP(
+    	generic map(
+        		G_W            => G_W,
+        		G_ASYNC_RSTN   => G_ASYNC_RSTN
+        	)
+        port map(
                 clk             => clk                                     ,
                 rst             => rst                                     ,
                 bdo             => bdo_cipher_out                          ,
                 bdo_valid       => bdo_valid_cipher_out                    ,
                 bdo_ready       => bdo_ready_cipher_out                    ,
                 end_of_block    => end_of_block_cipher_out                 ,
-                bdo_type        => bdo_type_cipher_out                     ,
+--                bdo_type        => bdo_type_cipher_out                     ,
                 bdo_valid_bytes => bdo_valid_bytes_cipher_out              ,
                 cmd             => cmd_FIFO_out                            ,
                 cmd_valid       => cmd_valid_FIFO_out                      ,
@@ -214,10 +232,11 @@ begin
             );
     Inst_Header_Fifo: entity work.fwft_fifo(structure)
         generic map (
-                G_W             => W,
+                G_ASYNC_RSTN    => G_ASYNC_RSTN,
+                G_W             => G_W,
                 G_LOG2DEPTH     => 2
             )
-        PORT MAP(
+        port map(
                 clk             => clk,
                 rst             => rst,
                 din             => cmd_FIFO_in,

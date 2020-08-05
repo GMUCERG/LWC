@@ -30,36 +30,39 @@ use work.Design_pkg.all;
 use work.NIST_LWAPI_pkg.all;
 
 
-entity DATA_PISO is 
+entity DATA_PISO is
+	generic (
+		G_ASYNC_RSTN         : boolean	
+	);
     port(
 
-            clk               : in std_logic;
-            rst               : in std_logic;
+        clk                :  in std_logic;
+        rst                :  in std_logic;
 
-            data_size_p       :  in STD_LOGIC_VECTOR(3     -1 downto 0);
-            data_size_s       : out STD_LOGIC_VECTOR(3     -1 downto 0);
+        data_size_p        :  in STD_LOGIC_VECTOR(3     -1 downto 0);
+        data_size_s        : out STD_LOGIC_VECTOR(3     -1 downto 0);
 
 
 
-            data_s             : out STD_LOGIC_VECTOR(CCW-1 downto 0);
-            data_valid_s       : out STD_LOGIC;
-            data_ready_s       : in  STD_LOGIC;
+        data_s             : out STD_LOGIC_VECTOR(CCW-1 downto 0);
+        data_valid_s       : out STD_LOGIC;
+        data_ready_s       : in  STD_LOGIC;
 
-            data_p             : in  STD_LOGIC_VECTOR(CCW-1 downto 0);
-            data_valid_p       : in  STD_LOGIC;
-            data_ready_p       : out STD_LOGIC;
+        data_p             : in  STD_LOGIC_VECTOR(CCW-1 downto 0);
+        data_valid_p       : in  STD_LOGIC;
+        data_ready_p       : out STD_LOGIC;
 
-            valid_bytes_p      :  in STD_LOGIC_VECTOR(4-1 downto 0);
-            valid_bytes_s      : out STD_LOGIC_VECTOR(CCWdiv8-1 downto 0);
-            pad_loc_p          :  in STD_LOGIC_VECTOR(4-1 downto 0);
-            pad_loc_s          : out STD_LOGIC_VECTOR(CCWdiv8-1 downto 0);
+        valid_bytes_p      :  in STD_LOGIC_VECTOR(4-1 downto 0);
+        valid_bytes_s      : out STD_LOGIC_VECTOR(CCWdiv8-1 downto 0);
+        pad_loc_p          :  in STD_LOGIC_VECTOR(4-1 downto 0);
+        pad_loc_s          : out STD_LOGIC_VECTOR(CCWdiv8-1 downto 0);
 
-            eoi_p              :  in std_logic;
-            eoi_s              : out std_logic;
+        eoi_p              :  in std_logic;
+        eoi_s              : out std_logic;
 
-            eot_p              :  in std_logic;
-            eot_s              : out std_logic
-      );
+        eot_p              :  in std_logic;
+        eot_s              : out std_logic
+);
 
 end entity DATA_PISO;
 
@@ -77,7 +80,7 @@ begin
     assert (CCW = 8) OR (CCW = 16) or (CCW = 32) report "This module only supports CCW={8,16,32}!" severity failure;
 
 CCW8_16: if CCW /= 32 generate
-	    GEN_proc_SYNC_RST: if (not ASYNC_RSTN) generate
+	    GEN_proc_SYNC_RST: if (not G_ASYNC_RSTN) generate
         process (clk)
         begin
             if rising_edge(clk) then
@@ -89,7 +92,7 @@ CCW8_16: if CCW /= 32 generate
             end if;
         end process;
     end generate GEN_proc_SYNC_RST;
-    GEN_proc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+    GEN_proc_ASYNC_RSTN: if (G_ASYNC_RSTN) generate
         process (clk, rst)
         begin
             if(rst='0')  then
