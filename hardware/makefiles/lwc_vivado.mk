@@ -23,18 +23,6 @@ VIVADO_CMD=$(VIVADO_BIN) -mode batch -nojournal -notrace -source $(VIVADO_RUN_TC
 
 VIVADO_OUTPUT_DIR=vivado
 
-$(TOOL_RUN_DIR)/docker.env : $(TOOL_RUN_DIR) $(VERILOG_FILES) $(VHDL_FILES) $(FPGA_PART) $(SYNTH_OPTIONS) $(CLOCK_PERIOD) config-vars
-	@echo OUTPUT_DIR=$(VIVADO_OUTPUT_DIR) > $@
-	@echo FPGA_PART=$(FPGA_PART) >> $@
-	@echo SYNTH_OPTIONS=$(SYNTH_OPTIONS) >> $@
-	@echo OPT_OPTIONS=$(OPT_OPTIONS) >> $@
-	@echo PLACE_OPTIONS=$(PLACE_OPTIONS) >> $@
-	@echo ROUTE_OPTIONS=$(ROUTE_OPTIONS) >> $@
-	@echo PYS_OPT_OPTIONS=$(PYS_OPT_OPTIONS) >> $@
-	@echo VERILOG_FILES=$(VERILOG_FILES) >> $@
-	@echo VHDL_FILES=$(VHDL_FILES) >> $@
-	@echo DESIGN_NAME=$(TOP) >> $@
-	@echo CLOCK_PERIOD=$(CLOCK_PERIOD) >> $@
 
 synth-vivado: $(TOOL_RUN_DIR)/docker.env $(VERILOG_FILES) $(VHDL_FILES) $(TOOL_RUN_DIR)/docker.env
 	cd $(TOOL_RUN_DIR) && $(VIVADO_CMD)

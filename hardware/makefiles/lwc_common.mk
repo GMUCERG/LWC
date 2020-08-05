@@ -13,11 +13,25 @@ TOOL_RUN_DIR := $(PWD)
 
 DOCKER_CMD = $(WINPTY) docker run --rm -it -v /$(CORE_ROOT):/$(CORE_ROOT) -v /$(LWC_ROOT):/$(LWC_ROOT) -w $(TOOL_RUN_DIR) --security-opt label=disable
 
+
+$(TOOL_RUN_DIR)/docker.env : $(TOOL_RUN_DIR) $(VERILOG_FILES) $(VHDL_FILES) $(FPGA_PART) $(SYNTH_OPTIONS) $(CLOCK_PERIOD) config-vars
+	@echo OUTPUT_DIR=$(VIVADO_OUTPUT_DIR) > $@
+	@echo FPGA_PART=$(FPGA_PART) >> $@
+	@echo SYNTH_OPTIONS=$(SYNTH_OPTIONS) >> $@
+	@echo OPT_OPTIONS=$(OPT_OPTIONS) >> $@
+	@echo PLACE_OPTIONS=$(PLACE_OPTIONS) >> $@
+	@echo ROUTE_OPTIONS=$(ROUTE_OPTIONS) >> $@
+	@echo PYS_OPT_OPTIONS=$(PYS_OPT_OPTIONS) >> $@
+	@echo VERILOG_FILES=$(VERILOG_FILES) >> $@
+	@echo VHDL_FILES=$(VHDL_FILES) >> $@
+	@echo DESIGN_NAME=$(TOP) >> $@
+	@echo CLOCK_PERIOD=$(CLOCK_PERIOD) >> $@
+
 PYTHON3_BIN = $(DOCKER_CMD) ghdl/synth:beta python3
 GHDL_BIN = $(DOCKER_CMD) ghdl/synth:beta ghdl
 YOSYS_BIN = $(DOCKER_CMD) ghdl/synth:beta yosys
 VERILATOR_BIN = $(DOCKER_CMD) verilator/verilator:4.036
-VIVADO_BIN = $(DOCKER_CMD) -e PATH="/opt/Xilinx/Vivado/2019.2/bin:/usr/bin:/bin" --env-file=docker.env kammoh/vivado vivado
+VIVADO_BIN = $(DOCKER_CMD) -e PATH="/opt/Xilinx/Vivado/2019.2/bin:/usr/bin:/bin" --env-file=$(TOOL_RUN_DIR)/docker.env kammoh/vivado vivado
 endif
 
 TOP ?= LWC
