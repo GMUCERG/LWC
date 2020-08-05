@@ -29,9 +29,9 @@ use work.NIST_LWAPI_pkg.all;
 
 entity LWC is
 	generic (
-		G_W          : integer;
-		G_SW         : integer;
-		G_ASYNC_RSTN : boolean	
+		G_W          : integer := 32;
+		G_SW         : integer := 32;
+		G_ASYNC_RSTN : boolean := false
 	);
     port (
         --! Global ports
