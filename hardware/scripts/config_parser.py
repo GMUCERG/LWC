@@ -20,6 +20,8 @@ def vivado_generics(config):
     return ' '.join([f"-generic {k}={quote_strings(v)}" for k, v in config.items('Generics')])
 
 def variables(config):
+    if not config.has_section('Variables'):
+        return " "
     return '\n'.join([f"{k}={v}" for k, v in config.items('Variables')])
 
 if __name__ == "__main__":
