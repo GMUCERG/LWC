@@ -37,7 +37,7 @@ use work.Design_pkg.all;
 entity PreProcessor is
 	generic (
 		G_W          : integer;
-		G_SW          : integer;
+		G_SW         : integer;
 		G_ASYNC_RSTN : boolean	
 	);
     port (  
@@ -232,6 +232,7 @@ FSM_32BIT: if (G_W=32) generate
     -- for ccsw > SW: a piso is used for width conversion
     keyPISO: entity work.KEY_PISO(behavioral)
 	    generic map(
+    		G_SW         => G_SW,
     		G_ASYNC_RSTN => G_ASYNC_RSTN
     	)
 	    port map(
@@ -250,6 +251,7 @@ FSM_32BIT: if (G_W=32) generate
     --! DATA PISO
     -- for ccw > W: a piso is used for width conversion
     bdiPISO: entity work.DATA_PISO(behavioral) 	generic map(
+    		G_W => G_W,
     		G_ASYNC_RSTN => G_ASYNC_RSTN
     	)
     port map

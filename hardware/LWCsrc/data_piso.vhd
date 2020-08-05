@@ -32,7 +32,8 @@ use work.NIST_LWAPI_pkg.all;
 
 entity DATA_PISO is
 	generic (
-		G_ASYNC_RSTN         : boolean	
+        G_W                : integer;
+		G_ASYNC_RSTN       : boolean	
 	);
     port(
 
@@ -48,7 +49,7 @@ entity DATA_PISO is
         data_valid_s       : out STD_LOGIC;
         data_ready_s       : in  STD_LOGIC;
 
-        data_p             : in  STD_LOGIC_VECTOR(CCW-1 downto 0);
+        data_p             : in  STD_LOGIC_VECTOR(G_W-1 downto 0);
         data_valid_p       : in  STD_LOGIC;
         data_ready_p       : out STD_LOGIC;
 

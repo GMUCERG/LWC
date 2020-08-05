@@ -8,10 +8,8 @@ ifeq ($(strip $(USE_DOCKER)),1)
 $(info Using docker for Python3, GHDL, Yosys, and Verilator)
 WINPTY := $(shell command -v winpty)
 
-
-TOOL_RUN_DIR = $(CORE_ROOT)/run_dir
-
-$(shell mkdir -p $(TOOL_RUN_DIR))
+#FIXME this can't be changed now. Mostly due to GHDL (and other simulators?) getting relative path of testvector files
+TOOL_RUN_DIR := $(PWD)
 
 DOCKER_CMD = $(WINPTY) docker run --rm -it -v /$(CORE_ROOT):/$(CORE_ROOT) -v /$(LWC_ROOT):/$(LWC_ROOT) -w $(TOOL_RUN_DIR) --security-opt label=disable
 
