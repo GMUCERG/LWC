@@ -1,10 +1,3 @@
-ifndef LWC_ROOT
-$(error LWC_ROOT must be defined in design-specific Makefile)
-endif
-
-LWC_ROOT := $(realpath $(LWC_ROOT))
-HW_DIR := $(LWC_ROOT)/hardware
-
 CORE_ROOT := $(PWD)
 
 LWCSRC_DIR := $(HW_DIR)/LWCsrc
@@ -140,7 +133,7 @@ help-common:
 
 help-top:
 	@printf "%b" "\n $(PURPLE) \n";
-	@cat $(HW_DIR)/cerg.ascii
+	@cat $(HW_DIR)/makefiles/cerg.ascii
 	@printf "%b" "$(NO_COLOR)\n";
 	@echo
 	@echo LWC Lint, Simulation, and Synthesis Framework
