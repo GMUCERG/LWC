@@ -5,19 +5,25 @@ import sys
 from sys import argv
 
 def quote_strings(x):
-    if isinstance(x, str):
-        return f'\\"{x}\\"'
-    else:
-        return str(x)
+    return f'\\"{x}\\"'
+
+def bool_to_bit(x):
+    xl = x.strip().lower()
+    if xl == 'false':
+        return "1\\'b0"
+    if xl == 'true':
+        return "1\\'b1"
+    return x
 
 def ghdl_generics(config):
-    return ' '.join([ f"-g{k}={v}" for k, v in config.items('Generics')])
+    return ' '.join([f"-g{k}={v}" for k, v in config.items('Generics')])
 
 def vcs_generics(config):
     return ' '.join([f"-gv {k}={quote_strings(v)}" for k, v in config.items('Generics')])
 
+# Vivado only support passing numeric generics, either integer or verilog style bit vector
 def vivado_generics(config):
-    return ' '.join([f"-generic {k}={v}" for k, v in config.items('Generics')])
+    return ' '.join([f"-generic {k}={bool_to_bit(v)}" for k, v in config.items('Generics') if v.isnumeric() or (v.strip().lower() in {'true', 'false'}) ])
 
 def variables(config):
     # TODO rewrite the whole script with hierarchical parsing and better error handling!

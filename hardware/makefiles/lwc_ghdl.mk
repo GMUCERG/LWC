@@ -4,7 +4,7 @@ GHDL_BIN ?= ghdl
 
 GHDL_OPTIMIZE ?= -O3
 
-GHDL_OPT := -frelaxed-rules --warn-no-vital-generic -frelaxed $(GHDL_OPTIMIZE)
+GHDL_OPT = -frelaxed-rules --warn-no-vital-generic -frelaxed $(GHDL_OPTIMIZE)
 GHDL_WARNS ?= -Wbinding -Wreserved -Wlibrary -Wvital-generic -Wdelayed-checks -Wbody -Wspecs -Wunused --warn-no-runtime-error
 GHDL_ELAB_OPTS ?= --mb-comments 
 GHDL_SIM_OPTS ?=

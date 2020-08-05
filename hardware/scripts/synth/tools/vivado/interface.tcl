@@ -1,6 +1,6 @@
-set output_dir          $::env(OUTPUT_DIR)
+set output_dir          $::env(VIVADO_OUTPUT_DIR)
 set part                $::env(FPGA_PART)
-set top_module_name     $::env(DESIGN_NAME)
+set top_module_name     $::env(TOP)
 set synth_options       [split $::env(SYNTH_OPTIONS)]
 set opt_options         [split $::env(OPT_OPTIONS)]
 set place_options       [split $::env(PLACE_OPTIONS)]

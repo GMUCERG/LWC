@@ -3,19 +3,12 @@ CORE_ROOT := $(PWD)
 LWCSRC_DIR := $(HW_DIR)/LWCsrc
 SCRIPTS_DIR := $(HW_DIR)/scripts
 
-ifeq ($(strip $(USE_DOCKER)),1)
-# docker pull ghdl/synth:beta
-$(info Using docker for Python3, GHDL, Yosys, and Verilator)
-WINPTY := $(shell command -v winpty)
-
 #FIXME this can't be changed now. Mostly due to GHDL (and other simulators?) getting relative path of testvector files
 TOOL_RUN_DIR := $(PWD)
 
-DOCKER_CMD = $(WINPTY) docker run --rm -it -v /$(CORE_ROOT):/$(CORE_ROOT) -v /$(LWC_ROOT):/$(LWC_ROOT) -w $(TOOL_RUN_DIR) --security-opt label=disable
-
-
+#TODO automate foreach exported var?
 $(TOOL_RUN_DIR)/docker.env : $(TOOL_RUN_DIR) $(VERILOG_FILES) $(VHDL_FILES) $(FPGA_PART) $(SYNTH_OPTIONS) $(CLOCK_PERIOD) config-vars
-	@echo OUTPUT_DIR=$(VIVADO_OUTPUT_DIR) > $@
+	@echo VIVADO_OUTPUT_DIR=$(VIVADO_OUTPUT_DIR) > $@
 	@echo FPGA_PART=$(FPGA_PART) >> $@
 	@echo SYNTH_OPTIONS=$(SYNTH_OPTIONS) >> $@
 	@echo OPT_OPTIONS=$(OPT_OPTIONS) >> $@
@@ -24,8 +17,15 @@ $(TOOL_RUN_DIR)/docker.env : $(TOOL_RUN_DIR) $(VERILOG_FILES) $(VHDL_FILES) $(FP
 	@echo PYS_OPT_OPTIONS=$(PYS_OPT_OPTIONS) >> $@
 	@echo VERILOG_FILES=$(VERILOG_FILES) >> $@
 	@echo VHDL_FILES=$(VHDL_FILES) >> $@
-	@echo DESIGN_NAME=$(TOP) >> $@
+	@echo TOP=$(TOP) >> $@
 	@echo CLOCK_PERIOD=$(CLOCK_PERIOD) >> $@
+
+ifeq ($(strip $(USE_DOCKER)),1)
+# docker pull ghdl/synth:beta
+$(info Using docker for Python3, GHDL, Yosys, and Verilator)
+WINPTY := $(shell command -v winpty)
+
+DOCKER_CMD = $(WINPTY) docker run --rm -it -v /$(CORE_ROOT):/$(CORE_ROOT) -v /$(LWC_ROOT):/$(LWC_ROOT) -w $(TOOL_RUN_DIR) --security-opt label=disable
 
 PYTHON3_BIN = $(DOCKER_CMD) ghdl/synth:beta python3
 GHDL_BIN = $(DOCKER_CMD) ghdl/synth:beta ghdl

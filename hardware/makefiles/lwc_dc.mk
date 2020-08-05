@@ -21,7 +21,7 @@ export DC_ALIB_DIR ?= $(CORE_ROOT)/alib
 
 export TOPOGRAPHICAL=True
 export UNIQUIFY_WITH_DESIGN_NAME=True
-export DESIGN_NAME=$(TOP)
+export TOP
 export SAIF_INSTANCE=undefined
 
 $(DC_LOGS_DIR):

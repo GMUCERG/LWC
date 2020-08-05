@@ -23,8 +23,22 @@ VIVADO_CMD=$(VIVADO_BIN) -mode batch -nojournal -notrace -source $(VIVADO_RUN_TC
 
 VIVADO_OUTPUT_DIR=vivado
 
+#TODO FIX this mess!
+export VIVADO_OUTPUT_DIR
+export FPGA_PART
+export SYNTH_OPTIONS
+export OPT_OPTIONS
+export PLACE_OPTIONS
+export ROUTE_OPTIONS
+export PYS_OPT_OPTIONS
+export VERILOG_FILES
+export VHDL_FILES
+export TOP
+export CLOCK_PERIOD
+export VHDL_STD
 
-synth-vivado: $(TOOL_RUN_DIR)/docker.env $(VERILOG_FILES) $(VHDL_FILES) $(TOOL_RUN_DIR)/docker.env
+
+synth-vivado: $(TOOL_RUN_DIR)/docker.env $(VERILOG_FILES) $(VHDL_FILES) $(TOOL_RUN_DIR)/docker.env config-vars
 	cd $(TOOL_RUN_DIR) && $(VIVADO_CMD)
 
 help-vivado:

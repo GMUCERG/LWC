@@ -16,7 +16,7 @@
 # Parameters
 #-------------------------------------------------------------------------
 
-set dc_design_name                $::env(DESIGN_NAME)
+set dc_design_name                $::env(TOP)
 set dc_clock_period               $::env(CLOCK_PERIOD)
 set dc_saif_instance              $::env(SAIF_INSTANCE)
 set dc_flatten_effort             $::env(FLATTEN_EFFORT)
