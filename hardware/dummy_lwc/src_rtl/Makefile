@@ -9,4 +9,4 @@ LWC_ROOT = $(PWD)/../../..
 
 ## DON'T CHANGE ANYTHING BELOW THIS LINE ##
 # MUST include this file
-include $(LWC_ROOT)/lwc.mk
+include $(LWC_ROOT)/hardware/lwc.mk
