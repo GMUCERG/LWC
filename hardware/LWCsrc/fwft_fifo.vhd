@@ -19,7 +19,8 @@ use ieee.numeric_std.all;
 use work.NIST_LWAPI_pkg.all;
 
 entity fwft_fifo is
-    generic(
+	generic(
+		G_ASYNC_RSTN: boolean;
         G_W         : integer; --! Width of I/O (bits)
         G_LOG2DEPTH : integer  --! LOG(2) of depth
     );
@@ -96,7 +97,7 @@ begin
     	end if;
     end process p_mem;
     	
-	GEN_p_ptr_SYNC_RST: if (not ASYNC_RSTN) generate
+	GEN_p_ptr_SYNC_RST: if (not G_ASYNC_RSTN) generate
     p_ptr : process(clk)
     begin
         if rising_edge(clk) then
@@ -113,7 +114,7 @@ begin
     end process p_ptr;
 	end generate GEN_p_ptr_SYNC_RST;
 
-	GEN_p_ptr_ASYNC_RSTN: if (ASYNC_RSTN) generate
+	GEN_p_ptr_ASYNC_RSTN: if (G_ASYNC_RSTN) generate
     p_ptr : process(clk, rst)
     begin
 	    if (rst = '0') then

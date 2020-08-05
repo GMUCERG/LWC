@@ -29,7 +29,10 @@ use IEEE.NUMERIC_STD.ALL;
 use work.Design_pkg.all;
 use work.NIST_LWAPI_pkg.all;
 
-entity DATA_SIPO is 
+entity DATA_SIPO is
+	generic (
+		G_ASYNC_RSTN : boolean	
+	);
     port(
 
             clk               : in std_logic;
@@ -63,7 +66,7 @@ begin
 
 
 CCW8_16: if CCW /= 32 generate
-    GEN_proc_SYNC_RST: if (not ASYNC_RSTN) generate
+    GEN_proc_SYNC_RST: if (not G_ASYNC_RSTN) generate
         process (clk)
         begin
             if rising_edge(clk) then
@@ -75,7 +78,7 @@ CCW8_16: if CCW /= 32 generate
             end if;
         end process;
     end generate GEN_proc_SYNC_RST;
-    GEN_proc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+    GEN_proc_ASYNC_RSTN: if (G_ASYNC_RSTN) generate
         process (clk, rst)
         begin
             if(rst='0')  then

@@ -30,18 +30,21 @@ use work.Design_pkg.all;
 use work.NIST_LWAPI_pkg.all;
 
 entity KEY_PISO is 
+	generic (
+		G_ASYNC_RSTN : boolean
+	);
     port(
 
-            clk               : in std_logic;
-            rst               : in std_logic;
+        clk                : in std_logic;
+        rst                : in std_logic;
 
-            data_s             : out STD_LOGIC_VECTOR(CCSW-1 downto 0);
-            data_valid_s       : out STD_LOGIC;
-            data_ready_s       : in  STD_LOGIC;
+        data_s             : out STD_LOGIC_VECTOR(CCSW-1 downto 0);
+        data_valid_s       : out STD_LOGIC;
+        data_ready_s       : in  STD_LOGIC;
 
-            data_p             : in  STD_LOGIC_VECTOR(CCSW-1 downto 0);
-            data_valid_p       : in  STD_LOGIC;
-            data_ready_p       : out STD_LOGIC
+        data_p             : in  STD_LOGIC_VECTOR(CCSW-1 downto 0);
+        data_valid_p       : in  STD_LOGIC;
+        data_ready_p       : out STD_LOGIC
 
       );
 
@@ -62,7 +65,7 @@ begin
     assert (CCSW = 8) OR (CCSW = 16) or (CCSW=32) report "This module only supports CCSW={8,16,32}!" severity failure;
 
 CCSW8_16: if CCSW /= 32 generate
-    GEN_proc_SYNC_RST: if (not ASYNC_RSTN) generate
+    GEN_proc_SYNC_RST: if (not G_ASYNC_RSTN) generate
         process (clk)
         begin
             if rising_edge(clk) then
@@ -74,7 +77,7 @@ CCSW8_16: if CCSW /= 32 generate
             end if;
         end process;
     end generate GEN_proc_SYNC_RST;
-    GEN_proc_ASYNC_RSTN: if (ASYNC_RSTN) generate
+    GEN_proc_ASYNC_RSTN: if (G_ASYNC_RSTN) generate
         process (clk, rst)
         begin
             if(rst='0')  then
