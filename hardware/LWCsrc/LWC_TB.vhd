@@ -19,8 +19,8 @@
 library ieee;
 use ieee.std_logic_1164.ALL;
 use ieee.numeric_std.all;
-use work.std_logic_1164_additions.TO_HSTRING; --needed, before VHDL-2008
-use work.std_logic_1164_additions.HREAD; --needed, before VHDL-2008
+use work.lwc_std_logic_1164_additions.LWC_TO_HSTRING; --needed, before VHDL-2008
+use work.lwc_std_logic_1164_additions.LWC_HREAD; --needed, before VHDL-2008
 use work.NIST_LWAPI_pkg.all;
 
 use std.textio.all;
@@ -315,7 +315,7 @@ begin
                 fpdi_din_valid <= '1';
             end if;
 
-            HREAD( line_data, word_block, read_result );
+            LWC_HREAD( line_data, word_block, read_result );
             while (((read_result = False) or (valid_line = False))
                 and (not endfile( pdi_file )))
             loop
@@ -330,7 +330,7 @@ begin
                     valid_line := False;
                     fpdi_din_valid  <= '0';
                 end if;
-                HREAD( line_data, word_block, read_result ); --! read data
+                LWC_HREAD( line_data, word_block, read_result ); --! read data
             end loop;
             fpdi_din <= word_block;
                wait for io_clk_period;
@@ -379,7 +379,7 @@ begin
                 fsdi_din_valid <= '1';
             end if;
 
-            HREAD(line_data, word_block, read_result);
+            LWC_HREAD(line_data, word_block, read_result);
             while (((read_result = False) or (valid_line = False))
                 and (not endfile(sdi_file)))
             loop
@@ -394,7 +394,7 @@ begin
                     valid_line := False;
                     fsdi_din_valid  <= '0';
                 end if;
-                HREAD( line_data, word_block, read_result );    --! read data
+                LWC_HREAD( line_data, word_block, read_result );    --! read data
             end loop;
             fsdi_din <= word_block;
             wait for io_clk_period;
@@ -430,7 +430,7 @@ begin
 
         while (not endfile (do_file) and valid_line and (not force_exit)) loop
             --! Keep reading new line until a valid line is found
-            HREAD( line_data, word_block, read_result );
+            LWC_HREAD( line_data, word_block, read_result );
             while ((read_result = False or valid_line = False)
                   and (not endfile(do_file)))
             loop
@@ -455,7 +455,7 @@ begin
                 end if;
 
                 if (instr_encoding = True) then
-                    HREAD(line_data, tb_block, read_result); --! read data
+                    LWC_HREAD(line_data, tb_block, read_result); --! read data
                     instr_encoding := False;
                     read_result    := False;
                     opcode := tb_block(19 downto 16);
@@ -482,7 +482,7 @@ begin
                         & integer'image(msgid) & " at "
                         & time'image(now) severity note;
                 else
-                    HREAD(line_data, word_block, read_result); --! read data
+                    LWC_HREAD(line_data, word_block, read_result); --! read data
                 end if;
             end loop;
 
@@ -512,8 +512,8 @@ begin
                         & string'(" word #") & integer'image(word_count));
                     writeline(log_file,logMsg);
                     write(logMsg, string'("[Log]     Expected: ")
-                        & TO_HSTRING(word_block)
-                        & string'(" Received: ") & TO_HSTRING(fdo_dout));
+                        & LWC_TO_HSTRING(word_block)
+                        & string'(" Received: ") & LWC_TO_HSTRING(fdo_dout));
                     writeline(log_file,logMsg);
 
                     --! Stop the simulation right away when an error is detected
@@ -523,8 +523,8 @@ begin
                         & " Word #" & integer'image(word_count)
                         & " at " & time'image(now) & " FAILS T_T --------"
                         severity error;
-                    report "Expected: " & TO_HSTRING(word_block)
-                        & " Actual: " & TO_HSTRING(fdo_dout) severity error;
+                    report "Expected: " & LWC_TO_HSTRING(word_block)
+                        & " Actual: " & LWC_TO_HSTRING(fdo_dout) severity error;
                     write(result_file, "fail");
                     if (G_STOP_AT_FAULT = True) then
                         force_exit := True;
@@ -539,8 +539,8 @@ begin
                     end if;
                 else
                     write(logMsg, string'("[Log]     Expected: ")
-                        & TO_HSTRING(word_block)
-                        & string'(" Received: ") & TO_HSTRING(fdo_dout)
+                        & LWC_TO_HSTRING(word_block)
+                        & string'(" Received: ") & LWC_TO_HSTRING(fdo_dout)
                         & string'(" Matched!"));
                     writeline(log_file,logMsg);
                 end if;
@@ -709,7 +709,7 @@ begin
                     report "Execution time = " & integer'image(exec_time);
                 end if;
             else 
-                report "Invalide OPCODE " & to_hstring(pdi_delayed) severity failure;
+                report "Invalide OPCODE " & LWC_TO_HSTRING(pdi_delayed) severity failure;
             end if;
         else
             wait;

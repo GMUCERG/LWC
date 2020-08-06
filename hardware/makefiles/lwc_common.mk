@@ -6,6 +6,10 @@ SCRIPTS_DIR := $(HW_DIR)/scripts
 #FIXME this can't be changed now. Mostly due to GHDL (and other simulators?) getting relative path of testvector files
 TOOL_RUN_DIR := $(PWD)
 
+.DELETE_ON_ERROR:
+
+
+
 #TODO automate foreach exported var?
 $(TOOL_RUN_DIR)/docker.env : $(TOOL_RUN_DIR) $(VERILOG_FILES) $(VHDL_FILES) $(FPGA_PART) $(SYNTH_OPTIONS) $(CLOCK_PERIOD) config-vars
 	@echo VIVADO_OUTPUT_DIR=$(VIVADO_OUTPUT_DIR) > $@
@@ -20,9 +24,16 @@ $(TOOL_RUN_DIR)/docker.env : $(TOOL_RUN_DIR) $(VERILOG_FILES) $(VHDL_FILES) $(FP
 	@echo TOP=$(TOP) >> $@
 	@echo CLOCK_PERIOD=$(CLOCK_PERIOD) >> $@
 
+
+# ifneq ($(strip $(USE_DOCKER)),1)
+# $(MAKECMDGOALS): config-vars ;
+# endif
+
 ifeq ($(strip $(USE_DOCKER)),1)
+# $(MAKECMDGOALS): config-vars $(TOOL_RUN_DIR)/docker.env ;
+
 # docker pull ghdl/synth:beta
-$(info Using docker for Python3, GHDL, Yosys, and Verilator)
+$(info Using docker for Python3, GHDL, Yosys, Verilator, and Vivado)
 WINPTY := $(shell command -v winpty)
 
 DOCKER_CMD = $(WINPTY) docker run --rm -it -v /$(CORE_ROOT):/$(CORE_ROOT) -v /$(LWC_ROOT):/$(LWC_ROOT) -w $(TOOL_RUN_DIR) --security-opt label=disable
@@ -66,11 +77,8 @@ VARS :=
 
 .PHONY: .env
 
-config-vars: test-config-parser FORCE
-	$(eval VARS := $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CONFIG_LOC)))
-	#@echo Variables from config.ini:
-	#$(file >env,$(VARS))
-	@$(foreach v,$(VARS),$(eval $(v)))
+$(eval VARS := $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CONFIG_LOC)))
+$(foreach v,$(VARS),$(eval $(v)))
 
 .env: config-vars
 	@echo "" > $@
@@ -135,12 +143,15 @@ help: help-top help-common help-ghdl help-yosys help-vivado
 
 help-common:
 	@printf "%b" "$(CYAN)common variables$(NO_COLOR):\n";
-	@echo "set USE_DOCKER=1 to automatically run tools using Docker"
+	@printf "%b" "VHDL_STD \t VHDL standard to use: '93' for VHDL 1993 and '08' for VHDL 2008 \n";
+	@printf "%b" "REBUILD \t set to '1' to force the rebuild of any target \n";
+	@echo
+	@printf "%b" "$(CYAN)Docker$(NO_COLOR):\n";
+	@printf "%b" "USE_DOCKER \t set to '1' to automatically run tools using Docker\n";
 	@echo "\tA functional installation of Docker is required (https://docs.docker.com/config-docker/)"
 	@echo "\tDocker deamon needs to be running and the 'docker' executable should be in the PATH"
-	@echo "\tTools supported to run under Docker include: Python3, GHDL, Yosys, Verilator, and Vivado"
+	@echo "\tTools currently supported to run under Docker include: Python3, GHDL, Yosys, Verilator, and Vivado"
 	@echo
-	@echo "set REBUILD=1 to force the rebuild of any tarconfig"
 	@echo
 
 help-top:
