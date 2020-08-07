@@ -23,7 +23,7 @@ package Design_pkg is
     type set_selector is (dummy_lwc_8, dummy_lwc_16, dummy_lwc_32);
 
     --! Select variant
-    constant variant : set_selector := dummy_lwc_8;
+    constant variant : set_selector := dummy_lwc_32;
     
     --! Adjust the bit counter widths to reduce resource consumption.
     -- Range definition must not change.
