@@ -143,6 +143,12 @@ begin
     --   of the Development Package: (32, 32), (32, 16), (32, 8), (16, 16), and (8, 8).
     --   The following combinations (sw, ccsw) are supported: (32, 32), (32, 16),
     --   (32, 8), (16, 16), and (8, 8). However, w and sw must be always the same."
+
+    assert false report "[LWC] GW=" & integer'image(G_W) &
+        ", SW=" & integer'image(G_SW) &
+        ", CCW=" & integer'image(CCW) &
+        ", CCSW=" & integer'image(CCSW) severity note;
+
     assert (G_W = G_SW) report "[LWC] G_W and G_SW must be the same" severity failure;
     
     assert ((G_W = 32 and (CCW = 32 or CCW = 16 or CCW = 8)) or 

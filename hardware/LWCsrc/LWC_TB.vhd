@@ -19,8 +19,7 @@
 library ieee;
 use ieee.std_logic_1164.ALL;
 use ieee.numeric_std.all;
-use work.lwc_std_logic_1164_additions.LWC_TO_HSTRING; --needed, before VHDL-2008
-use work.lwc_std_logic_1164_additions.LWC_HREAD; --needed, before VHDL-2008
+use work.lwc_std_logic_1164_additions.all;
 use work.NIST_LWAPI_pkg.all;
 
 use std.textio.all;

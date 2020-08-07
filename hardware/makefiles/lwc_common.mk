@@ -8,20 +8,13 @@ TOOL_RUN_DIR := $(PWD)
 
 .DELETE_ON_ERROR:
 
+
 #TODO automate foreach exported var?
 $(TOOL_RUN_DIR)/docker.env : $(TOOL_RUN_DIR) $(VERILOG_FILES) $(VHDL_FILES) $(FPGA_PART) $(SYNTH_OPTIONS) $(CLOCK_PERIOD) config-vars
-	@echo VIVADO_OUTPUT_DIR=$(VIVADO_OUTPUT_DIR) > $@
-	@echo FPGA_PART=$(FPGA_PART) >> $@
-	@echo SYNTH_OPTIONS=$(SYNTH_OPTIONS) >> $@
-	@echo OPT_OPTIONS=$(OPT_OPTIONS) >> $@
-	@echo PLACE_OPTIONS=$(PLACE_OPTIONS) >> $@
-	@echo ROUTE_OPTIONS=$(ROUTE_OPTIONS) >> $@
-	@echo PYS_OPT_OPTIONS=$(PYS_OPT_OPTIONS) >> $@
-	@echo VERILOG_FILES=$(VERILOG_FILES) >> $@
-	@echo VHDL_FILES=$(VHDL_FILES) >> $@
-	@echo TOP=$(TOP) >> $@
-	@echo CLOCK_PERIOD=$(CLOCK_PERIOD) >> $@
-
+	$(file > $@)
+	$(foreach v,$(.VARIABLES),$(if $(filter-out .%,$(filter file,$(origin $(v)))), $(file >> $@,$(v)=$($(v)) )    ) )
+	@touch $@
+	
 
 # ifneq ($(strip $(USE_DOCKER)),1)
 # $(MAKECMDGOALS): config-vars ;
@@ -80,11 +73,13 @@ $(eval VARS := $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CON
 $(foreach v,$(VARS),$(eval $(v)))
 
 .env: config-vars
-	@echo "" > $@
-	@$(foreach O,$(VARS),echo $O >> $@;)
+	# @echo "" > $@
+	# @$(foreach O,$(VARS),echo $O >> $@;)
 
+ifeq ($(VERILOG_FILES)$(VHDL_FILES),)
 VHDL_FILES := $(shell cat $(SOURCE_LIST_FILE) | egrep .*\.vhdl?)
 VERILOG_FILES := $(shell cat $(SOURCE_LIST_FILE) | egrep .*\.s?v | egrep -v .*\.vhdl?)
+endif
 
 # expand variables inside `source_list.txt`
 $(eval  VHDL_FILES=$(VHDL_FILES))

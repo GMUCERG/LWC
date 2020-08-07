@@ -23,6 +23,7 @@ endif
 ### GHDL analyse
 $(WORK_LIB)-obj$(VHDL_STD).cf: $(SIM_VHDL_FILES) $(FORCE_REBUILD) config-vars
 ifneq ($(strip $(VHDL_FILES)),)
+	@rm -f $@ 
 	$(GHDL_BIN) -a $(GHDL_OPT) $(GHDL_WARNS) $(SIM_VHDL_FILES)
 endif
 
