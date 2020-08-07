@@ -136,7 +136,24 @@ architecture structure of LWC is
     	);
     end component CryptoCore;
 begin
-
+	
+	-- Width parameters sanity checks
+	-- See 'Implementer’s Guide to Hardware Implementations Compliant with the Hardware API for LWC', sec. 4.3:
+	-- "The following combinations (w, ccw) are supported in the current version
+    --   of the Development Package: (32, 32), (32, 16), (32, 8), (16, 16), and (8, 8).
+    --   The following combinations (sw, ccsw) are supported: (32, 32), (32, 16),
+    --   (32, 8), (16, 16), and (8, 8). However, w and sw must be always the same."
+    assert (G_W = G_SW) report "[LWC] G_W and G_SW must be the same" severity failure;
+    
+    assert ((G_W = 32 and (CCW = 32 or CCW = 16 or CCW = 8)) or 
+    	(G_W = 16 and CCW = 16) or (G_W = 8 and CCW = 8)) 
+    	report "[LWC] Invalid combination of (G_W, CCW)" severity failure;
+    	
+    assert ((G_SW = 32 and (CCSW = 32 or CCSW = 16 or CCSW = 8)) or 
+    	(G_SW = 16 and CCSW = 16) or (G_SW = 8 and CCSW = 8)) 
+    	report "[LWC] Invalid combination of (G_SW, CCSW)" severity failure;
+	
+	-- ASYNC_RSTN notification
     assert (G_ASYNC_RSTN = false) report "[LWC] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
 
     Inst_PreProcessor: entity work.PreProcessor(PreProcessor)

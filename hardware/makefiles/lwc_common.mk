@@ -8,8 +8,6 @@ TOOL_RUN_DIR := $(PWD)
 
 .DELETE_ON_ERROR:
 
-
-
 #TODO automate foreach exported var?
 $(TOOL_RUN_DIR)/docker.env : $(TOOL_RUN_DIR) $(VERILOG_FILES) $(VHDL_FILES) $(FPGA_PART) $(SYNTH_OPTIONS) $(CLOCK_PERIOD) config-vars
 	@echo VIVADO_OUTPUT_DIR=$(VIVADO_OUTPUT_DIR) > $@
@@ -50,6 +48,7 @@ SOURCE_LIST_FILE ?= $(CORE_ROOT)/source_list.txt
 PYTHON3_BIN ?= python3
 CONFIG_LOC ?= $(CORE_ROOT)/config.ini
 
+config-vars: $(CONFIG_LOC) $(CORE_ROOT)/Makefile
 
 default: help
 

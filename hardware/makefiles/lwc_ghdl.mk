@@ -21,7 +21,7 @@ endif
 
 
 ### GHDL analyse
-$(WORK_LIB)-obj$(VHDL_STD).cf: $(SIM_VHDL_FILES) $(FORCE_REBUILD) Makefile
+$(WORK_LIB)-obj$(VHDL_STD).cf: $(SIM_VHDL_FILES) $(FORCE_REBUILD) config-vars
 ifneq ($(strip $(VHDL_FILES)),)
 	$(GHDL_BIN) -a $(GHDL_OPT) $(GHDL_WARNS) $(SIM_VHDL_FILES)
 endif
@@ -38,7 +38,7 @@ GHDL_OPT += $(GHDL_STD_OPT)
 ### GHDL analyze testbench files, elaborate, and run
 .PHONY: sim-ghdl help-ghdl clean-ghdl
 
-sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf Makefile config-vars
+sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf config-vars
 	$(GHDL_BIN) -e $(GHDL_OPT) $(GHDL_WARNS) $(GHDL_ELAB_OPTS) $(SIM_TOP) 
 	$(GHDL_BIN) -r $(SIM_TOP) $(GHDL_SIM_OPTS) $(GHDL_GENERICS_OPTS) $(VCD_OPT)
 
