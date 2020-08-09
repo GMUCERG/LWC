@@ -1,11 +1,10 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 '''
 options extraction.
 '''
 
-# cryptotvgen 1.0.0
+# cryptotvgen
 # Ekawat (Ice) Homsirikimal and William Diehl
 #
 # Based on aeadtvgen 2.0.0 by Ekawat Homsirikamol (GMU CERG)
@@ -15,6 +14,9 @@ import textwrap
 import sys
 import os
 from enum import Enum
+import pathlib
+
+from .prepare_libs import build_supercop_libs
 
 class AlgorithmClass(Enum):
     AEAD = 0
@@ -33,7 +35,7 @@ def make_validate_library_action(algorithm_class):
                                         ' provide the correct path!'
                                         .format(s=lib_path)))
     
-            lib_name = value            
+            lib_name = value
             if (algorithm_class == AlgorithmClass.AEAD):
                 class_path = 'crypto_aead'
                 delattr(args, 'aead')
@@ -41,7 +43,7 @@ def make_validate_library_action(algorithm_class):
                 class_path = 'crypto_hash'
                 delattr(args, 'hash')
             else:
-                raise(argparse.ArgumentError('Unsupported algorithm class'))
+                parser.error('Unsupported algorithm class')
             b_windows = True if sys.platform in ['win32', 'win64', 'msys'] else False
             lib_name += '_dbg' if args.dbg == True else ""
             lib_name += '.dll' if b_windows else '.so'
@@ -122,6 +124,14 @@ class ValidateGenRandom(argparse.Action):
             routine = [routines.index(self.dest), ]
         setattr(args, 'routines', routine)
         setattr(args, self.dest, values)
+
+
+class ValidatePrepareLibs(argparse.Action):
+    def __init__(self, option_strings, dest, nargs, **kwargs):
+        super(ValidatePrepareLibs, self).__init__(option_strings, dest, nargs, **kwargs)
+    def __call__(self, parser, namespace, values, option_string=None):
+        print(f'{namespace}, {values}, {option_string}')
+        setattr(namespace, self.dest, values)
 
 class ValidateGenCustom(argparse.Action):
     ''' Validate gen_custom option '''
@@ -331,10 +341,9 @@ def get_parser():
             :::::Required Parameters:::'''),
         'Library path specifier::')
     mainop.add_argument(
-        'lib_path',
-        help=textwrap.dedent('''\
-            Path to CAESAR shared library, i.e.
-                ../../prepare_src/libs.'''))
+        '--lib_path',
+        default=pathlib.Path.home() / '.cryptotvgen' / 'lib',
+        help='lib directory')
                 
     secondaryop = parser.add_argument_group(
         textwrap.dedent('''\
@@ -382,8 +391,11 @@ def get_parser():
         '--gen_random', type=int, default=0, metavar='N',
         action=ValidateGenRandom,
         help=textwrap.dedent('''\
-            Randomly generates multiple test vectors with
+            Randomly generates N test vectors with
             varying AD_LEN, PT_LEN, and operation (For use only with AEAD)'''))
+    test.add_argument(
+        '--prepare_libs', default=None, metavar='prepare_libs', nargs='*', action=ValidatePrepareLibs,
+        help='download and make libs from SUPERCOP, argument: libs, all=all libraries, see also --supercop-version')
     test.add_argument(
         '--gen_custom_mode', type=int, default=0, choices=range(3),
         metavar='MODE', help=textwrap.dedent('''\ The mode of test vector generation used by the --gen_custom option.
@@ -888,6 +900,3 @@ def get_parser():
         '--cc_pad_style', type=int, default=1, metavar='PAD_STYLE',
         help='Padding style')
     return parser
-
-if __name__ == '__main__':
-    parse_options(sys.argv[1:])

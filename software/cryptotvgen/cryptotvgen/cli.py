@@ -1,35 +1,41 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from .generator import *
+from .generator import gen_dataset, gen_hash, gen_random, gen_single, gen_test_combined, gen_test_routine, print_header
 from .options import get_parser
+from .prepare_libs import build_supercop_libs
 import textwrap
 import os
+import sys
+import errno
 
-__all__ = ['cryptotvgen']
-
-def cryptotvgen(args):
+def run_cryptotvgen(args=sys.argv[1:]):
     # Parse options
-    p = get_parser()
-    opts = p.parse_args(args)
+    parser = get_parser()
+    opts = parser.parse_args(args)
+    
+    if opts.prepare_libs:
+        build_supercop_libs(sc_version='20200702', libs=opts.prepare_libs)
+        sys.exit()
+    
     try:
         routines = opts.routines
     except AttributeError:
         error_txt = textwrap.dedent('''
 
                     Please specify at least one of the run modes:
-                        gen_test_routine, gen_random,
-                        gen_custom, or gen_single.
+                        --prepare_libs, --gen_test_routine, --gen_random, --gen_custom, or --gen_single.
 
                     ''')
-        raise ValueError(error_txt)
+        sys.exit(error_txt)
+        
     # Additional error checking
     if (opts.offline):
         opts.msg_format = ['len'] + opts.msg_format
     if (opts.ciph_exp_noext and not opts.ciph_exp):
-        p.error('Option --ciph_ext_noext requires --ciph_exp')
+        parser.error('Option --ciph_ext_noext requires --ciph_exp')
     if (opts.add_partial and not opts.ciph_exp):
-        p.error('Option --add_partial requires --ciph_exp')
+        parser.error('Option --add_partial requires --ciph_exp')
 
     if not os.path.exists(opts.dest):
         try:
@@ -43,6 +49,7 @@ def cryptotvgen(args):
     msg_no = 1
     key_no = 1
     gen_single_index = 0
+    
 
     for routine in opts.routines:
         if routine == 0:
@@ -81,5 +88,5 @@ def cryptotvgen(args):
 
 if __name__ == '__main__':
     import sys
-    cryptotvgen(sys.argv[1:])
+    run_cryptotvgen(sys.argv[1:])
 

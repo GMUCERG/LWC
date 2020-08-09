@@ -1,7 +1,6 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# cryptotvgen 1.0.0
+# cryptotvgen
 # Ekawat (Ice) Homsirikimal and William Diehl
 #
 # Based on aeadtvgen 2.0.0 by Ekawat Homsirikamol (GMU CERG)
@@ -12,7 +11,6 @@ import math
 import os
 import random
 import math
-
 import sys
 from enum import Enum
 from .options import routines
@@ -47,7 +45,7 @@ ffi.cdef('''
     int crypto_hash(unsigned char *out, const unsigned char *in, unsigned long long hlen);
     ''')
 
-log = setup_logger('cryptotvgen.log');
+log = setup_logger('cryptotvgen.log')
 
 HUMAN_READABLE_FILE = 'test_vectors.txt'
 HLS_CC_DI_FILE = 'cc_di.txt'
