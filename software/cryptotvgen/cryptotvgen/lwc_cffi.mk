@@ -14,10 +14,16 @@ else
 SO_EXT = so
 endif
 
+# $(info CANDIDATE_PATH=$(CANDIDATE_PATH))
+
 #required only for schwaemm* variants, disables inlining of functions
 ifneq ($(findstring schwaemm,$(CRYPTO_VARIANT)),)
 CFLAGS += -D_DEBUG
 endif
+
+BASE_DIR := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+
+INCLUDES_DIR = $(BASE_DIR)/includes
 
 #Default optimization. Prepend, so can be overwritten 
 CFLAGS := -Os $(CFLAGS)
@@ -26,15 +32,21 @@ CFLAGS += -shared -fPIC
 
 CRYPTO_DIR=crypto_$(CRYPTO_TYPE)
 
-REF_DIR=$(CRYPTO_DIR)/$(CRYPTO_VARIANT)/ref
+IMPL_SRC_DIR?=ref
 
-C_SRCS=$(wildcard $(REF_DIR)/*.c)
-C_HDRS=$(wildcard $(REF_DIR)/*.h) $(wildcard includes/*.h)
+IMPL_SRC_PATH=$(CANDIDATE_PATH)/$(CRYPTO_DIR)/$(CRYPTO_VARIANT)/$(IMPL_SRC_DIR)
 
-default: lib/$(CRYPTO_DIR)/$(CRYPTO_VARIANT).$(SO_EXT)
+C_SRCS=$(wildcard $(IMPL_SRC_PATH)/*.c)
+C_HDRS=$(wildcard $(IMPL_SRC_PATH)/*.h) $(wildcard $(INCLUDES_DIR)/*.h)
 
-lib/$(CRYPTO_DIR):
+LIB_PATH ?= $(CANDIDATE_PATH)/lib
+
+
+default: $(LIB_PATH)/$(CRYPTO_DIR)/$(CRYPTO_VARIANT).$(SO_EXT)
+
+
+$(LIB_PATH)/$(CRYPTO_DIR):
 	@mkdir -p $@
 
-lib/$(CRYPTO_DIR)/$(CRYPTO_VARIANT).$(SO_EXT): $(C_SRCS) $(C_HDRS) lib/$(CRYPTO_DIR)
-	$(CC) $(CFLAGS) -I$(REF_DIR) -Iincludes $(C_SRCS) -o $@
+$(LIB_PATH)/$(CRYPTO_DIR)/$(CRYPTO_VARIANT).$(SO_EXT): $(C_SRCS) $(C_HDRS) $(LIB_PATH)/$(CRYPTO_DIR)
+	$(CC) $(CFLAGS) -I$(IMPL_SRC_PATH) -I$(INCLUDES_DIR) $(C_SRCS) -o $@

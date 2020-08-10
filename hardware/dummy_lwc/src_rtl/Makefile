@@ -1,10 +1,10 @@
-# LWC_ROOT variable MUST be set to the the absolute path of the LWC package's TOP directory.
-# This is the location where the `lwc.mk` file resides. 
-# $(PWD) is the current working directory, which is assumed to be the location of user's design files.
-LWC_ROOT = $(PWD)/../../..
+# LWC_ROOT variable MUST be set to the the path of the LWC package's TOP directory.
+# The path can be relative to the current directory where this Makefile resides.
+# DO NOT USE $(PWD) as it does not work correctly with the scripts!
+LWC_ROOT=../../..
 
 # Change if `sources_list` file is in a different location
-#SOURCE_LIST_FILE := $(CORE_ROOT)/source_list.txt
+#SOURCE_LIST_FILE := source_list_2.txt
 
 
 ## DON'T CHANGE ANYTHING BELOW THIS LINE ##

@@ -3,16 +3,27 @@
 
 import os
 import sys
-
+from pathlib import Path
 
 from cryptotvgen import cli
 
+script_dir = Path(__file__).parent.resolve()
+
+# to build the libs from the examples directory:
+# $ cryptotvgen --prepare_lib --candidates_dir=../../
+
+
 if __name__ == '__main__':
+    CCW = 32
+    if len(sys.argv) > 1:
+        CCW = int(sys.argv[1]) # make sure it's int
+        legal_widths = {8, 16, 32}
+        assert CCW in legal_widths, f'CCW should be in {legal_widths}'
     # ========================================================================
     # Create the list of arguments for cryptotvgen
     args = [
-        '--lib_path', os.path.realpath('../lib'),       # Library path
-        '--aead', 'dummy_lwc',                          # Library name of AEAD algorithm (<algorithm_name>--<implementation_name>)
+        '--lib_path', os.path.realpath('../lib'),  # Library path
+        '--aead', 'dummy_lwc',                     # Library name of AEAD algorithm (<algorithm_name>--<implementation_name>)
         '--hash', 'dummy_lwc',                          # Library name of Hash algorithm (<algorithm_name>--<implementation_name>)
         '--io', '32', '32',                             # I/O width: PDI/DO and SDI width, respectively.
         '--key_size', '128',                            # Key size
