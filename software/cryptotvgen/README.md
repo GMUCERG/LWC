@@ -1,5 +1,11 @@
-# cryptotvgen
+# CryptoTVgen
 Automatic test-vector generation for hardware implementations of NIST Light-Weight Cryptography (LWC) candidates using GMU LWC Hardware API package.
+
+## Requirements
+OS: Linux, macOS, Windows
+
+Dependencies:
+- Python 3.7+ and pip
 <!-- Linux
 ===========
 > sudo apt-get install libssl-dev
@@ -22,7 +28,7 @@ $ pip install .
 ```
 If using the latter command, remember to run it again following any git pulls or updates to the source distribution.
 
-## Using the `cryptotvgen` Script
+## Running the Executable
 
 See help
 ```
@@ -30,5 +36,5 @@ $ cryptotvgen -h
 ```
 
 
-## Using the `cryptotvgen` Library
+## Using the Library
 See the [examples](./examples) sub-folder.
