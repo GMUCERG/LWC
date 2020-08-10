@@ -15,7 +15,7 @@ def run_cryptotvgen(args=sys.argv[1:]):
     opts = parser.parse_args(args)
     
     if opts.prepare_libs:
-        build_supercop_libs(sc_version='20200702', libs=opts.prepare_libs)
+        build_supercop_libs(sc_version=opts.supercop_version, libs=opts.prepare_libs)
         sys.exit()
     
     try:

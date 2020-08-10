@@ -4,23 +4,15 @@
 import os
 import sys
 
-
-try:
-    from cryptotvgen import cryptotvgen
-except ImportError:
-    print("================================================================")
-    print("Warning: cryptotvgen not installed!!!! Use source package instead.")
-    print("================================================================")
-    sys.path.append(os.path.abspath('..'))
-    from cryptotvgen import cryptotvgen
+from cryptotvgen import cli
 
 if __name__ == '__main__':
     # ========================================================================
     # Create the list of arguments for cryptotvgen
     args = [
-        os.path.realpath('../../prepare_src/libs'),     # Library path
-        '--aead', 'dummy_lwc--ref',                     # Library name of AEAD algorithm (<algorithm_name>--<implementation_name>)
-        '--hash', 'dummy_lwc--ref',                     # Library name of Hash algorithm (<algorithm_name>--<implementation_name>)
+        '--lib_path', os.path.realpath('../lib'),       # Library path
+        '--aead', 'dummy_lwc',                          # Library name of AEAD algorithm (<algorithm_name>--<implementation_name>)
+        '--hash', 'dummy_lwc',                          # Library name of Hash algorithm (<algorithm_name>--<implementation_name>)
         '--io', '8', '8',                               # I/O width: PDI/DO and SDI width, respectively.
         '--key_size', '128',                            # Key size
         '--npub_size', '96',                            # Npub size
@@ -95,4 +87,4 @@ if __name__ == '__main__':
     except:
         pass
     # Call program
-    cryptotvgen(args)
+    cli.run_cryptotvgen(args)

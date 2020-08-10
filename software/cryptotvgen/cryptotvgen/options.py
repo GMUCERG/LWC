@@ -18,6 +18,8 @@ import pathlib
 
 from .prepare_libs import build_supercop_libs
 
+sc_default_version = '20200702'
+
 class AlgorithmClass(Enum):
     AEAD = 0
     HASH = 1
@@ -395,7 +397,10 @@ def get_parser():
             varying AD_LEN, PT_LEN, and operation (For use only with AEAD)'''))
     test.add_argument(
         '--prepare_libs', default=None, metavar='prepare_libs', nargs='*', action=ValidatePrepareLibs,
-        help='download and make libs from SUPERCOP, argument: libs, all=all libraries, see also --supercop-version')
+        help='Download and build reference implementations from SUPERCOP. "all" means libraries. see also --supercop_version')
+    test.add_argument(
+        '--supercop_version', default=sc_default_version,
+        help=f'SUPERCOP version to download and use. Default: {sc_default_version}')
     test.add_argument(
         '--gen_custom_mode', type=int, default=0, choices=range(3),
         metavar='MODE', help=textwrap.dedent('''\ The mode of test vector generation used by the --gen_custom option.

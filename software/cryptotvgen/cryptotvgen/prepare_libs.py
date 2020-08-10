@@ -15,14 +15,27 @@ except ImportError:
     # Try backported to PY<37 `importlib_resources`.
     import importlib_resources as pkg_resources
 
-#TODO change `print`s to appropriate log functions
+# TODO change `print`s to appropriate log functions
 
 lwc_candidates = {'hash': ['ace', 'ascon', 'drygascon', 'esch', 'gimli', 'knot', 'photonbeetle',
-                            'saturnin', 'skinnyhash', 'subterranean', 'xoodyak'],
+                           'saturnin', 'skinnyhash', 'subterranean', 'xoodyak'],
                   'aead': ['ace', 'ascon', 'comet', 'drygascon', 'elephant', 'estate', 'paefforkskinny', 'giftcofb', 'gimli',
-                            'grain128aead', 'hyena', 'isap', 'knot', 'twegift64locus', 'twegift64lotus', 'mixfeed', 'orange',
-                            'oribatida', 'photonbeetle', 'pyjamask', 'romulus', 'saeaes', 'saturnin', 'skinnyaead',
-                            'schwaemm', 'spix', 'spoc', 'spook', 'subterranean', 'sundaegift', 'tinyjambu', 'wage', 'xoodyak']}
+                           'grain128aead', 'hyena', 'isap', 'knot', 'twegift64locus', 'twegift64lotus', 'mixfeed', 'orange',
+                           'oribatida', 'photonbeetle', 'pyjamask', 'romulus', 'saeaes', 'saturnin', 'skinnyaead',
+                           'schwaemm', 'spix', 'spoc', 'spook', 'subterranean', 'sundaegift', 'tinyjambu', 'wage', 'xoodyak']}
+
+mkfile_name = 'lwc_cffi.mk'
+
+def build_variants(variants, candidates_dir):
+    for vname, vtype in variants:
+        # print(f'running make CRYPTO_VARIANT={vname} CRYPTO_TYPE={vtype} in {ctgen_candidates_dir}')
+        cp = subprocess.run(['make', '-f',  str(candidates_dir / mkfile_name), '-C', str(candidates_dir),
+                             f'CRYPTO_VARIANT={vname}', f'CRYPTO_TYPE={vtype}'], cwd=candidates_dir)
+        try:
+            cp.check_returncode()
+        except:
+            print(f'`make CRYPTO_VARIANT={vname} CRYPTO_TYPE={vtype}` failed (exit code: {cp.returncode})')
+            sys.exit(1)
 
 def ctgen_data_dir(sub_dir=None):
     data_dir = pathlib.Path.home() / '.cryptotvgen'
@@ -33,13 +46,13 @@ def ctgen_data_dir(sub_dir=None):
     return data_dir
 
 
-def build_supercop_libs(sc_version, libs):
+def build_supercop_libs(sc_version, libs='all'):
     ctgen_candidates_dir = ctgen_data_dir()
-    
-    if libs == ['all']:
-      print('building all libs')
+
+    if libs == 'all' or libs == ['all']:
+        print('building all libs')
     else:
-      print(f'building only: {libs}')
+        print(f'building only: {libs}')
 
     def get_sc_tar(version):
         sc_filename = f'supercop-{sc_version}.tar.xz'
@@ -57,19 +70,15 @@ def build_supercop_libs(sc_version, libs):
 
     sc_tar = get_sc_tar(sc_version)
 
-
     ctgen_includes_dir = ctgen_data_dir('includes')
 
     # TODO add function defs common to cffi
     (ctgen_includes_dir / 'crypto_aead.h').touch()
     (ctgen_includes_dir / 'crypto_hash.h').touch()
 
-    mkfile_name = 'lwc_cffi.mk'
     mk_content = pkg_resources.read_text(__package__, mkfile_name)
     with open(ctgen_candidates_dir / mkfile_name, 'w') as f:
-      f.write(mk_content)
-    # FIXME fornow:
-    # shutil.copy(src='software/cryptotvgen/Makefile', dst=ctgen_candidates_dir)
+        f.write(mk_content)
 
     incl_candidates = set()
     extract_list = []
@@ -109,12 +118,4 @@ def build_supercop_libs(sc_version, libs):
     shutil.rmtree(tmp_dir)
     print('moved sources to cryptotvgen data dir')
 
-    for vname, vtype in variants:
-        # print(f'running make CRYPTO_VARIANT={vname} CRYPTO_TYPE={vtype} in {ctgen_candidates_dir}')
-        cp = subprocess.run(['make', '-f', mkfile_name,
-                             f'CRYPTO_VARIANT={vname}', f'CRYPTO_TYPE={vtype}'], cwd=ctgen_candidates_dir)
-        try:
-            cp.check_returncode()
-        except:
-            print(f'`make CRYPTO_VARIANT={vname} CRYPTO_TYPE={vtype}` failed (exit code: {cp.returncode})')
-            sys.exit(1)
+    build_variants(variants, ctgen_candidates_dir)

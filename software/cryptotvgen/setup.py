@@ -11,9 +11,7 @@ https://setuptools.readthedocs.io/en/latest/setuptools.html#automatic-script-cre
 """
 
 
-
-from setuptools import setup
-
+from setuptools import setup, find_packages
 
 # here = path.abspath(path.dirname(__file__))
 
@@ -35,7 +33,7 @@ setup(
     # The project's main homepage.
     url='https://cryptography.gmu.edu/athena/index.php?id=download',
 
-    packages=['cryptotvgen'],
+    packages=find_packages(),
 
     # Author details
     author='Ekawat (Ice) Homsirikamol, William Diehl',
