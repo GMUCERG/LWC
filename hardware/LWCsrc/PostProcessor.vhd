@@ -35,7 +35,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use work.NIST_LWAPI_pkg.all;
-use work.Design_pkg.all;
+use work.design_pkg.all;
 
 entity PostProcessor is
 	generic (
@@ -144,11 +144,11 @@ begin
                 )
                 port map
                         (
-                        clk     =>  clk ,
-                        len     =>  len_SegLenCnt,
-                        load    =>  load_SegLenCnt,
-                        ena     =>  en_SegLenCnt,
-                        count   =>  dout_SegLenCnt
+                        clk     => clk,
+                        len     => len_SegLenCnt,
+                        ena     => en_SegLenCnt,
+                        load    => load_SegLenCnt,
+                        count   => dout_SegLenCnt
                     );
 
     last_flit_of_segment <= '1' when (to_integer(to_01(unsigned(dout_SegLenCnt))) <= G_W/8) else '0';
@@ -196,19 +196,21 @@ FSM_32BIT: if (G_W=32) generate
 	    	)
 	    port map
 	        (
-	            clk=> clk,
-	            rst=> rst,
+	            clk          => clk,
+	            rst          => rst,
+	            
 	            -- no need for conversion, as our last serial_in element is also the
 	            -- last parallel_out element
 	            end_of_input => end_of_block,
 	            -- end_of_bock should only be evaluated if bdo_valid_p = '1'
-	            data_s       => bdo_cleared,
-	            data_valid_s => bdo_valid,
-	            data_ready_s => bdo_ready,
 	
 	            data_p       => bdo_p,
 	            data_valid_p => bdo_valid_p,
-	            data_ready_p => bdo_ready_p
+	            data_ready_p => bdo_ready_p,
+	            
+	            data_s       => bdo_cleared,
+	            data_valid_s => bdo_valid,
+	            data_ready_s => bdo_ready
 	        );
 
     --! State register
@@ -357,7 +359,7 @@ FSM_32BIT: if (G_W=32) generate
                 end if;
 
             when others=>
-                    nx_state <= pr_state;
+                nx_state <= pr_state;
         end case;
     end process;
 
@@ -484,9 +486,6 @@ FSM_32BIT: if (G_W=32) generate
                 do_last                       <= '1';
                 do_data_internal_opcode       <= INST_SUCCESS;
                 do_data_internal(27 downto 0) <= (others=>'0');
-
-            when others=>
-                null;
 
         end case;
     end process;
@@ -712,7 +711,7 @@ FSM_16BIT: if (G_W=16) generate
 
             when S_HDR_HASHLEN =>
                 do_valid_internal <='1';
-                do_data_internal  <= std_logic_vector(to_unsigned(HASHdiv8, 16));
+                do_data_internal  <= std_logic_vector(to_unsigned(HASHdiv8, G_W));
 
             when S_OUT_HASH =>
                 bdo_ready         <= do_ready;
@@ -781,10 +780,6 @@ FSM_16BIT: if (G_W=16) generate
                 do_last                          <= '1';
                 do_data_internal(G_W-1 downto G_W-4) <="1110";
                 do_data_internal(G_W-5 downto 0)   <= (others=>'0');
-
-
-            when others=>
-                null;
 
         end case;
     end process;
@@ -1161,9 +1156,6 @@ FSM_8BIT: if (G_W=8) generate
                 do_last                          <= '1';
                 do_data_internal(G_W-1 downto G_W-4) <="1110";
                 do_data_internal(G_W-5 downto 0)   <= (others=>'0');
-
-            when others=>
-                 null;
 
         end case;
     end process;

@@ -9,13 +9,6 @@ TOOL_RUN_DIR := $(realpath .)
 .DELETE_ON_ERROR:
 
 
-#TODO automate foreach exported var?
-$(TOOL_RUN_DIR)/docker.env : $(TOOL_RUN_DIR) $(VERILOG_FILES) $(VHDL_FILES) $(FPGA_PART) $(SYNTH_OPTIONS) $(CLOCK_PERIOD) config-vars
-	$(file > $@)
-	$(foreach v,$(.VARIABLES),$(if $(filter-out .%,$(filter file,$(origin $(v)))), $(file >> $@,$(v)=$($(v)) )    ) )
-	@touch $@
-	
-
 # ifneq ($(strip $(USE_DOCKER)),1)
 # $(MAKECMDGOALS): config-vars ;
 # endif
@@ -41,8 +34,6 @@ SOURCE_LIST_FILE ?= $(CORE_ROOT)/source_list.txt
 PYTHON3_BIN ?= python3
 CONFIG_LOC ?= $(CORE_ROOT)/config.ini
 
-config-vars: $(CONFIG_LOC) $(CORE_ROOT)/Makefile
-
 default: help
 
 .DEFAULT: help
@@ -61,21 +52,6 @@ $(error Running config_parser.py using python3 failed: $(TEST_CONFIG_PARSER_OK))
 endif
 #######################
 
-
-# VARS:=$(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CONFIG_LOC)')
-
-## reset
-VARS :=
-
-.PHONY: .env
-
-$(eval VARS := $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CONFIG_LOC)))
-$(foreach v,$(VARS),$(eval $(v)))
-
-.env: config-vars
-	# @echo "" > $@
-	# @$(foreach O,$(VARS),echo $O >> $@;)
-
 ifeq ($(VERILOG_FILES)$(VHDL_FILES),)
 VHDL_FILES := $(shell cat $(SOURCE_LIST_FILE) | egrep .*\.vhdl?)
 VERILOG_FILES := $(shell cat $(SOURCE_LIST_FILE) | egrep .*\.s?v | egrep -v .*\.vhdl?)
@@ -88,11 +64,6 @@ $(eval  VERILOG_FILES=$(VERILOG_FILES))
 VHDL_FILES:=$(realpath $(VHDL_FILES))
 VERILOG_FILES:=$(realpath $(VERILOG_FILES))
 
-export VHDL_FILES
-export VERILOG_FILES
-
-YOSYS_GHDL_MODULE := -m ghdl
-
 VHDL_STD ?= 93
 WORK_LIB ?= work
 
@@ -104,13 +75,6 @@ VHDL_ADDITIONS = $(LWCSRC_DIR)/lwc_std_logic_1164_additions.vhd
 SIM_ONLY_VHDL_FILES := $(VHDL_ADDITIONS) $(LWC_TB) 
 SIM_VHDL_FILES = $(VHDL_FILES) $(SIM_ONLY_VHDL_FILES)
 
-ifeq ($(strip $(VERILOG_FILES)),)
-YOSYS_READ_VERILOG_CMD := 
-else
-YOSYS_READ_VERILOG_CMD := read_verilog $(VERILOG_FILES);
-endif
-
-
 # common tool exports
 export CLOCK_PERIOD ?= 20.0
 export NTHREADS=$(shell nproc)
@@ -119,8 +83,20 @@ ifdef REBUILD
 FORCE_REBUILD=force_rebuild
 endif
 
+export VHDL_FILES
+export VERILOG_FILES
+export TOP
+export VHDL_STD
 
-force_rebuild:
+
+# $(eval VARS := $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CONFIG_LOC)))
+# $(foreach v,$(VARS),$(eval $(v)))
+
+config-vars: $(CONFIG_LOC) $(FORCE_REBUILD)
+	$(eval VARS := $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CONFIG_LOC)))
+	$(foreach v,$(VARS),$(eval $(v)))
+
+force_rebuild: FORCE
 	@echo "Forcing Rebuild"
 
 .PHONY: force_rebuild default help help-common help-docker
@@ -138,7 +114,7 @@ help: help-top help-common help-ghdl help-yosys help-vivado
 help-common:
 	@printf "%b" "$(CYAN)common variables$(NO_COLOR):\n";
 	@printf "%b" "VHDL_STD \t VHDL standard to use: '93' for VHDL 1993 and '08' for VHDL 2008 \n";
-	@printf "%b" "REBUILD \t set to '1' to force the rebuild of any target \n";
+	@printf "%b" "REBUILD \t set to '1' to force the rebuildcode of any target \n";
 	@echo
 	@printf "%b" "$(CYAN)Docker$(NO_COLOR):\n";
 	@printf "%b" "USE_DOCKER \t set to '1' to automatically run tools using Docker\n";

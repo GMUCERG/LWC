@@ -3,13 +3,14 @@ SYNTH_FRAMEWORK_ROOT=$(realpath $(LWC_ROOT)/hardware/scripts/synth)
 
 VIVADO_RUN_TCL=$(SYNTH_FRAMEWORK_ROOT)/tools/vivado/run.tcl
 
-VIVADO_GENERICS_OPTIONS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/hardware/scripts/config_parser.py vivado_generics $(CONFIG_LOC))
+VIVADO_GENERICS_OPTIONS:=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/hardware/scripts/config_parser.py vivado_generics $(CONFIG_LOC))
 
 ################################################################################
 # User configurable variables
 ################################################################################
 FPGA_PART ?= xc7a100tcsg324-1
-SYNTH_OPTIONS ?= -assert -flatten_hierarchy rebuilt -retiming -directive AreaOptimized_medium $(VIVADO_GENERICS_OPTIONS)
+# SYNTH_OPTIONS ?= -assert -flatten_hierarchy rebuilt -retiming -directive AreaOptimized_medium $(VIVADO_GENERICS_OPTIONS)
+SYNTH_OPTIONS ?= -assert -flatten_hierarchy rebuilt -retiming -directive Default $(VIVADO_GENERICS_OPTIONS)
 OPT_OPTIONS ?= -directive ExploreWithRemap # extra optimization pass
 PLACE_OPTIONS ?= -directive Default
 ROUTE_OPTIONS ?= -directive Default
@@ -17,25 +18,29 @@ PYS_OPT_OPTIONS ?= -directive Default
 VIVADO_BIN ?= vivado
 ################################################################################
 
-.PHONY: synth-vivado clean-vivado help-vivado $(FPGA_PART) $(SYNTH_OPTIONS) $(CLOCK_PERIOD) $(TOOL_RUN_DIR)/docker.env
+# $(eval VARS := $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CONFIG_LOC)))
+# $(foreach v,$(VARS),$(eval $(v)))
+
+.PHONY: synth-vivado clean-vivado help-vivado
 
 VIVADO_CMD=$(VIVADO_BIN) -mode batch -nojournal -source $(VIVADO_RUN_TCL)
 
 VIVADO_OUTPUT_DIR=vivado
 
 #TODO FIX this mess!
+export FPGA_PART
 export VIVADO_OUTPUT_DIR
 export SYNTH_OPTIONS
 export OPT_OPTIONS
 export PLACE_OPTIONS
 export ROUTE_OPTIONS
 export PYS_OPT_OPTIONS
-export VERILOG_FILES
-export VHDL_FILES
-export TOP
 export CLOCK_PERIOD
-export VHDL_STD
 
+$(TOOL_RUN_DIR)/docker.env : $(TOOL_RUN_DIR) $(VERILOG_FILES) $(VHDL_FILES) $(FORCE_REBUILD) config-vars
+	$(file > $@)
+	$(foreach v,$(.VARIABLES),$(if $(filter-out .%,$(filter file,$(origin $(v)))), $(file >> $@,$(v)=$($(v)) )    ) )
+	@touch $@
 
 synth-vivado: $(TOOL_RUN_DIR)/docker.env $(VERILOG_FILES) $(VHDL_FILES) $(TOOL_RUN_DIR)/docker.env config-vars
 	cd $(TOOL_RUN_DIR) && $(VIVADO_CMD)

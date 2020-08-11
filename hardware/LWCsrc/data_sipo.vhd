@@ -26,6 +26,7 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
+
 use work.Design_pkg.all;
 use work.NIST_LWAPI_pkg.all;
 
@@ -34,7 +35,6 @@ entity DATA_SIPO is
 		G_ASYNC_RSTN : boolean	
 	);
     port(
-
             clk               : in std_logic;
             rst               : in std_logic;
 
@@ -47,7 +47,6 @@ entity DATA_SIPO is
             data_s             : in  STD_LOGIC_VECTOR(CCW-1 downto 0);
             data_valid_s       : in  STD_LOGIC;
             data_ready_s       : out STD_LOGIC
-
       );
 
 end entity DATA_SIPO;

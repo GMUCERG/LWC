@@ -134,12 +134,16 @@ architecture PreProcessor of PreProcessor is
 begin
 
     --! for simulation only
+    -- synthesis translate_off
+    -- pragma translate_off
     process(clk) begin
         if (rising_edge(clk)) then
             assert not (received_wrong_header = true)
                report "Received unexpected header" severity failure;
         end if;
     end process;
+    -- pragma translate_on
+    -- synthesis translate_on
 
     --! Segment Length Counter
     SegLen: entity work.StepDownCountLd(StepDownCountLd)

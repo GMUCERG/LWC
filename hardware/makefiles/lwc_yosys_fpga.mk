@@ -1,5 +1,13 @@
 YOSYS_FPGA ?= xc7
 
+YOSYS_GHDL_MODULE := -m ghdl
+
+ifeq ($(strip $(VERILOG_FILES)),)
+YOSYS_READ_VERILOG_CMD := 
+else
+YOSYS_READ_VERILOG_CMD := read_verilog $(VERILOG_FILES);
+endif
+
 ifeq ($(strip $(YOSYS_FPGA)),xc7)
 # $(info Yosys FPGA target: Xilinx 7 Series)
 YOSYS_SYNTH_CMD := synth_xilinx -widemux 6 -flatten -retime -nobram -arch xc7
@@ -12,6 +20,7 @@ YOSYS_SYNTH_CMD := synth_ecp5 -retime -nobram
 else
 $(error unsupported YOSYS_FPGA=$(YOSYS_FPGA) )
 endif
+
 
 .PHONY: synth-yosys-fpga help-yosys clean-vcs
 
