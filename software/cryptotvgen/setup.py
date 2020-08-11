@@ -13,11 +13,6 @@ https://setuptools.readthedocs.io/en/latest/setuptools.html#automatic-script-cre
 
 from setuptools import setup, find_packages
 
-# here = path.abspath(path.dirname(__file__))
-
-# Get the long description from the README file
-# with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
-# long_description = f.read()
 
 setup(
     name='cryptotvgen',
@@ -90,7 +85,7 @@ setup(
         'dev': [],
         # 'test': ['nose'],
     },
-
+    
     package_data={'cryptotvgen': ['lwc_cffi.mk']},
     include_package_data=True,
 
@@ -103,3 +98,4 @@ setup(
         ],
     }
 )
+
