@@ -19,13 +19,12 @@ VIVADO_BIN ?= vivado
 
 .PHONY: synth-vivado clean-vivado help-vivado $(FPGA_PART) $(SYNTH_OPTIONS) $(CLOCK_PERIOD) $(TOOL_RUN_DIR)/docker.env
 
-VIVADO_CMD=$(VIVADO_BIN) -mode batch -nojournal -notrace -source $(VIVADO_RUN_TCL)
+VIVADO_CMD=$(VIVADO_BIN) -mode batch -nojournal -source $(VIVADO_RUN_TCL)
 
 VIVADO_OUTPUT_DIR=vivado
 
 #TODO FIX this mess!
 export VIVADO_OUTPUT_DIR
-export FPGA_PART
 export SYNTH_OPTIONS
 export OPT_OPTIONS
 export PLACE_OPTIONS
