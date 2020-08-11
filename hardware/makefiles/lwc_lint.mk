@@ -1,7 +1,7 @@
 VERILATOR_BIN ?= verilator
 YOSYS_BIN ?= yosys
 
-VHDL_LINT_CMD := $(GHDL_BIN) -s --mb-comments $(GHDL_OPT) $(GHDL_WARNS)
+VHDL_LINT_CMD := $(GHDL_BIN) -s $(GHDL_STD_OPT) --mb-comments $(GHDL_OPT) $(GHDL_WARNS)
 VERILOG_LINT_CMD := $(VERILATOR_BIN) --lint-only $(VERILATOR_LINT_FLAGS)
 
 .PHONY: lint lint-verilog lint-vhdl lint-vhdl-synth lint-yosys help-lint
@@ -19,7 +19,7 @@ endif
 
 lint-vhdl-synth: $(WORK_LIB)-obj$(VHDL_STD).cf
 ifneq ($(strip $(VHDL_FILES)),)
-	$(GHDL_BIN) --synth $(GHDL_OPT) $(GHDL_WARNS) $(TOP) > /dev/null
+	$(GHDL_BIN) --synth $(GHDL_STD_OPT) $(GHDL_OPT) $(GHDL_WARNS) $(TOP) > /dev/null
 endif
 
 lint-yosys: $(WORK_LIB)-obj$(VHDL_STD).cf $(VERILOG_FILES)
