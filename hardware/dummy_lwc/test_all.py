@@ -33,15 +33,21 @@ variables = {'LWCSRC_DIR': str(lwc_root / 'hardware' / 'LWCsrc')}
 
 cnd_dir = script_dir.parents[1] / 'software'
 
+
 def build_libs():
     args = [
         '--prepare_libs',
         '--candidates_dir', str(lwc_root / 'software')
     ]
-    cli.run_cryptotvgen(args)
+    return cli.run_cryptotvgen(args)
 
-def gen_tv(ccw, blocks_per_segment=None):
-    dest_dir = f'KAT/KAT{"_MS" if blocks_per_segment else ""}_{ccw}'
+
+gen_tv_subfolder = Path('generated_tv').resolve()
+gen_configs_subfolder = Path('generated_config').resolve()
+gen_configs_subfolder.mkdir(exist_ok=True)
+
+
+def gen_tv(ccw, blocks_per_segment, dest_dir):
     args = [
         '--lib_path', str(cnd_dir / 'lib'),
         '--aead', 'dummy_lwc',
@@ -54,7 +60,7 @@ def gen_tv(ccw, blocks_per_segment=None):
         '--tag_size', '128',
         '--block_size',    '128',
         '--block_size_ad', '128',
-        '--dest', dest_dir,
+        '--dest', str(dest_dir),
         '--max_ad', '80',
         '--max_d', '80',
         '--max_io_per_line', '8',
@@ -74,7 +80,7 @@ def gen_tv(ccw, blocks_per_segment=None):
     # TODO
     # args += gen_hash
 
-    cli.run_cryptotvgen(args)
+    return cli.run_cryptotvgen(args)
 
 
 def get_lang(file: str):
@@ -87,6 +93,8 @@ def get_lang(file: str):
         return 'system-verilog'
 
 # TODO
+
+
 def gen_hdl_prj():
     with open(sources_list, 'r') as f:
         prj = {}
@@ -130,22 +138,68 @@ def test_all():
 
     param_variants = [(32, 32), (32, 16), (32, 8), (16, 16), (8, 8)]
 
-    for ms in [False, True]:
-        for w, ccw in param_variants:
-            gen_tv(ccw, 2 if ms else None)
-            # TODO impl in python
-            replaced_design_pkg = (core_src_path / f'design_pkg_{ccw}.vhd').resolve()
-            os.system(f"sed 's/:= dummy_lwc_.*/:= dummy_lwc_{ccw};/' {orig_design_pkg} > {replaced_design_pkg}")
-            cfg_vhdl_files = [str(replaced_design_pkg) if Path(
-                f).resolve().samefile(orig_design_pkg) else f for f in vhdl_files]
-            cmd = [make_cmd, 'sim-ghdl',
-                   f"VHDL_FILES={' '.join(cfg_vhdl_files)}",
-                   f"VERILOG_FILES={' '.join(verilog_files)}",
-                   f"CONFIG_LOC=configs/{w}{'MS' if ms else ''}config.ini",
-                   "REBUILD=1"]
-            print(f'running `{" ".join(cmd)}` in {core_src_path}')
-            cp = subprocess.run(cmd, cwd=core_src_path)
-            cp.check_returncode()
+    orig_config_ini = (core_src_path / 'config.ini').resolve()
+
+    def gen_from_template(orig_filename, gen_filename, changes):
+        with open(orig_filename, 'r') as orig:
+            content = orig.read()
+            for old, repl in changes:
+                content = re.sub(old, repl, content)
+        with open(gen_filename, 'w') as gen:
+            gen.write(content)
+
+    # TODO run other targets as well
+    make_goal = 'sim-ghdl'
+    
+    results_dir = Path('testall_results').resolve()
+    results_dir.mkdir(exist_ok=True)    
+    logs_dir = Path('testall_logs').resolve()
+    logs_dir.mkdir(exist_ok=True)
+
+    for vhdl_std in ['93', '08']:
+        for ms in [False, True]:
+            for w, ccw in param_variants:
+                for async_rstn in [False, True]:
+                    print(f'\n\n{"="*12}- Testing vhdl_std={vhdl_std} ms={ms} w={w} ccw={ccw} async_rstn={async_rstn} -{"="*12}\n')
+                    gen_tv_dir = gen_tv_subfolder / f'TV{"_MS" if ms else ""}_{w}'
+                    gen_tv(w, 2 if ms else None, gen_tv_dir)
+
+                    replaced_design_pkg = (
+                        core_src_path / f'design_pkg_{ccw}{"_arstn" if async_rstn else ""}.vhd').resolve()
+                    design_pkg_changes = [
+                        (r'(constant\s+variant\s+:\s+set_selector\s+:=\s+)dummy_lwc_.*;', f'\\g<1>dummy_lwc_{ccw};'),
+                        (r'(constant\s+ASYNC_RSTN\s+:\s+boolean\s+:=\s+).*;', f'\\g<1>{async_rstn};')
+                    ]
+                    gen_from_template(orig_design_pkg, replaced_design_pkg, design_pkg_changes)
+
+                    # TODO alternatively, parse config.ini and generate anew
+                    generated_config_ini = gen_configs_subfolder / \
+                        f"config_{w}{'_MS' if ms else ''}_vhdl{vhdl_std}.ini"
+                    config_ini_changes = [
+                        (r'(G_W\s*=\s*)\d+', f'\\g<1>{w}'),
+                        (r'(G_SW\s*=\s*)\d+', f'\\g<1>{w}'),
+                        (r'(G_FNAME_PDI\s*=\s*).*', f'\\g<1>"{gen_tv_dir}/pdi.txt"'),
+                        (r'(G_FNAME_SDI\s*=\s*).*', f'\\g<1>"{gen_tv_dir}/sdi.txt"'),
+                        (r'(G_FNAME_DO\s*=\s*).*', f'\\g<1>"{gen_tv_dir}/do.txt"'),
+                        (r'(G_FNAME_LOG\s*=\s*).*',
+                         f'\\g<1>\"{logs_dir}/log_W{w}_CCW{ccw}{"_ASYNCRSTN" if async_rstn else ""}{"_MS" if ms else ""}_VHDL{vhdl_std}.txt\"'),
+                        (r'(G_FNAME_RESULT\s*=\s*).*',
+                         f'\\g<1>\"{results_dir}/result_W{w}_CCW{ccw}{"_ASYNCRSTN" if async_rstn else ""}{"_MS" if ms else ""}_VHDL{vhdl_std}.txt\"'),
+                        (r'(VHDL_STD\s*=\s*).*', f'\\g<1>{vhdl_std}'),
+                    ]
+                    gen_from_template(orig_config_ini, generated_config_ini, config_ini_changes)
+
+                    cfg_vhdl_files = [str(replaced_design_pkg) if Path(f).resolve().samefile(orig_design_pkg)
+                                      else f for f in vhdl_files]
+                    cmd = [make_cmd, make_goal,
+                           f"VHDL_FILES={' '.join(cfg_vhdl_files)}",
+                           f"VERILOG_FILES={' '.join(verilog_files)}",
+                           f"CONFIG_LOC={generated_config_ini}",
+                        #    "REBUILD=1"
+                           ]
+                    print(f'running `{" ".join(cmd)}` in {core_src_path}')
+                    cp = subprocess.run(cmd, cwd=core_src_path)
+                    cp.check_returncode()
 
 
 if __name__ == "__main__":
