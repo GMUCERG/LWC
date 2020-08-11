@@ -16,19 +16,22 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 
-package Design_pkg is
+package design_pkg is
 
     --! user specific, algorithm independent parameters
     -- This module implements three different variants of dummy_lwc
-    type set_selector is (dummy_lwc_8, dummy_lwc_16, dummy_lwc_32);
+    type set_selector is     (dummy_lwc_8, dummy_lwc_16, dummy_lwc_32);
 
     --! Select variant
-    constant variant : set_selector := dummy_lwc_32;
+    constant variant         : set_selector := dummy_lwc_32;
     
     --! Adjust the bit counter widths to reduce resource consumption.
     -- Range definition must not change.
     constant AD_CNT_WIDTH    : integer range 4 to 64 := 32;  --! Width of AD Bit counter
     constant MSG_CNT_WIDTH   : integer range 4 to 64 := 32;  --! Width of MSG (PT/CT) Bit counter
+    
+    --! asynchronous and active-low reset (for ASIC targets)
+    constant ASYNC_RSTN      : boolean := false;
 
 --------------------------------------------------------------------------------
 ------------------------- DO NOT CHANGE ANYTHING BELOW -------------------------
@@ -60,10 +63,10 @@ package Design_pkg is
     --! Return max value
     function max( a, b : integer) return integer;
 
-end Design_pkg;
+end design_pkg;
 
 
-package body Design_pkg is
+package body design_pkg is
 
     -- The following construct is used to specify all varaint dependent parameters
     -- and make them selectable by the constant "variant" of type "set_selector".
@@ -180,4 +183,4 @@ package body Design_pkg is
         end if;
     end function;
 
-end package body Design_pkg;
+end package body design_pkg;

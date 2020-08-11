@@ -19,18 +19,19 @@
 library ieee;
 use ieee.std_logic_1164.ALL;
 use ieee.numeric_std.all;
-use work.lwc_std_logic_1164_additions.all;
-use work.NIST_LWAPI_pkg.all;
 
 use std.textio.all;
+
+use work.lwc_std_logic_1164_additions.all;
+use work.NIST_LWAPI_pkg.all;
+use work.design_pkg.ASYNC_RSTN;
+
 
 entity LWC_TB IS
     generic (
         --! External bus: supported values are 8, 16 and 32 bits
         G_W                 : integer := 32;
 		G_SW                : integer := 32;
-        --! asynchronous and active-low reset (for ASIC targets)
-		G_ASYNC_RSTN        : boolean := False;
         G_STOP_AT_FAULT     : boolean := True;
         G_TEST_MODE         : integer := 0;
         G_TEST_IPSTALL      : integer := 10;
@@ -184,7 +185,7 @@ begin
     --! ============ --
     genPDIfifo: entity work.fwft_fifo(structure)
 	    generic map (
-	        G_ASYNC_RSTN => G_ASYNC_RSTN,
+	        G_ASYNC_RSTN => ASYNC_RSTN,
 	        G_W          => G_PWIDTH,
 	        G_LOG2DEPTH  => G_LOG2_FIFODEPTH)
 	    port map (
@@ -205,7 +206,7 @@ begin
 
     genSDIfifo: entity work.fwft_fifo(structure)
 	    generic map (
-	        G_ASYNC_RSTN => G_ASYNC_RSTN,
+	        G_ASYNC_RSTN => ASYNC_RSTN,
 	        G_W          => G_SWIDTH,
 	        G_LOG2DEPTH  => G_LOG2_FIFODEPTH)
 	    port map (
@@ -226,7 +227,7 @@ begin
 
     genDOfifo: entity work.fwft_fifo(structure)
 	    generic map (
-	        G_ASYNC_RSTN => G_ASYNC_RSTN,
+	        G_ASYNC_RSTN => ASYNC_RSTN,
 	        G_W          => G_PWIDTH,
 	        G_LOG2DEPTH  => G_LOG2_FIFODEPTH)
 	    port map (
@@ -247,8 +248,7 @@ begin
     uut: entity work.LWC(structure)
     	generic map(
     		G_W          => G_W,
-    		G_SW         => G_SW,
-    		G_ASYNC_RSTN => G_ASYNC_RSTN
+    		G_SW         => G_SW
     	)
 	    port map (
 	        clk          => clk,
@@ -280,7 +280,7 @@ begin
         variable temp_read      : string(1 to 6);
         variable valid_line     : boolean     := True;
     begin
-    	if G_ASYNC_RSTN then
+    	if ASYNC_RSTN then
 	        rst <= '0';               wait for 5*clk_period;
 	        rst <= '1';               wait for clk_period;
     	else

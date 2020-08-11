@@ -24,9 +24,6 @@ use work.design_pkg.all;
 
 
 entity CryptoCore is
-	generic (
-		G_ASYNC_RSTN : boolean	
-	);
     port (
         clk             : in   STD_LOGIC;
         rst             : in   STD_LOGIC;
@@ -334,7 +331,7 @@ begin
     ----------------------------------------------------------------------------
     --! Registers for state and internal signals
     ----------------------------------------------------------------------------
-    GEN_p_reg_SYNC_RST: if (not G_ASYNC_RSTN) generate
+    GEN_p_reg_SYNC_RST: if (not ASYNC_RSTN) generate
         p_reg : process(clk)
         begin
             if rising_edge(clk) then
@@ -359,7 +356,7 @@ begin
         end process p_reg;
     end generate GEN_p_reg_SYNC_RST;
     
-    GEN_p_reg_ASYNC_RSTN: if (G_ASYNC_RSTN) generate
+    GEN_p_reg_ASYNC_RSTN: if (ASYNC_RSTN) generate
         p_reg : process(clk, rst)
         begin
             if (rst = '0') then
@@ -709,7 +706,7 @@ begin
     ----------------------------------------------------------------------------
     --! Word, Byte and Block counters
     ----------------------------------------------------------------------------
-    GEN_p_counters_SYNC_RST: if (not G_ASYNC_RSTN) generate  
+    GEN_p_counters_SYNC_RST: if (not ASYNC_RSTN) generate  
         p_counters : process(clk)
         begin
             if rising_edge(clk) then
@@ -728,7 +725,7 @@ begin
         end process p_counters;
     end generate GEN_p_counters_SYNC_RST;
 
-    GEN_p_counters_ASYNC_RSTN: if (G_ASYNC_RSTN) generate  
+    GEN_p_counters_ASYNC_RSTN: if (ASYNC_RSTN) generate  
         p_counters : process(clk, rst)
         begin
             if (rst = '0') then

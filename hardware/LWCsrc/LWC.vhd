@@ -24,14 +24,14 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
-use work.Design_pkg.all;
+
+use work.design_pkg.all;
 use work.NIST_LWAPI_pkg.all;
 
 entity LWC is
 	generic (
 		G_W          : integer := 32;
-		G_SW         : integer := 32;
-		G_ASYNC_RSTN : boolean := false
+		G_SW         : integer := 32
 	);
     port (
         --! Global ports
@@ -105,7 +105,6 @@ architecture structure of LWC is
     --==========================================================================
     
     component CryptoCore
-    	generic(G_ASYNC_RSTN : boolean);
     	port(
     		clk             : in  STD_LOGIC;
     		rst             : in  STD_LOGIC;
@@ -160,13 +159,13 @@ begin
     	report "[LWC] Invalid combination of (G_SW, CCSW)" severity failure;
 	
 	-- ASYNC_RSTN notification
-    assert (G_ASYNC_RSTN = false) report "[LWC] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
+    assert (ASYNC_RSTN = false) report "[LWC] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
 
     Inst_PreProcessor: entity work.PreProcessor(PreProcessor)
     	generic map(
         		G_W             => G_W,
         		G_SW            => G_SW,
-        		G_ASYNC_RSTN    => G_ASYNC_RSTN
+        		G_ASYNC_RSTN    => ASYNC_RSTN
 			)
         port map(
                 clk             => clk                                     ,
@@ -197,9 +196,6 @@ begin
                 cmd_ready       => cmd_ready_FIFO_in
             );
     Inst_Cipher: CryptoCore
-        	generic map(
-        		G_ASYNC_RSTN    => G_ASYNC_RSTN
-        	)
         port map(
                 clk             => clk                                     ,
                 rst             => rst                                     ,
@@ -231,7 +227,7 @@ begin
     Inst_PostProcessor: entity work.PostProcessor(PostProcessor)
     	generic map(
         		G_W            => G_W,
-        		G_ASYNC_RSTN   => G_ASYNC_RSTN
+        		G_ASYNC_RSTN   => ASYNC_RSTN
         	)
         port map(
                 clk             => clk                                     ,
@@ -255,7 +251,7 @@ begin
             );
     Inst_Header_Fifo: entity work.fwft_fifo(structure)
         generic map (
-                G_ASYNC_RSTN    => G_ASYNC_RSTN,
+                G_ASYNC_RSTN    => ASYNC_RSTN,
                 G_W             => G_W,
                 G_LOG2DEPTH     => 2
             )
