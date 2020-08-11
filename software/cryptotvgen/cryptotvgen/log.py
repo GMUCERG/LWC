@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import logging
@@ -28,4 +27,4 @@ def setup_logger(log_filename):
     # Add handlers to the logger
     logger.addHandler(i_handler)
 
-    return logger;
+    return logger

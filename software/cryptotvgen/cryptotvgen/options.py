@@ -1,11 +1,10 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 '''
 options extraction.
 '''
 
-# cryptotvgen 1.0.0
+# cryptotvgen
 # Ekawat (Ice) Homsirikimal and William Diehl
 #
 # Based on aeadtvgen 2.0.0 by Ekawat Homsirikamol (GMU CERG)
@@ -15,6 +14,12 @@ import textwrap
 import sys
 import os
 from enum import Enum
+import pathlib
+
+from .prepare_libs import build_supercop_libs
+
+# update with new releases of SUPERCOP after test
+sc_default_version = '20200702'
 
 class AlgorithmClass(Enum):
     AEAD = 0
@@ -28,12 +33,14 @@ def make_validate_library_action(algorithm_class):
         def __call__(self, parser, args, value=0, option_string=None):
             # print('{n} {v} {o}'.format(n=args, v=value, o=option_string))
             lib_path = args.lib_path
+            if not lib_path:
+                lib_path = pathlib.Path(args.candidates_dir) / 'lib'
             if not os.path.exists(lib_path):
                 raise(FileNotFoundError('No library path found {s!r}. Please'
                                         ' provide the correct path!'
                                         .format(s=lib_path)))
     
-            lib_name = value            
+            lib_name = value
             if (algorithm_class == AlgorithmClass.AEAD):
                 class_path = 'crypto_aead'
                 delattr(args, 'aead')
@@ -41,15 +48,13 @@ def make_validate_library_action(algorithm_class):
                 class_path = 'crypto_hash'
                 delattr(args, 'hash')
             else:
-                raise(argparse.ArgumentError('Unsupported algorithm class'))
+                parser.error('Unsupported algorithm class')
             b_windows = True if sys.platform in ['win32', 'win64', 'msys'] else False
-            lib_name += '_dbg' if args.dbg == True else ""
             lib_name += '.dll' if b_windows else '.so'
             lib_file = '{}/{}/{}'.format(lib_path, class_path, lib_name)
             
             if not os.path.isfile(lib_file):
-                raise(FileNotFoundError('No library {s!r} found. Please compile'
-                                        ' it first!'.format(s=lib_file)))
+                raise(FileNotFoundError('No library {s!r} found. Please run cryptotvgen with `--prepare_libs` first!'.format(s=lib_file)))
 
 
             try:
@@ -103,7 +108,8 @@ class ValidateMsgFormat(argparse.Action):
         setattr(args, self.dest, values)
 
 
-routines = ('gen_random', 'gen_custom', 'gen_test_routine', 'gen_single', 'gen_hash', 'gen_test_combined')
+routines = ('gen_random', 'gen_custom', 'gen_test_routine', 'gen_single',
+            'gen_hash', 'gen_test_combined', 'prepare_libs')
 
 class ValidateGenRandom(argparse.Action):
     ''' Validate gen_random option '''
@@ -122,6 +128,25 @@ class ValidateGenRandom(argparse.Action):
             routine = [routines.index(self.dest), ]
         setattr(args, 'routines', routine)
         setattr(args, self.dest, values)
+
+
+class ValidatePrepareLibs(argparse.Action):
+    def __init__(self, option_strings, dest, nargs, **kwargs):
+        super(ValidatePrepareLibs, self).__init__(option_strings, dest, nargs, **kwargs)
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, values if values else 'all')
+        
+class ValidateCandidatesDir(argparse.Action):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs:
+            raise ValueError("nargs not allowed")
+        super(ValidateCandidatesDir, self).__init__(option_strings, dest, nargs, **kwargs)
+
+    def __call__(self, parser, namespace, value, option_string=None):
+        value = pathlib.Path(value).resolve()
+        if not (value.exists() and value.is_dir()):
+            sys.exit(f"candidate_dir {value} does not exist or is not a directory!")
+        setattr(namespace, self.dest, value)
 
 class ValidateGenCustom(argparse.Action):
     ''' Validate gen_custom option '''
@@ -331,10 +356,14 @@ def get_parser():
             :::::Required Parameters:::'''),
         'Library path specifier::')
     mainop.add_argument(
-        'lib_path',
-        help=textwrap.dedent('''\
-            Path to CAESAR shared library, i.e.
-                ../../prepare_src/libs.'''))
+        '--lib_path',
+        default=None,
+        help='lib directory')
+    mainop.add_argument(
+        '--candidates_dir',
+        action=ValidateCandidatesDir,
+        default=pathlib.Path.home() / '.cryptotvgen',
+        help='candidates directory')
                 
     secondaryop = parser.add_argument_group(
         textwrap.dedent('''\
@@ -342,17 +371,17 @@ def get_parser():
         'Library name specifier::')
     secondaryop.add_argument(
         '--aead', action=make_validate_library_action(AlgorithmClass.AEAD),
-        metavar='<ALGORITHM_NAME--IMPLEMENTATION_NAME>',
+        metavar='<ALGORITHM_VARIANT_NAME>',
         help=textwrap.dedent('''\
-            Shared library's for AEAD algorithm, i.e. gimli24v1--ref
+            Shared library's for AEAD algorithm, i.e. gimli24v1
             Note: The library should be generated prior to the start
             of the program.'''))
 
     secondaryop.add_argument(
         '--hash', action=make_validate_library_action(AlgorithmClass.HASH),
-        metavar='<ALGORITHM_NAME--IMPLEMENTATION_NAME>',
+        metavar='<ALGORITHM_VARIANT_NAME>',
         help=textwrap.dedent('''\
-            Shared library's for HASH algorithm, i.e. gimli24v1--ref
+            Shared library's for HASH algorithm, i.e. gimli24v1
             Note: The library should be generated prior to the start
             of the program.'''))
 
@@ -382,8 +411,14 @@ def get_parser():
         '--gen_random', type=int, default=0, metavar='N',
         action=ValidateGenRandom,
         help=textwrap.dedent('''\
-            Randomly generates multiple test vectors with
+            Randomly generates N test vectors with
             varying AD_LEN, PT_LEN, and operation (For use only with AEAD)'''))
+    test.add_argument(
+        '--prepare_libs', default=None, metavar='variant', nargs='*', action=ValidatePrepareLibs,
+        help='Download and build reference implementations from SUPERCOP. "all" means libraries. see also --supercop_version')
+    test.add_argument(
+        '--supercop_version', default=sc_default_version,
+        help=f'SUPERCOP version to download and use. Default: {sc_default_version}')
     test.add_argument(
         '--gen_custom_mode', type=int, default=0, choices=range(3),
         metavar='MODE', help=textwrap.dedent('''\ The mode of test vector generation used by the --gen_custom option.
@@ -641,9 +676,6 @@ def get_parser():
         'Debugging options::')
     optops.add_argument("-h", "--help", action="help",
         help="Show this help message and exit.")
-    optops.add_argument(
-        '--dbg', default=False, nargs=0, action=UseDebugLibrary,
-        help='Run the C code with the DBG preprocessor flag.')
 
     optops.add_argument(
         '--verify_lib', default=False, action='store_true',
@@ -888,6 +920,3 @@ def get_parser():
         '--cc_pad_style', type=int, default=1, metavar='PAD_STYLE',
         help='Padding style')
     return parser
-
-if __name__ == '__main__':
-    parse_options(sys.argv[1:])

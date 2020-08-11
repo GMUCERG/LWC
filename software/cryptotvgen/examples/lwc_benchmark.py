@@ -4,17 +4,14 @@
 import copy
 import os
 import sys
-try:
-    from cryptotvgen import cryptotvgen
-except:
-    sys.exit("cryptotvgen note installed")
+
+from cryptotvgen import cli
 
 # Algorithm information required
 dest_folder = "testvectors/dummy_lwc_32"
-base_lib_path = os.path.realpath('../../prepare_src/libs') # Library path
-aead_lib_name = 'dummy_lwc--ref'  # Library name of AEAD algorithm
+aead_lib_name = 'dummy_lwc'  # Library name of AEAD algorithm
 # Comment out if not supported
-hash_lib_name = 'dummy_lwc--ref'  # Library name of hash algorithm
+hash_lib_name = 'dummy_lwc'  # Library name of hash algorithm
 PDI_width = 32 # I/O width: PDI/DO bits
 SDI_width = 32 # I/O width: SDI bits
 key_size = 128 # bits
@@ -71,11 +68,11 @@ def blanket_message_test():
 if __name__ == '__main__':
     # Print the help text
     if (len(sys.argv) > 1 and sys.argv[1] == '-h'):
-        sys.exit(cryptotvgen(sys.argv))
+        sys.exit(cli.run_cryptotvgen(sys.argv[1:]))
 
     # Create the list of arguments for cryptotvgen
     args = [
-        base_lib_path, 
+        '--lib_path', os.path.realpath('../lib'),
         '--aead', aead_lib_name,
         '--io', f'{PDI_width}', f'{SDI_width}',
         '--key_size', f'{key_size}',
@@ -97,7 +94,7 @@ if __name__ == '__main__':
     else:
         gen_cus_string += finish_custom()
     args += ['--gen_custom', gen_cus_string]
-    cryptotvgen(args)
+    cli.run_cryptotvgen(args)
 
     # Desired measurements using the same key every time
     args = orig_args
@@ -106,15 +103,14 @@ if __name__ == '__main__':
     gen_cus_string = "1,0,0,0,0:" + gen_custom_string_aead(0,0) + gen_custom_string_aead(0,1)
     gen_cus_string += finish_custom()
     args += ['--gen_custom', gen_cus_string]
-    cryptotvgen(args)
+    cli.run_cryptotvgen(args)
 
     # Blanket test all possible message AD/PT message combinations between 0 and 2 x blocksize
     args = orig_args
     args += msg_format + ['--dest', os.path.join(dest_folder,"blanket_support_test")]
     gen_cus_string = blanket_message_test() + finish_custom()
     args += ['--gen_custom', gen_cus_string]
-    cryptotvgen(args)
-
+    cli.run_cryptotvgen(args)
      
 
 

@@ -1,10 +1,10 @@
-CORE_ROOT := $(PWD)
+CORE_ROOT := $(realpath .)
 
 LWCSRC_DIR := $(HW_DIR)/LWCsrc
 SCRIPTS_DIR := $(HW_DIR)/scripts
 
 #FIXME this can't be changed now. Mostly due to GHDL (and other simulators?) getting relative path of testvector files
-TOOL_RUN_DIR := $(PWD)
+TOOL_RUN_DIR := $(realpath .)
 
 .DELETE_ON_ERROR:
 
