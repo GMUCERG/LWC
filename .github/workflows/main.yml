@@ -22,7 +22,7 @@ jobs:
 #         python-version: 3.8
     - name: Install dependencies
       run: |
-        python3 -m pip install --upgrade pip setuptools
+        python3 -m pip install --upgrade setuptools
         cd software/cryptotvgen && python3 -m pip install .
     - name: dummy core test_all
       run: |

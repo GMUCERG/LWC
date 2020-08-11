@@ -1,16 +1,13 @@
-LWC HARDWARE API
-==============
-
+![Main Test](https://github.com/GMUCERG/LWC/workflows/Main%20Test/badge.svg?branch=dev)
+# LWC HARDWARE API
 This is a development package for the GMU authenticated encryption hardware API.
-This package is divided into two primary parts, hardware and software.
+This package is divided into two primary parts: hardware and software.
 
 
-Hardware
------------
-
+## Hardware
 `$root/hardware`
 
-Templates for CryptoCore and design_pkg.
+Templates for `CryptoCore` and `design_pkg`.
 
 * `./LWCsrc`
 
@@ -46,7 +43,7 @@ Templates for CryptoCore and design_pkg.
         ModelSim script for a quick simulation.
         Vivado script for a quick simulation.
 
-## LWC Lint, Simulation, and Synthesis Framework
+### LWC Lint, Simulation, and Synthesis Framework
 The lint, simulation, and synthesis framework consists of a set of user-includable base makefiles (lwc_*.mk). 
 Core developers should provide their design specific Makefile which incorporates the framework functionality 
 through a series of “include” statements.
@@ -109,43 +106,37 @@ List of external core examples adopted to the latest framework:
 - [COMET-CHAM from Virginia Tech](https://github.com/kammoh/comet_cham_lwc_v2/tree/asic): VHDL (`asic` branch)
 - [SpoC from Virginia Tech](https://github.com/kammoh/comet_cham_lwc_v2/tree/asic): Verilog (`asic` branch)
 
-## Notable Configurable LWC Options
+### Notable Configurable LWC Options
 
-### NIST_LWAPI.vhd
-ASYNC_RSTN (boolean): When True a active-low reset is used instead of an active-high synchrous reset
-W  (integer): Controls the width of the external bus for PDI data bits. (Valid values 8, 16, 32)
-SW (integer): Controls the width of the external bus for SDI data bits. (Valid values 8, 16, 32)
+#### `LWC_TB` and `LWC` Generics
+`W`  (integer): Controls the width of the external bus for PDI data bits. (Valid values 8, 16, 32)
+`SW` (integer): Controls the width of the external bus for SDI data bits. (Valid values 8, 16, 32)
 
-### design_pkg.vhd
-TAG_SIZE (integer): Controls the tag size in bits
-HASH_VALUE_SIZE (integer) : Controls the hash size in bits
-CCSW, CCW, CCWdiv8 (integers) : Control the bus widths into the CryptoCore in bits
+#### `design_pkg.vhd`
+`ASYNC_RSTN` (boolean): When True a active-low reset is used instead of an active-high synchronous reset.
+`TAG_SIZE` (integer): Controls the tag size in bits
+`HASH_VALUE_SIZE` (integer) : Controls the hash size in bits
+`CCSW`, `CCW`, `CCWdiv8` (integers) : Control the bus widths into the CryptoCore in bits
  
-Software
-----------
+
+
+
+## Software
 
 * `$root/software/crypto_aead`
-
-    Folder follows SUPERCOP package structure.
-    It contains the dummy reference implementation for AEAD.
+  Dummy AEAD reference implementation.
+  Folder follows SUPERCOP package structure.
     
 * `$root/software/crypto_hash`
-
-    Folder follows SUPERCOP package structure. It contains the dummy reference implementation for hash.
-    
-    User should obtain the latest reference code from [SUPERCOP's website](https://bench.cr.yp.to/supercop.html) and place relevant implementation in the above locations.
-    
-* `$root/software/prepare_src`
-
-  A Python utility to help prepare code from `$root/software/crypto_aead` and `$root/software/crypto_hash` for test vector generation.
-    
+  Dummy hash reference implementation.
+  Folder follows SUPERCOP package structure. 
+  
 * `$root/software/cryptotvgen`
+  Python utility and library for the cryptographic hardware test vector generation tool.
+  `cryptotvgen` can automatically download and build reference software implementations from [SUPERCOP's website](https://bench.cr.yp.to/supercop.html).
 
-   Python package for the cryptographic hardware test vector generation tool.
 
-Notes
-------
-
+## Notes
 Please refer to the latest Implementer’s Guide to the LWC Hardware API
 available at https://cryptography.gmu.edu/athena/index.php?id=LWC
 for more detail.
