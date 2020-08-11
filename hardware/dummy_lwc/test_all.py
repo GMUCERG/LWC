@@ -23,7 +23,7 @@ except ImportError as e:
 # TODO add argeparse for settings?
 core_src_path = script_dir / 'src_rtl'
 lwc_root = script_dir.parents[1]
-make_cmd = 'gmake'
+make_cmd = 'make'
 
 print(f'script_dir={script_dir}')
 
