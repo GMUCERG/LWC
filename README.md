@@ -98,8 +98,8 @@ If you decide to run locally installed versions of the Open-Source tools, you wi
   - [Verilator](https://github.com/verilator/verilator) fast open-source Verilog/SystemVerilog simulator: Version v4.036
   - [Yosys](https://github.com/YosysHQ/yosys) Open SYnthesis Suite: 0.9+ or master
   - [ghdl-yosys-plugin](https://github.com/ghdl/ghdl-yosys-plugin) for VHDL synthesis using ghdl and yosys: master
-  - Python 3.7+
-  - GNU Make 4.2+
+  - Python 3.6.5+
+  - GNU Make 4.1+
 
 
 List of external core examples adopted to the latest framework:
@@ -109,8 +109,8 @@ List of external core examples adopted to the latest framework:
 ### Notable Configurable LWC Options
 
 #### `LWC_TB` and `LWC` Generics
-`W`  (integer): Controls the width of the external bus for PDI data bits. (Valid values 8, 16, 32)
-`SW` (integer): Controls the width of the external bus for SDI data bits. (Valid values 8, 16, 32)
+`G_W`  (integer): Controls the width of the external bus for PDI data bits. (Valid values 8, 16, 32)
+`G_SW` (integer): Controls the width of the external bus for SDI data bits. (Valid values 8, 16, 32)
 
 #### `design_pkg.vhd`
 `ASYNC_RSTN` (boolean): When True a active-low reset is used instead of an active-high synchronous reset.
