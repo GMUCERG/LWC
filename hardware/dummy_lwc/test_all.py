@@ -31,11 +31,19 @@ sources_list = core_src_path / 'source_list.txt'
 variables = {'LWCSRC_DIR': str(lwc_root / 'hardware' / 'LWCsrc')}
 # END OF SETTINGS
 
+cnd_dir = script_dir.parents[1] / 'software'
+
+def build_libs():
+    args = [
+        '--prepare_libs',
+        '--candidates_dir=../../software'
+    ]
+    cli.run_cryptotvgen(args)
 
 def gen_tv(ccw, blocks_per_segment=None):
     dest_dir = f'KAT/KAT{"_MS" if blocks_per_segment else ""}_{ccw}'
     args = [
-        '--lib_path', str(script_dir.parents[1] / 'software' / 'lib'),
+        '--lib_path', str(cnd_dir / 'lib'),
         '--aead', 'dummy_lwc',
         '--hash', 'dummy_lwc',
         '--io', str(ccw), str(ccw),
@@ -141,4 +149,5 @@ def test_all():
 
 
 if __name__ == "__main__":
+    build_libs()
     test_all()

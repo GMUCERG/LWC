@@ -5,14 +5,7 @@ Automatic test-vector generation for hardware implementations of NIST Light-Weig
 OS: Linux, macOS, Windows
 
 Dependencies:
-- Python 3.7+ and pip
-<!-- Linux
-===========
-> sudo apt-get install libssl-dev
-> sudo apt-get install python3-pip
-> sudo apt-get install python3-cffi -->
-
-
+- Python 3.6+ and pip
 
 ## Installation
 To install as symlinks:

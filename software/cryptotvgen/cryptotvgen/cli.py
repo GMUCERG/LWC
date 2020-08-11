@@ -16,7 +16,7 @@ def run_cryptotvgen(args=sys.argv[1:]):
     
     if opts.prepare_libs:
         build_supercop_libs(sc_version=opts.supercop_version, libs=opts.prepare_libs, candidates_dir=opts.candidates_dir)
-        sys.exit()
+        return 0
     
     try:
         routines = opts.routines
@@ -85,6 +85,7 @@ def run_cryptotvgen(args=sys.argv[1:]):
     print("Done! Please visit destination folder\n\t"
           "{}\n"
           "for generated files (pdi.txt, sdi.txt, and do.txt)".format(os.path.abspath(opts.dest)))
+    return 0
 
 if __name__ == '__main__':
     import sys
