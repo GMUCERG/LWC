@@ -64,6 +64,8 @@ setup(
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
     py_modules=['cryptotvgen'],
+    
+    python_requires='>=3.6.5',
 
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's

@@ -5,7 +5,7 @@ Automatic test-vector generation for hardware implementations of NIST Light-Weig
 OS: Linux, macOS, Windows
 
 Dependencies:
-- Python 3.6+ and pip
+- Python 3.6.5+
 
 ## Installation
 To install as symlinks:
@@ -20,6 +20,8 @@ Alternatively, to install as a copy:
 $ pip install .
 ```
 If using the latter command, remember to run it again following any git pulls or updates to the source distribution.
+
+You can replace `pip` with `python3 -m pip` in case the `pip` executable is not available on your system.
 
 ## Running the Executable
 
