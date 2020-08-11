@@ -39,7 +39,7 @@ export CLOCK_PERIOD
 
 $(TOOL_RUN_DIR)/docker.env : $(TOOL_RUN_DIR) $(VERILOG_FILES) $(VHDL_FILES) $(FORCE_REBUILD) config-vars
 	$(file > $@)
-	$(foreach v,$(.VARIABLES),$(if $(filter-out .%,$(filter file,$(origin $(v)))), $(file >> $@,$(v)=$($(v)) )    ) )
+	$(foreach v,$(.VARIABLES),$(if $(filter-out .%,$(filter file,$(origin $(v)))), $(file >>$@,$(strip $(v)=$($(v))))))
 	@touch $@
 
 synth-vivado: $(TOOL_RUN_DIR)/docker.env $(VERILOG_FILES) $(VHDL_FILES) $(TOOL_RUN_DIR)/docker.env config-vars
