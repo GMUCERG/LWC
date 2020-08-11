@@ -36,7 +36,7 @@ cnd_dir = script_dir.parents[1] / 'software'
 def build_libs():
     args = [
         '--prepare_libs',
-        '--candidates_dir=../../software'
+        '--candidates_dir', str(lwc_root / 'software')
     ]
     cli.run_cryptotvgen(args)
 
