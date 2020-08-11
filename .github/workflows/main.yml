@@ -1,0 +1,29 @@
+name: Main Test
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    steps:
+    - uses: ghdl/setup-ghdl-ci@nightly
+      with:
+        backend: llvm
+    - run: ghdl --version
+    - uses: actions/checkout@v2
+#     - name: Set up Python 3.8
+#       uses: actions/setup-python@v2
+#       with:
+#         python-version: 3.8
+    - name: Install dependencies
+      run: |
+        python3 -m pip install --upgrade setuptools
+        cd software/cryptotvgen && python3 -m pip install .
+    - name: dummy core test_all
+      run: |
+        python3 hardware/dummy_lwc/test_all.py
