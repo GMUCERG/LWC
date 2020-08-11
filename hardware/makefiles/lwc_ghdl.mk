@@ -31,7 +31,7 @@ GHDL_STD_OPT = --std=$(if $(filter $(VHDL_STD),93),93c,$(VHDL_STD))
 GHDL_ANALYSIS_OPTS += $(GHDL_STD_OPT)
 
 ### GHDL analyze testbench files, elaborate, and run
-.PHONY: sim-ghdl help-ghdl clean-ghdl
+.PHONY: sim-ghdl help-ghdl clean-ghdl lint-vhdl-synth
 
 ### GHDL analyse
 $(WORK_LIB)-obj$(VHDL_STD).cf: $(SIM_VHDL_FILES) $(FORCE_REBUILD) config-vars
@@ -47,6 +47,13 @@ ifeq ($(strip $(VHDL_FILES)),)
 YOSYS_READ_VHDL_CMD := 
 else
 YOSYS_READ_VHDL_CMD := ghdl $(GHDL_STD_OPT) $(GHDL_WARNS) $(TOP);
+endif
+
+GHDL_SYNTH_REDIRECT ?= /dev/null
+
+lint-ghdl-synth: $(WORK_LIB)-obj$(VHDL_STD).cf
+ifneq ($(strip $(VHDL_FILES)),)
+	$(GHDL_BIN) --synth $(GHDL_STD_OPT) $(GHDL_OPT) $(GHDL_WARNS) $(TOP) > $(GHDL_SYNTH_REDIRECT)
 endif
 
 help-ghdl:
