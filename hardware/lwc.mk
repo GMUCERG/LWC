@@ -3,11 +3,12 @@ $(error LWC_ROOT must be defined in design-specific Makefile)
 endif
 
 MIN_MAKE_VERSION := 4.1
-MAKE_VERSION_OK := $(filter $(MIN_MAKE_VERSION),$(firstword $(sort $(MAKE_VERSION) $(MIN_MAKE_VERSION))))
 
 ifeq ($(MAKE_VERSION),)
 $(error MAKE_VERSION was not supported. Use GNU make >= $(MIN_MAKE_VERSION))
 endif
+
+MAKE_VERSION_OK ?= $(filter $(MIN_MAKE_VERSION),$(firstword $(sort $(MAKE_VERSION) $(MIN_MAKE_VERSION))))
 
 ifeq ($(MAKE_VERSION_OK),)
 $(error Make version is not supported! Use GNU make >= $(MIN_MAKE_VERSION))
