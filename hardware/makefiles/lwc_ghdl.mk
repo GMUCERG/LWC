@@ -18,7 +18,7 @@ ifneq ($(strip $(GHW_FILE)),)
 GHDL_SIM_OPTS += --wave=$(GHW_FILE)
 endif
 
-
+GHDL_IEEE_SYNOPSYS ?=
 
 
 SIM_ONLY_VHDL_FILES := $(VHDL_ADDITIONS) $(LWC_TB) 
@@ -29,6 +29,11 @@ GHDL_GENERICS_OPTS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/hardware/scripts/config_pa
 GHDL_STD_OPT = --std=$(if $(filter $(VHDL_STD),93),93c,$(VHDL_STD))
 
 GHDL_ANALYSIS_OPTS += $(GHDL_STD_OPT)
+
+ifneq (GHDL_IEEE_SYNOPSYS,)
+GHDL_ANALYSIS_OPTS += --ieee=synopsys -fsynopsys
+GHDL_ELAB_OPTS += -fsynopsys
+endif
 
 ### GHDL analyze testbench files, elaborate, and run
 .PHONY: sim-ghdl help-ghdl clean-ghdl lint-vhdl-synth
@@ -41,7 +46,8 @@ ifneq ($(strip $(VHDL_FILES)),)
 endif
 
 sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf config-vars
-	$(GHDL_BIN) --elab-run $(GHDL_STD_OPT) $(SIM_TOP) $(GHDL_SIM_OPTS) $(GHDL_GENERICS_OPTS) $(VCD_OPT)
+	$(GHDL_BIN) -e $(GHDL_STD_OPT) $(GHDL_ELAB_OPTS) $(SIM_TOP) 
+	$(GHDL_BIN) -r $(GHDL_STD_OPT) $(SIM_TOP) $(GHDL_SIM_OPTS) $(GHDL_GENERICS_OPTS)
 
 ifeq ($(strip $(VHDL_FILES)),)
 YOSYS_READ_VHDL_CMD = 
@@ -51,9 +57,16 @@ endif
 
 GHDL_SYNTH_REDIRECT ?= /dev/null
 
+
+VHDL_LINT_CMD = $(GHDL_BIN) -s $(GHDL_ANALYSIS_OPTS) --mb-comments $(GHDL_OPT) $(GHDL_WARNS)
+lint-ghdl: $(VHDL_FILES) config-vars
+ifneq ($(strip $(VHDL_FILES)),)
+	$(VHDL_LINT_CMD) $(VHDL_FILES)
+endif
+
 lint-ghdl-synth: $(WORK_LIB)-obj$(VHDL_STD).cf
 ifneq ($(strip $(VHDL_FILES)),)
-	$(GHDL_BIN) --synth $(GHDL_STD_OPT) $(GHDL_OPT) $(GHDL_WARNS) $(TOP) > $(GHDL_SYNTH_REDIRECT)
+	$(GHDL_BIN) --synth $(GHDL_STD_OPT) $(GHDL_ANALYSIS_OPTS) $(GHDL_WARNS) $(TOP) > $(GHDL_SYNTH_REDIRECT)
 endif
 
 help-ghdl:

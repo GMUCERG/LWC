@@ -1,7 +1,6 @@
 VERILATOR_BIN ?= verilator
 YOSYS_BIN ?= yosys
 
-VHDL_LINT_CMD := $(GHDL_BIN) -s $(GHDL_STD_OPT) --mb-comments $(GHDL_OPT) $(GHDL_WARNS)
 VERILOG_LINT_CMD := $(VERILATOR_BIN) --lint-only $(VERILATOR_LINT_FLAGS)
 
 .PHONY: lint lint-verilog lint-vhdl lint-yosys help-lint
@@ -12,11 +11,7 @@ ifneq ($(strip $(VERILOG_FILES)),)
 	$(VERILOG_LINT_CMD) $(VERILOG_FILES)
 endif
 
-lint-vhdl: $(VHDL_FILES) config-vars
-ifneq ($(strip $(VHDL_FILES)),)
-	$(VHDL_LINT_CMD) $(VHDL_FILES)
-endif
-
+lint-vhdl: lint-ghdl
 
 lint-yosys: $(WORK_LIB)-obj$(VHDL_STD).cf $(VERILOG_FILES) config-vars
 	$(YOSYS_BIN) $(YOSYS_GHDL_MODULE) -p "$(YOSYS_READ_VERILOG_CMD) $(YOSYS_READ_VHDL_CMD) proc; check -assert; hierarchy -check -top $(TOP); ls"
