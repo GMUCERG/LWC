@@ -44,9 +44,9 @@ sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf config-vars
 	$(GHDL_BIN) --elab-run $(GHDL_STD_OPT) $(SIM_TOP) $(GHDL_SIM_OPTS) $(GHDL_GENERICS_OPTS) $(VCD_OPT)
 
 ifeq ($(strip $(VHDL_FILES)),)
-YOSYS_READ_VHDL_CMD := 
+YOSYS_READ_VHDL_CMD = 
 else
-YOSYS_READ_VHDL_CMD := ghdl $(GHDL_STD_OPT) $(GHDL_WARNS) $(TOP);
+YOSYS_READ_VHDL_CMD = ghdl $(GHDL_STD_OPT) $(GHDL_WARNS) $(TOP);
 endif
 
 GHDL_SYNTH_REDIRECT ?= /dev/null

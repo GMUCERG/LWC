@@ -24,7 +24,7 @@ endif
 
 .PHONY: synth-yosys-fpga help-yosys clean-vcs
 
-synth-yosys-fpga-$(YOSYS_FPGA).json: $(WORK_LIB)-obj$(VHDL_STD).cf $(VERILOG_FILES) Makefile
+synth-yosys-fpga-$(YOSYS_FPGA).json: $(WORK_LIB)-obj$(VHDL_STD).cf $(VERILOG_FILES) config-vars
 	$(YOSYS_BIN) $(YOSYS_GHDL_MODULE) -p "$(YOSYS_READ_VERILOG_CMD) $(YOSYS_READ_VHDL_CMD) $(YOSYS_SYNTH_CMD) -top $(TOP); write_json $@ ; check -assert; stat"
 
 synth-yosys-fpga: synth-yosys-fpga-$(YOSYS_FPGA).json
