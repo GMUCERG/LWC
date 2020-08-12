@@ -52,7 +52,7 @@ sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf config-vars
 ifeq ($(strip $(VHDL_FILES)),)
 YOSYS_READ_VHDL_CMD = 
 else
-YOSYS_READ_VHDL_CMD = ghdl $(GHDL_STD_OPT) $(GHDL_WARNS) $(TOP);
+YOSYS_READ_VHDL_CMD = ghdl $(GHDL_ANALYSIS_OPTS) $(GHDL_WARNS) $(TOP);
 endif
 
 GHDL_SYNTH_REDIRECT ?= /dev/null
