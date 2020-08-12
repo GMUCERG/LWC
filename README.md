@@ -103,8 +103,9 @@ If you decide to run locally installed versions of the Open-Source tools, you wi
 
 
 List of external core examples adopted to the latest framework:
-- [COMET-CHAM from Virginia Tech](https://github.com/kammoh/comet_cham_lwc_v2/tree/dev): VHDL CryptoCore (`dev` branch)
-- [SpoC from Virginia Tech](https://github.com/kammoh/spoc_lwc/tree/dev): Verilog CryptoCore (`dev` branch)
+- [COMET-CHAM implementation by Virginia Tech](https://github.com/kammoh/comet_cham_lwc_v2/tree/dev): VHDL CryptoCore (`dev` branch)
+- [SpoC implementation by Virginia Tech](https://github.com/kammoh/spoc_lwc/tree/dev): Verilog CryptoCore (`dev` branch)
+- [Xoodoo by the Keccak Team](https://github.com/kammoh/Xoodoo/tree/lwc_pkg_v3): VHDL CryptoCore (`lwc_pkg_v3` branch)
 
 ### Notable Configurable LWC Options
 
