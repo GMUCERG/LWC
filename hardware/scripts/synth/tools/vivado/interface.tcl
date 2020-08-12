@@ -1,4 +1,4 @@
-set output_dir          $::env(VIVADO_OUTPUT_DIR)
+set output_dir          [string trim $::env(VIVADO_OUTPUT_DIR)]
 set part                [string trim $::env(FPGA_PART)]
 set top_module_name     [string trim $::env(TOP)]
 set synth_options       [split [string trim $::env(SYNTH_OPTIONS)]]
