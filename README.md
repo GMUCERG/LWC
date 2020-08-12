@@ -110,14 +110,14 @@ List of external core examples adopted to the latest framework:
 ### Notable Configurable LWC Options
 
 #### `LWC_TB` and `LWC` Generics
-`G_W`  (integer): Controls the width of the external bus for PDI data bits. (Valid values 8, 16, 32)
-`G_SW` (integer): Controls the width of the external bus for SDI data bits. (Valid values 8, 16, 32)
+- `G_W`  (integer): Controls the width of the external bus for PDI data bits. (Valid values 8, 16, 32)
+- `G_SW` (integer): Controls the width of the external bus for SDI data bits. (Valid values 8, 16, 32)
 
 #### `design_pkg.vhd`
-`ASYNC_RSTN` (boolean): When True a active-low reset is used instead of an active-high synchronous reset.
-`TAG_SIZE` (integer): Controls the tag size in bits
-`HASH_VALUE_SIZE` (integer) : Controls the hash size in bits
-`CCSW`, `CCW`, `CCWdiv8` (integers) : Control the bus widths into the CryptoCore in bits
+- `ASYNC_RSTN` (boolean): When True a active-low reset is used instead of an active-high synchronous reset.
+- `TAG_SIZE` (integer): Controls the tag size in bits
+- `HASH_VALUE_SIZE` (integer) : Controls the hash size in bits
+- `CCSW`, `CCW`, `CCWdiv8` (integers) : Control the bus widths into the CryptoCore in bits
  
 
 
