@@ -21,7 +21,7 @@ except ImportError as e:
 
 # SETTINGS
 # TODO add argeparse for settings?
-core_src_path = script_dir / 'src_rtl'
+core_src_path = script_dir
 lwc_root = script_dir.parents[1]
 make_cmd = 'make'
 
@@ -133,8 +133,16 @@ def test_all():
             if get_lang(file) == 'verilog':
                 verilog_files.append(file)
     # print(f'VHDL_FILES={vhdl_files}')
+    
+    orig_design_pkg = None
+    
+    for f in vhdl_files:
+        f_path = Path(f).resolve()
+        if f_path.name.lower() == 'design_pkg.vhd':
+            orig_design_pkg = f_path
 
-    orig_design_pkg = (core_src_path / 'design_pkg.vhd').resolve()
+    if not orig_design_pkg:
+        sys.exit(f"'design_pkg.vhd' not found in VHDL files of sources.list!")
 
     param_variants = [(32, 32), (32, 16), (32, 8), (16, 16), (8, 8)]
 

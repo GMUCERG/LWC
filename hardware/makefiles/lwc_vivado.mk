@@ -3,7 +3,7 @@ SYNTH_FRAMEWORK_ROOT=$(realpath $(LWC_ROOT)/hardware/scripts/synth)
 
 VIVADO_RUN_TCL=$(SYNTH_FRAMEWORK_ROOT)/tools/vivado/run.tcl
 
-VIVADO_GENERICS_OPTIONS:=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/hardware/scripts/config_parser.py vivado_generics $(CONFIG_LOC))
+VIVADO_GENERICS_OPTIONS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/hardware/scripts/config_parser.py vivado_generics $(CONFIG_LOC))
 
 ################################################################################
 # User configurable variables

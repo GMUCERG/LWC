@@ -5,8 +5,6 @@ GHDL_BIN ?= ghdl
 GHDL_OPTIMIZE ?= -O3
 
 GHDL_WARNS ?= -Wbinding -Wreserved -Wlibrary -Wvital-generic -Wdelayed-checks -Wbody -Wspecs -Wunused --warn-no-runtime-error
-GHDL_ANALYSIS_OPTS ?= -frelaxed-rules --warn-no-vital-generic -frelaxed $(GHDL_OPTIMIZE) --mb-comments 
-GHDL_SIM_OPTS ?=
 
 ifneq ($(strip $(VCD_FILE)),)
 GHDL_SIM_OPTS += --vcd=$(VCD_FILE)
@@ -28,12 +26,10 @@ GHDL_GENERICS_OPTS=$(shell $(PYTHON3_BIN) $(LWC_ROOT)/hardware/scripts/config_pa
 
 GHDL_STD_OPT = --std=$(if $(filter $(VHDL_STD),93),93c,$(VHDL_STD))
 
-GHDL_ANALYSIS_OPTS += $(GHDL_STD_OPT)
+GHDL_ANALYSIS_OPTS = -frelaxed-rules --warn-no-vital-generic -frelaxed $(GHDL_OPTIMIZE) --mb-comments \
+	$(if $(GHDL_IEEE_SYNOPSYS),--ieee=synopsys -fsynopsys,) $(GHDL_STD_OPT)
 
-ifneq (GHDL_IEEE_SYNOPSYS,)
-GHDL_ANALYSIS_OPTS += --ieee=synopsys -fsynopsys
-GHDL_ELAB_OPTS += -fsynopsys
-endif
+GHDL_ELAB_OPTS = $(GHDL_STD_OPT) $(if $(GHDL_IEEE_SYNOPSYS),-fsynopsys,)
 
 ### GHDL analyze testbench files, elaborate, and run
 .PHONY: sim-ghdl help-ghdl clean-ghdl lint-vhdl-synth
@@ -46,7 +42,7 @@ ifneq ($(strip $(VHDL_FILES)),)
 endif
 
 sim-ghdl: $(WORK_LIB)-obj$(VHDL_STD).cf config-vars
-	$(GHDL_BIN) -e $(GHDL_STD_OPT) $(GHDL_ELAB_OPTS) $(SIM_TOP) 
+	$(GHDL_BIN) -e $(GHDL_ELAB_OPTS) $(SIM_TOP) 
 	$(GHDL_BIN) -r $(GHDL_STD_OPT) $(SIM_TOP) $(GHDL_SIM_OPTS) $(GHDL_GENERICS_OPTS)
 
 ifeq ($(strip $(VHDL_FILES)),)
