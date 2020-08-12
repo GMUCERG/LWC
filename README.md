@@ -111,7 +111,6 @@ List of external core examples adopted to the latest framework:
 
 #### `LWC_TB` and `LWC` Generics
 `G_W`  (integer): Controls the width of the external bus for PDI data bits. (Valid values 8, 16, 32)
-
 `G_SW` (integer): Controls the width of the external bus for SDI data bits. (Valid values 8, 16, 32)
 
 #### `design_pkg.vhd`
