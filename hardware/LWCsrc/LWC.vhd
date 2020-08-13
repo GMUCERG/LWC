@@ -30,8 +30,7 @@ use work.NIST_LWAPI_pkg.all;
 
 entity LWC is
 	generic (
-		G_W          : integer := 32;
-		G_SW         : integer := 32
+		G_W          : integer := 32
 	);
     port (
         --! Global ports
@@ -42,7 +41,8 @@ entity LWC is
         pdi_valid       : in  std_logic;
         pdi_ready       : out std_logic;
         --! Secret data ports
-        sdi_data        : in  std_logic_vector(G_SW-1 downto 0);
+        -- NOTE for future dev: this G_W is really SW!
+        sdi_data        : in  std_logic_vector(G_W-1 downto 0);
         sdi_valid       : in  std_logic;
         sdi_ready       : out std_logic;
         --! Data out ports
@@ -54,6 +54,9 @@ entity LWC is
 end LWC;
 
 architecture structure of LWC is
+		
+	constant SW  : integer := G_W;
+	
     --==========================================================================
     --!Cipher
     --==========================================================================
@@ -135,7 +138,7 @@ architecture structure of LWC is
     	);
     end component CryptoCore;
 begin
-	
+
 	-- Width parameters sanity checks
 	-- See 'Implementer’s Guide to Hardware Implementations Compliant with the Hardware API for LWC', sec. 4.3:
 	-- "The following combinations (w, ccw) are supported in the current version
@@ -144,19 +147,17 @@ begin
     --   (32, 8), (16, 16), and (8, 8). However, w and sw must be always the same."
 
     assert false report "[LWC] GW=" & integer'image(G_W) &
-        ", SW=" & integer'image(G_SW) &
+        ", SW=" & integer'image(SW) &
         ", CCW=" & integer'image(CCW) &
         ", CCSW=" & integer'image(CCSW) severity note;
-
-    assert (G_W = G_SW) report "[LWC] G_W and G_SW must be the same" severity failure;
     
     assert ((G_W = 32 and (CCW = 32 or CCW = 16 or CCW = 8)) or 
     	(G_W = 16 and CCW = 16) or (G_W = 8 and CCW = 8)) 
     	report "[LWC] Invalid combination of (G_W, CCW)" severity failure;
     	
-    assert ((G_SW = 32 and (CCSW = 32 or CCSW = 16 or CCSW = 8)) or 
-    	(G_SW = 16 and CCSW = 16) or (G_SW = 8 and CCSW = 8)) 
-    	report "[LWC] Invalid combination of (G_SW, CCSW)" severity failure;
+    assert ((SW = 32 and (CCSW = 32 or CCSW = 16 or CCSW = 8)) or 
+    	(SW = 16 and CCSW = 16) or (SW = 8 and CCSW = 8)) 
+    	report "[LWC] Invalid combination of (SW, CCSW)" severity failure;
 	
 	-- ASYNC_RSTN notification
     assert (ASYNC_RSTN = false) report "[LWC] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
@@ -164,7 +165,7 @@ begin
     Inst_PreProcessor: entity work.PreProcessor(PreProcessor)
     	generic map(
         		G_W             => G_W,
-        		G_SW            => G_SW,
+        		G_SW            => SW,
         		G_ASYNC_RSTN    => ASYNC_RSTN
 			)
         port map(

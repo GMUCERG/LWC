@@ -109,16 +109,25 @@ List of external core examples adopted to the latest framework:
 
 ### Notable Configurable LWC Options
 
-#### `LWC_TB` and `LWC` Generics
-- `G_W`  (integer): Controls the width of the external bus for PDI data bits. (Valid values 8, 16, 32)
-- `G_SW` (integer): Controls the width of the external bus for SDI data bits. (Valid values 8, 16, 32)
-
-#### `design_pkg.vhd`
-- `ASYNC_RSTN` (boolean): When True a active-low reset is used instead of an active-high synchronous reset.
-- `TAG_SIZE` (integer): Controls the tag size in bits
-- `HASH_VALUE_SIZE` (integer) : Controls the hash size in bits
-- `CCSW`, `CCW`, `CCWdiv8` (integers) : Control the bus widths into the CryptoCore in bits
+#### `design_pkg.vhd` constants
+Definition and initialization of these constants _MUST_ be present in the user-provided `design_pkg.vhd` file. See [dummy core's design_pkg](hardware/dummy_lwc/src_rtl/design_pkg.vhd) for an example.
+- `ASYNC_RSTN` (boolean): When `True` an asynchronous active-low reset is used instead of a synchronous active-high reset.
+- `CCW`, `CCSW`, `CCWdiv8` (integer): `CCW` specifies the bus width (in bits) of `CryptoCore`'s PDI data and can be 8, 16, or 32. 
+  `CCSW` is the bus width (in bits) of `CryptoCore`'s SDI data and is expected to be equal to `CCW`.
+  `CCWdiv8` needs to be set equal to `CCW / 8`.
+- `TAG_SIZE` (integer): Controls the tag size in bits.
+- `HASH_VALUE_SIZE` (integer): Controls the hash size in bits. Only used in hash mode.
  
+#### `LWC_TB` and `LWC` top-level generics
+- `G_W` (integer **default=32**): Controls the width of the external bus for PDI data bits.
+  The width of SDI data (`SW`) is also set equal to this value.
+  Valid values are 8, 16, 32.
+  Supported combinations of (`G_W`, `CCW`) are (32, 32), (32, 16), (32, 8), (16, 16), or (8, 8).
+  When using the simulation and synthesis framework, the value of this generic is dynamically updated from the value configured in the core's `config.ini`, 
+  for both `LWC_TB` and `LWC` top modules, corresponding to simulation and synthesis targets. 
+  Otherwise, users may need to manually change the defaults values in `LWC_TB.vhd` and `LWC.vhd`, making sure they both have the same value, or override them through their utilized simulation and synthesis tools.
+
+
 
 
 

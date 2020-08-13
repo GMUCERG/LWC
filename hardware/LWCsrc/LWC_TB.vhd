@@ -31,7 +31,6 @@ entity LWC_TB IS
     generic (
         --! External bus: supported values are 8, 16 and 32 bits
         G_W                 : integer := 32;
-		G_SW                : integer := 32;
         G_STOP_AT_FAULT     : boolean := True;
         G_TEST_MODE         : integer := 0;
         G_TEST_IPSTALL      : integer := 10;
@@ -48,10 +47,12 @@ entity LWC_TB IS
 end LWC_TB;
 
 architecture behavior of LWC_TB is
-
+	
+		
+	constant SW               : integer := G_W;
     --! bus width. 
     constant G_PWIDTH           : integer := G_W;
-    constant G_SWIDTH           : integer := G_SW;
+    constant G_SWIDTH           : integer := SW;
     -- for automated/scripted testing override:
     --    W and SW in work.NIST_LWAPI_pkg
     --    CCW and CCSW in work.design_pkg
@@ -247,8 +248,7 @@ begin
 
     uut: entity work.LWC(structure)
     	generic map(
-    		G_W          => G_W,
-    		G_SW         => G_SW
+    		G_W          => G_W
     	)
 	    port map (
 	        clk          => clk,
