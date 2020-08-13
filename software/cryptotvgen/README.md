@@ -68,7 +68,7 @@ To generate hash test-vectors 2 to 5 with MODE=1:
 $ cryptotvgen --gen_hash 5 5 1 --lib_path=software/dummy_lwc_ref/lib --hash dummy_lwc
 ```
 
-- To automatically download, extract, and build reference library of all LWC Round 2 candidates from SUPERCOP:
+- To automatically download, extract, and build reference library of all LWC Round 2 candidates from the latest available version of SUPERCOP:
 ```
 $ cryptotvgen --prepare_libs 
 ```
@@ -77,9 +77,10 @@ The source code of reference implementations of the LWC candidates will be extra
 The built libraries will be kept in the default location of `$HOME/.cryptotvgen/lib`. 
 Running subsequent test-vector generation commands will use these libraries by default and there will be no need to specify `--lib_path` 
 (unless you want to use a different location).
-The `--supercop_version` switch can be used to specify a SUPERCOP version (in `YYYYMMDD` format) different from the default value:
+
+The `--supercop_version` switch can be used to specify a valid SUPERCOP version (in `YYYYMMDD` format, e.g. 20191221) different from the default value:
 ```
-$ cryptotvgen --prepare_libs --supercop_version=20191221
+$ cryptotvgen --prepare_libs --supercop_version=20200702
 ```
 As perviously mentioned you can also manually download and extract the SUPERCOP distribution and specify its path with using the `--candidates_dir` option. 
 In that case you need to specify the path to the built libraries for the subsequent test-vector generation commands by adding the `--lib_path` option.

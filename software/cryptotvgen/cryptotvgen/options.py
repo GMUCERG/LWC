@@ -16,9 +16,6 @@ import os
 from enum import Enum
 import pathlib
 
-# update with new releases of SUPERCOP after test
-sc_default_version = '20200702'
-
 class AlgorithmClass(Enum):
     AEAD = 0
     HASH = 1
@@ -389,8 +386,11 @@ def get_parser():
             See also `--supercop_version`''')
     )
     test.add_argument(
-        '--supercop_version', default=sc_default_version,
-        help=f'SUPERCOP version to download and use. Default: {sc_default_version}')
+        '--supercop_version', default='latest',
+        help=textwrap.dedent('''\
+            'SUPERCOP version to download and use. 
+            Either use specific version with `YYYYMMDD` format or use `latest` to automatically determine the latest available versio from the SUPERCOP website.''')
+    )
     test.add_argument(
         '--gen_custom_mode', type=int, default=0, choices=range(3),
         metavar='MODE', help=textwrap.dedent('''\

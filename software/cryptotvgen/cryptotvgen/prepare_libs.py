@@ -9,6 +9,8 @@ import tempfile
 import pathlib
 import shutil
 import subprocess
+import requests
+
 try:
     import importlib.resources as pkg_resources
 except ImportError:
@@ -26,6 +28,31 @@ lwc_candidates = {'hash': ['ace', 'ascon', 'drygascon', 'esch', 'gimli', 'knot',
                            'schwaemm', 'spix', 'spoc', 'spook', 'subterranean', 'sundaegift', 'tinyjambu', 'wage', 'xoodyak']}
 
 mkfile_name = 'lwc_cffi.mk'
+
+def get_latest_supercop_version_url(sc_version):
+    sc_base_url = 'https://bench.cr.yp.to/'
+    sc_page_url = sc_base_url + 'supercop.html'
+
+    if sc_version == 'latest':
+        response = requests.get(sc_page_url)
+        
+        print(f'Trying to determine the latest version of SUPERCOP from {sc_page_url}...')
+
+        if response.status_code != 200:
+            sys.exit(f'Error accessing {sc_page_url} Status code: {response.status_code}')
+
+        print(f"Last-Modified timestamp from server: {response.headers['Last-Modified']}")
+        
+        try:
+            match = re.search(r'wget\s+<a\s+.*href="(supercop/supercop-(\d\d\d\d\d+)\.tar(\.[a-z]+)?)"', response.content.decode('utf-8'))
+            url = sc_base_url + match.group(1)
+            version = match.group(2)
+            print(f'Latest version of SUPERCOP seems to be {version} avariable from {url}')
+        except Exception as e: #TODO
+            raise e
+        return (version, url)
+    else:
+        return (sc_version, sc_base_url + f'supercop/supercop-{sc_version}.tar.xz')
 
 
 def ctgen_get_dir(sub_dir=None):
@@ -81,19 +108,19 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
         with open(ctgen_candidates_dir / mkfile_name, 'w') as f:
             f.write(mk_content)
 
-    def get_sc_tar(version):
+    def get_sc_tar(sc_version):
+        sc_version, sc_url = get_latest_supercop_version_url(sc_version)
+        
         sc_filename = f'supercop-{sc_version}.tar.xz'
-        print(f'supercop version: {version}')
         cache_dir = ctgen_get_dir('cache')
-        sc_url = f'https://bench.cr.yp.to/supercop/{sc_filename}'
         tar_path = cache_dir / sc_filename
         if tar_path.exists():
-            print(f'using cached version of supercop at {tar_path}')
-            return tarfile.open(tar_path)
+            print(f'Using already cached version of supercop at {tar_path}')
+            return tarfile.open(tar_path), sc_version
         print(f'Downloading supercop from {sc_url}')
         tar_path = urllib.request.urlretrieve(sc_url, filename=tar_path)[0]
         print(f'Download successfull!')
-        return tarfile.open(tar_path)
+        return tarfile.open(tar_path), sc_version
     
 
 
@@ -105,7 +132,7 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
 
     if not candidates_dir:
         candidates_dir = ctgen_candidates_dir
-        sc_tar = get_sc_tar(sc_version)
+        sc_tar, sc_version = get_sc_tar(sc_version)
 
         incl_candidates = set()
         extract_list = []
