@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*
 
 import os
 import sys
@@ -10,7 +9,7 @@ from cryptotvgen import cli
 script_dir = Path(__file__).parent.resolve()
 
 # to build the libs from the examples directory:
-# $ cryptotvgen --prepare_lib --candidates_dir=../../
+# $ cryptotvgen --prepare_lib --candidates_dir=../dummy_lwc_ref/
 
 
 if __name__ == '__main__':
@@ -35,7 +34,7 @@ if __name__ == '__main__':
     # ========================================================================
     # Create the list of arguments for cryptotvgen
     args = [
-        '--lib_path', str(script_dir.parents[1] / 'lib'),  # Library path
+        '--lib_path', str(script_dir.parents[1] / 'dummy_lwc_ref' / 'lib'),  # Library path
         # Library name of AEAD algorithm (<algorithm_name>)
         '--aead', 'dummy_lwc',
         # Library name of Hash algorithm (<algorithm_name>)

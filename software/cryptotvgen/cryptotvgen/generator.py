@@ -541,7 +541,6 @@ class TestVector(object):
 
     def gen_tv(self):
         ''' Generate test vector files based on provided options '''
-        print(f'self={self}')
         if self.hashop:
             self.hash_tag = self.crypto_hash()
             self.partial = int(self.partial)

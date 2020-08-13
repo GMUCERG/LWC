@@ -35,13 +35,21 @@ Note:
 
 ## Running the Executable
 
+### Run Modes
+One of the following run modes must be selected:
+- `--prepare_libs`
+- `--gen_test_routine`
+- `--gen_random`
+- `--gen_custom`
+- `--gen_single`
+
+
 - To build the libraries for the reference C implementation of `dummy_lwc` available in [software/dummy_lwc_ref](../dummy_lwc_ref/) run:
 ```
 $ cryptotvgen --prepare_libs --candidates_dir=software/dummy_lwc_ref
 ```
 Replace `software/dummy_lwc_ref` with the relative/absolute path to the subfolder containing `crypto_aead` and `crypto_hash` folders containing the reference implementation of an algorithm. 
 This could also be the root to an already extracted SUPERCOP distribution. The built libraries will be in then available in `software/dummy_lwc_ref/lib` folder.
-
 
 
 
@@ -64,8 +72,7 @@ The source code of reference implementations of the LWC candidates will be extra
 The built libraries will be kept in the default location of `$HOME/.cryptotvgen/lib`. 
 Running subsequent testvector generation commands will use these libraries by default and there will be no need to specify `--lib_path` 
 (unless you want to use a different location).
-The `--supercop_version` switch can be used to specify a SUPERCOP version in `YYYMMDD` format other than the latest version verified to work with `cryptotvgen`. e.g.
-
+The `--supercop_version` switch can be used to specify a SUPERCOP version (in `YYYYMMDD` format) different from the default value:
 ```
 $ cryptotvgen --prepare_libs --supercop_version=20191221
 ```
@@ -76,7 +83,6 @@ In that case you need to specify the path to the built libraries for the subsequ
 - After the `cryptotvgen --prepare_libs` you can generate testvectors for any of the LWC candidates.
 At least one of `--aead <ALGORITHM-VARIANT>` or `--hash <ALGORITHM-VARIANT>`  (or both) need to be provided with the correct name of the AEAD or hash variant.
 Some candidates may provide more than one AEAD and/or hash variants.
-
 
 - To generate hash testvector #5 with MODE=0 (All random data, see help for meaning of MODEs) for `xoodyakv1`:
 ```
@@ -93,7 +99,7 @@ $ cryptotvgen --aead aceae128v1 --hash acehash256v1 --gen_test_combine 1 10 0
 ```
 The testvectors are interleaved as encrypt, decrypt, and hash.
 
-For more information see the script help
+For more information see help:
 ```
 $ cryptotvgen -h
 ```

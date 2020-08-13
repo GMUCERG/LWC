@@ -4,8 +4,14 @@
 import copy
 import os
 import sys
+from pathlib import Path
 
 from cryptotvgen import cli
+
+script_dir = Path(__file__).parent.resolve()
+
+# to build the libs from the examples directory:
+# $ cryptotvgen --prepare_lib --candidates_dir=../../
 
 # Algorithm information required
 dest_folder = "testvectors/dummy_lwc_32"
@@ -72,7 +78,7 @@ if __name__ == '__main__':
 
     # Create the list of arguments for cryptotvgen
     args = [
-        '--lib_path', os.path.realpath('../lib'),
+        '--lib_path', str(script_dir.parents[1] / 'dummy_lwc_ref' / 'lib'),
         '--aead', aead_lib_name,
         '--io', f'{PDI_width}', f'{SDI_width}',
         '--key_size', f'{key_size}',
