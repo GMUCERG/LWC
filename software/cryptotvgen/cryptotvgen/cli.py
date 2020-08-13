@@ -20,7 +20,6 @@ def run_cryptotvgen(args=sys.argv[1:]):
     opts = parser.parse_args(args)
     
     if opts.prepare_libs:
-        print(opts.prepare_libs, opts.candidates_dir, opts.lib_path)
         prepare_libs(sc_version=opts.supercop_version, libs=opts.prepare_libs,
                      candidates_dir=opts.candidates_dir, lib_path=opts.lib_path)
         return 0

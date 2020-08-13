@@ -79,6 +79,12 @@ $ cryptotvgen --prepare_libs --supercop_version=20191221
 As perviously mentioned you can also manually download and extract the SUPERCOP distribution and specify its path with using the `--candidates_dir` option. 
 In that case you need to specify the path to the built libraries for the subsequent testvector generation commands by adding the `--lib_path` option.
 
+You can filter also the list of candidates that should be built. To only build SUPERCOP variants starting with name 'ace':
+```
+$ cryptotvgen --prepare_libs ace xoodyak
+```
+This will only build `aceae128v1` (AEAD) and `acehash256v1` (hash) variants of the LWC candidate "Ace" and  `xoodyakv1` (AEAD and hash) variants of "Xoodyak".
+
 
 - After the `cryptotvgen --prepare_libs` you can generate testvectors for any of the LWC candidates.
 At least one of `--aead <ALGORITHM-VARIANT>` or `--hash <ALGORITHM-VARIANT>`  (or both) need to be provided with the correct name of the AEAD or hash variant.

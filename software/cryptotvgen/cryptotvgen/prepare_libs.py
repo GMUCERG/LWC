@@ -52,7 +52,7 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
                    f'CRYPTO_VARIANT={vname}', f'CRYPTO_TYPE={vtype}', f'CANDIDATE_PATH={candidates_dir}',
                    f'IMPL_SRC_DIR={impl_src_dir}']
             if lib_path:
-                print(f"binaries will be available in LIB_PATH={lib_path}")
+                print(f"binaries will be available in lib_path={lib_path}")
                 cmd.append(f'LIB_PATH={lib_path}')
             cp = subprocess.run(cmd, cwd=candidates_dir)
             try:
@@ -62,6 +62,12 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
                 sys.exit(1)
                 
     def filter_variants(variants):
+
+        if libs == 'all' or libs == ['all']:
+            print(f'building all libs in `crypto_aead` and `crypto_hash` subfolders of candidates_dir={candidates_dir}: variants={variants}')
+        else:
+            variants = [v for v in variants if any(v[0].startswith(l) for l in libs)]
+            print(f'building only the following variants: {variants}')
         return variants  # TODO
 
     def generate_artifacats():
@@ -92,10 +98,6 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
 
 
 
-    if libs == 'all' or libs == ['all']:
-        print(f'building all libs in `crypto_aead` and `crypto_hash` subfolders of candidates_dir={candidates_dir}')
-    else:
-        print(f'building only: {libs}')
             
     generate_artifacats()
 

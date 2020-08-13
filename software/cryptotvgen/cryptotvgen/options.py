@@ -70,8 +70,6 @@ routines = ('gen_random', 'gen_custom', 'gen_test_routine', 'gen_single',
 class ValidateGenRandom(argparse.Action):
     ''' Validate gen_random option '''
     def __call__(self, parser, args, values, option_string=None):
-        print(f'{args} {option_string}={values}')
-        print(f'args.hash={args.hash}')
         if args.hash is not None:
             sys.exit('`--gen_random` can only be used in for AEAD testvectors')
 
