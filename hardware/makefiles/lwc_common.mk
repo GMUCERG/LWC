@@ -95,7 +95,7 @@ export VHDL_STD
 config-vars: $(CONFIG_LOC) $(FORCE_REBUILD)
 	$(eval VARS := $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CONFIG_LOC)))
 	$(foreach v,$(VARS),$(eval $(v)))
-	$(info Overriding config variables from config.ini: $(VARS))
+	$(info Overriding build variables from $(CONFIG_LOC): $(VARS))
 
 force_rebuild: FORCE
 	@echo "Forcing Rebuild"

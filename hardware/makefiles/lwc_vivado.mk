@@ -23,7 +23,9 @@ VIVADO_BIN ?= vivado
 
 .PHONY: synth-vivado clean-vivado help-vivado
 
-VIVADO_CMD=$(VIVADO_BIN) -mode batch -nojournal -source $(VIVADO_RUN_TCL)
+VIVADO_DEBUG ?=
+
+VIVADO_CMD=$(VIVADO_BIN) -mode batch -nojournal $(if $(VIVADO_DEBUG),,-notrace) -source $(VIVADO_RUN_TCL)
 
 VIVADO_OUTPUT_DIR=vivado
 

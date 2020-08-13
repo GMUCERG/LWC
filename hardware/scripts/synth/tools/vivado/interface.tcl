@@ -10,6 +10,7 @@ set phys_opt_options    [split [string trim $::env(PYS_OPT_OPTIONS)]]
 set verilog_files       $::env(VERILOG_FILES)
 set vhdl_files          $::env(VHDL_FILES)
 set clock_period        [string trim $::env(CLOCK_PERIOD)]
+set vhdl_std            [string trim $::env(VHDL_STD)]
 
 
 set reports_dir         ${output_dir}/reports
