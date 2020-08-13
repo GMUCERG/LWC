@@ -3,11 +3,16 @@
 
 from .generator import gen_dataset, gen_hash, gen_random, gen_single, gen_test_combined, gen_test_routine, print_header
 from .options import get_parser
-from .prepare_libs import build_supercop_libs
+from .prepare_libs import prepare_libs, ctgen_get_dir
 import textwrap
 import os
 import sys
 import errno
+import pathlib
+
+
+
+## validation can only be safely done when all args are parsed and stored!
 
 def run_cryptotvgen(args=sys.argv[1:]):
     # Parse options
@@ -15,7 +20,9 @@ def run_cryptotvgen(args=sys.argv[1:]):
     opts = parser.parse_args(args)
     
     if opts.prepare_libs:
-        build_supercop_libs(sc_version=opts.supercop_version, libs=opts.prepare_libs, candidates_dir=opts.candidates_dir)
+        print(opts.prepare_libs, opts.candidates_dir, opts.lib_path)
+        prepare_libs(sc_version=opts.supercop_version, libs=opts.prepare_libs,
+                     candidates_dir=opts.candidates_dir, lib_path=opts.lib_path)
         return 0
     
     try:
@@ -49,6 +56,10 @@ def run_cryptotvgen(args=sys.argv[1:]):
     msg_no = 1
     key_no = 1
     gen_single_index = 0
+    
+    if opts.candidates_dir:
+        if not lib_path:
+            lib_path = pathlib.Path(opts.candidates_dir) / 'lib'
     
 
     for routine in opts.routines:

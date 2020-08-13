@@ -14,22 +14,32 @@ script_dir = Path(__file__).parent.resolve()
 
 
 if __name__ == '__main__':
+    blocks_per_segment = None
     ccw = 32
+    legal_widths = {8, 16, 32}
     if len(sys.argv) > 1:
-        ccw = int(sys.argv[1]) # make sure it's int
-        legal_widths = {8, 16, 32}
+        ccw = int(sys.argv[1])  # make sure it's int
         assert ccw in legal_widths, f'ccw should be in {legal_widths}'
-        blocks_per_segment = None
+
         if len(sys.argv) > 2:
             blocks_per_segment = int(sys.argv[2])
-    
+    else:
+        sys.exit(f"Usage:\t{sys.argv[0]} <io-bits: {legal_widths}> [<max_block_per_sgmt>]")
+
+    print(
+        f'Generating test-vectors for io={ccw}' +
+        (f" and max_block_per_sgmt={blocks_per_segment}" if blocks_per_segment else "") + "..."
+    )
+
     dest_dir = f'testvectors/dummy_lwc{"_multi_segments" if blocks_per_segment else ""}_{ccw}'
     # ========================================================================
     # Create the list of arguments for cryptotvgen
     args = [
         '--lib_path', str(script_dir.parents[1] / 'lib'),  # Library path
-        '--aead', 'dummy_lwc',                             # Library name of AEAD algorithm (<algorithm_name>--<implementation_name>)
-        '--hash', 'dummy_lwc',                             # Library name of Hash algorithm (<algorithm_name>--<implementation_name>)
+        # Library name of AEAD algorithm (<algorithm_name>)
+        '--aead', 'dummy_lwc',
+        # Library name of Hash algorithm (<algorithm_name>)
+        '--hash', 'dummy_lwc',
         '--io', str(ccw), str(ccw),                        # I/O width: PDI/DO and SDI width, respectively.
         '--key_size', '128',                               # Key size
         '--npub_size', '96',                               # Npub size
@@ -63,8 +73,8 @@ if __name__ == '__main__':
     #   Note: All the encrypt and decrypt operation specifiers refer to the
     #   input test vector  for hardware core. The actual process in the
     #   preparation of the test vector is based only on the encryption operation.
-    gen_test_routine = '--gen_test_routine 1 20 0'.split()
-    gen_random = '--gen_random 10'.split()
+    # gen_test_routine = '--gen_test_routine 1 20 0'.split()
+    # gen_random = '--gen_random 10'.split()
 
     # new key (bool), decrypt (bool), AD_LEN, PT_LEN, hash-mode (bool)
     # gen_custom = ['--gen_custom',
@@ -90,19 +100,13 @@ if __name__ == '__main__':
     #     ]
 
     gen_test_combined = '--gen_test_combined 1 33 0'.split()
-    gen_hash = '--gen_hash 1 20 2'.split()
+    # gen_hash = '--gen_hash 1 20 2'.split()
     # ========================================================================
     # Add option arguments together
     args += msg_format
     args += gen_test_combined
-    ## Add other test routines below
-    # args += gen_hash       
+    # Add other test routines below
+    # args += gen_hash
     # ========================================================================
-    # Pass help flag through
-    try:
-        if (sys.argv[1] == '-h'):
-            args.append('-h')
-    except:
-        pass
     # Call program
     cli.run_cryptotvgen(args)

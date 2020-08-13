@@ -16,56 +16,12 @@ import os
 from enum import Enum
 import pathlib
 
-from .prepare_libs import build_supercop_libs
-
 # update with new releases of SUPERCOP after test
 sc_default_version = '20200702'
 
 class AlgorithmClass(Enum):
     AEAD = 0
     HASH = 1
-
-# ============================================================================
-# Reference: http://stackoverflow.com/questions/8624034/python-argparse-type-and-choice-restrictions-with-nargs-1
-def make_validate_library_action(algorithm_class):
-    class ValidateLibrary(argparse.Action):
-        ''' Validate whether specified library is valid (compiled) '''
-        def __call__(self, parser, args, value=0, option_string=None):
-            # print('{n} {v} {o}'.format(n=args, v=value, o=option_string))
-            lib_path = args.lib_path
-            if not lib_path:
-                lib_path = pathlib.Path(args.candidates_dir) / 'lib'
-            if not os.path.exists(lib_path):
-                raise(FileNotFoundError('No library path found {s!r}. Please'
-                                        ' provide the correct path!'
-                                        .format(s=lib_path)))
-    
-            lib_name = value
-            if (algorithm_class == AlgorithmClass.AEAD):
-                class_path = 'crypto_aead'
-                delattr(args, 'aead')
-            elif (algorithm_class == AlgorithmClass.HASH):
-                class_path = 'crypto_hash'
-                delattr(args, 'hash')
-            else:
-                parser.error('Unsupported algorithm class')
-            b_windows = True if sys.platform in ['win32', 'win64', 'msys'] else False
-            lib_name += '.dll' if b_windows else '.so'
-            lib_file = '{}/{}/{}'.format(lib_path, class_path, lib_name)
-            
-            if not os.path.isfile(lib_file):
-                raise(FileNotFoundError('No library {s!r} found. Please run cryptotvgen with `--prepare_libs` first!'.format(s=lib_file)))
-
-
-            try:
-                algorithm_class_paths = args.algorithm_class_paths
-            except AttributeError:
-                algorithm_class_paths = ['' for a in AlgorithmClass]            
-            
-            algorithm_class_paths[algorithm_class.value] = lib_file
-                        
-            setattr(args, 'algorithm_class_paths', algorithm_class_paths)
-    return ValidateLibrary
 
 class UseDebugLibrary(argparse.Action):
     ''' Validate block_size_ad '''
@@ -114,7 +70,10 @@ routines = ('gen_random', 'gen_custom', 'gen_test_routine', 'gen_single',
 class ValidateGenRandom(argparse.Action):
     ''' Validate gen_random option '''
     def __call__(self, parser, args, values, option_string=None):
-        # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
+        print(f'{args} {option_string}={values}')
+        print(f'args.hash={args.hash}')
+        if args.hash is not None:
+            sys.exit('`--gen_random` can only be used in for AEAD testvectors')
 
         if (values < 1 or values > 1000):
             raise argparse.ArgumentError(
@@ -362,7 +321,7 @@ def get_parser():
     mainop.add_argument(
         '--candidates_dir',
         action=ValidateCandidatesDir,
-        default=pathlib.Path.home() / '.cryptotvgen',
+        default=None,
         help='candidates directory')
                 
     secondaryop = parser.add_argument_group(
@@ -370,15 +329,15 @@ def get_parser():
             :::::At least one of these parameters are required:::'''),
         'Library name specifier::')
     secondaryop.add_argument(
-        '--aead', action=make_validate_library_action(AlgorithmClass.AEAD),
+        '--aead',
         metavar='<ALGORITHM_VARIANT_NAME>',
         help=textwrap.dedent('''\
-            Shared library's for AEAD algorithm, i.e. gimli24v1
+            Shared library's for AEAD algorithm, e.g. gimli24v1
             Note: The library should be generated prior to the start
             of the program.'''))
 
     secondaryop.add_argument(
-        '--hash', action=make_validate_library_action(AlgorithmClass.HASH),
+        '--hash',
         metavar='<ALGORITHM_VARIANT_NAME>',
         help=textwrap.dedent('''\
             Shared library's for HASH algorithm, i.e. gimli24v1

@@ -12,8 +12,8 @@ try:
     import cryptotvgen
     from cryptotvgen import cli
 except ImportError as e:
-    print('cryptotvgen needs to be installed first!')
-    print(' go to `LWC/software/cryptotvgen` directory and run `pip install .` or `pip install -e .` and then try running the script again.')
+    print('cryptotvgen is not installed!')
+    print('Please go to `$(LWC_ROOT)/software/cryptotvgen` directory and run `pip install .` or `pip install -e .` and then try running the script again.')
     raise e
 
 
@@ -31,13 +31,13 @@ sources_list = core_src_path / 'source_list.txt'
 variables = {'LWCSRC_DIR': str(lwc_root / 'hardware' / 'LWCsrc')}
 # END OF SETTINGS
 
-cnd_dir = script_dir.parents[1] / 'software'
+cnd_dir = lwc_root / 'software' / 'dummy_lwc_ref'
 
 
 def build_libs():
     args = [
         '--prepare_libs',
-        '--candidates_dir', str(lwc_root / 'software')
+        '--candidates_dir', str(cnd_dir)
     ]
     return cli.run_cryptotvgen(args)
 

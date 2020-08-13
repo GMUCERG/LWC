@@ -12,10 +12,13 @@ import os
 import random
 import math
 import sys
-from enum import Enum
-from .options import routines
+from pathlib import Path
 from pkg_resources import get_distribution, DistributionNotFound
+from enum import Enum
+
+from .options import routines
 from .log import setup_logger
+from .prepare_libs import ctgen_get_dir
 
 
 __all__ = ['gen_random', 'gen_dataset', 'gen_test_routine',
@@ -56,7 +59,7 @@ def print_header(opts):
     Print header file
     '''
     ignore_opts = {
-        'lib_path', 'lib_file', 'dest', 'pdi_file', 'sdi_file', 'do_file', 'candidates_dir', 'supercop_version', 'algorithm_class_paths',
+        'lib_path', 'lib_file', 'dest', 'pdi_file', 'sdi_file', 'do_file', 'candidates_dir', 'supercop_version',
         'verify_lib', 'routines', 'verbose', 'mode', 'human_readable'} | set(routines)
 
     sorted_vars = [ x for x in sorted(vars(opts)) if x not in ignore_opts ]
@@ -343,18 +346,43 @@ def build_status(iowidth):
     txt += 'STT = {}\n'.format(hexstr)
     return txt
 
+def get_cffi_path(opts, hashop):
+    if opts.lib_path:
+        lib_path = Path(opts.lib_path)
+    else:
+        candidates_dir = Path(opts.candidates_dir) if opts.candidates_dir else ctgen_get_dir()
+        lib_path = candidates_dir / 'lib'
+    
+    name = None
+    if hashop:
+        op = "hash"
+        name = opts.hash
+    else:
+        op = "aead"
+        name = opts.aead
+    if not name:
+        sys.exit(f'--{op} <ALGORITHM-VARIANT> not specified!')
+        
+    lib_ext = '.dll' if sys.platform in ['win32', 'win64', 'msys'] else '.so'
+    libname = f'{name}{lib_ext}'
+    cffi_path = lib_path / f'crypto_{op}' / libname
+    if not cffi_path.exists():
+        sys.exit(f'Dynamic library: {cffi_path} does not exist! Please make sure `lib_path` is correct and that you have already run `cryptotvgen --prepare_libs [--cadidates_dir=<PATH>]`?')
+    return str(cffi_path)
+    
+
 class TestVector(object):
     ''' TestVector class '''
     BUFFER = '00'*128
 
     def __init__(self, opts, msg_id, key_id,
                  new_key, op, key, npub, nsec_pt, ad, pt, hashop):
-        if hashop:
-            self.lib = ffi.dlopen(opts.algorithm_class_paths[1])
-            self.key_id = 0
-        else:
-            self.lib = ffi.dlopen(opts.algorithm_class_paths[0])
-            self.key_id = key_id
+        
+        self.hashop = hashop
+        cffi_path = get_cffi_path(opts, hashop)
+        self.lib = ffi.dlopen(cffi_path)
+            
+        self.key_id = 0 if hashop else key_id
         self.opts = opts
         self.msg_id = msg_id
         self.new_key = new_key
@@ -366,7 +394,6 @@ class TestVector(object):
         self.ad      = ad
         self.pt      = pt
         self.partial = 0
-        self.hashop = hashop
         # Output
         self.nsec_ct = ''
         self.ct = ''
@@ -514,9 +541,9 @@ class TestVector(object):
 
     def gen_tv(self):
         ''' Generate test vector files based on provided options '''
-
+        print(f'self={self}')
         if self.hashop:
-            (self.hash_tag) = self.crypto_hash()
+            self.hash_tag = self.crypto_hash()
             self.partial = int(self.partial)
 
             log.info("== Hash")
@@ -907,43 +934,43 @@ def gen_dataset(opts, routine, start_msg_no, start_key_no, mode=0):
 
     # print(routine)
     for i, tv in enumerate(routine):
-        hashop = routine[i][4]
+        hashop = tv[4]
 
         if hashop:
             new_key = 0
             decrypt = False
         else:
-            new_key   = 1 if i == 0 else routine[i][0]
-            decrypt = routine[i][1]
+            new_key   = 1 if i == 0 else tv[0]
+            decrypt = tv[1]
 
         if mode == 2:
             key  = get_running_value(opts.key_size/8)
             npub = get_running_value(opts.npub_size/8)
             nsec = get_running_value(opts.nsec_size/8)
-            ad   = get_running_value(routine[i][2])
-            data = get_running_value(routine[i][3])
+            ad   = get_running_value(tv[2])
+            data = get_running_value(tv[3])
 
         elif mode == 1:
             key  = '55'*int(opts.key_size/8)
             npub = 'B0'*int(opts.npub_size/8)
             nsec = '66'*int(opts.nsec_size/8)
-            ad   = 'A0'*routine[i][2]
-            data = 'FF'*routine[i][3]
+            ad   = 'A0'*tv[2]
+            data = 'FF'*tv[3]
 
         else:
             key  = gen_data(int(opts.key_size/8),   mode, '55')
             npub = gen_data(int(opts.npub_size/8),  mode, 'B0')
             nsec = gen_data(int(opts.nsec_size/8),  mode, '66')
-            ad   = gen_data(routine[i][2],          mode, 'A0')
-            data = gen_data(routine[i][3],          mode, 'FF')
+            ad   = gen_data(tv[2],          mode, 'A0')
+            data = gen_data(tv[3],          mode, 'FF')
 
         if new_key == 0 and not hashop:
             key = dataset[i-1].key
             #! Automatically use old value for decryption
             #! if the same key is used for the same ad and plaintext size
             if (decrypt and not dataset[i-1].decrypt
-                and routine[i][2] == lenbytes(dataset[i-1].ad)
-                and routine[i][3] == lenbytes(dataset[i-1].pt)):
+                and tv[2] == lenbytes(dataset[i-1].ad)
+                and tv[3] == lenbytes(dataset[i-1].pt)):
                 npub = dataset[i-1].npub
                 nsec = dataset[i-1].nsec_pt
                 ad   = dataset[i-1].ad

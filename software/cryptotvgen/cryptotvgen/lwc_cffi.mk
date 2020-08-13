@@ -26,7 +26,7 @@ BASE_DIR := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 INCLUDES_DIR = $(BASE_DIR)/includes
 
 #Default optimization. Prepend, so can be overwritten 
-CFLAGS := -Os $(CFLAGS)
+# CFLAGS := -Os $(CFLAGS)
 
 CFLAGS += -shared -fPIC
 
