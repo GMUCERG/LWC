@@ -133,17 +133,18 @@ Definition and initialization of these constants _MUST_ be present in the user-p
 
 ## Software
 
-* `$root/software/crypto_aead`
+* `$(LWC_ROOT)/software/dummy_lwc_ref/crypto_aead`
   Dummy AEAD reference implementation.
   Folder follows SUPERCOP package structure.
     
-* `$root/software/crypto_hash`
+* `$(LWC_ROOT)/software/dummy_lwc_ref/crypto_hash`
   Dummy hash reference implementation.
   Folder follows SUPERCOP package structure. 
   
-* `$root/software/cryptotvgen`
+* `$(LWC_ROOT)/software/cryptotvgen`
   Python utility and library for the cryptographic hardware test vector generation tool.
-  `cryptotvgen` can automatically download and build reference software implementations from [SUPERCOP's website](https://bench.cr.yp.to/supercop.html).
+  `cryptotvgen` can automatically download and build reference software implementations from [SUPERCOP](https://bench.cr.yp.to/supercop.html)'s website.
+  Please see `cryptotvgen` [documentations](./software/cryptotvgen/README.md) for further details.
 
 
 ## Notes
