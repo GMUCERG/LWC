@@ -92,10 +92,10 @@ export VHDL_STD
 # $(eval VARS := $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CONFIG_LOC)))
 # $(foreach v,$(VARS),$(eval $(v)))
 
-#NOTE: the space after VARS in $(VARS ) is REQUIRED for docker!
 config-vars: $(CONFIG_LOC) $(FORCE_REBUILD)
 	$(eval VARS := $(shell $(PYTHON3_BIN) $(SCRIPTS_DIR)/config_parser.py vars $(CONFIG_LOC)))
-	$(foreach v,$(VARS ),$(eval $(v)))
+	$(foreach v,$(VARS),$(eval $(v)))
+	$(info Overriding config variables from config.ini: $(VARS))
 
 force_rebuild: FORCE
 	@echo "Forcing Rebuild"

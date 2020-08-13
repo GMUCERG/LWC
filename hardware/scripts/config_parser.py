@@ -4,7 +4,7 @@ import configparser
 import sys
 from sys import argv
 
-lwc_top_generics = {'G_W', 'G_SW'}
+lwc_top_generics = {'G_W'}
 
 def quote_strings(x):
     return f'\\"{x}\\"'
@@ -29,14 +29,14 @@ def vcs_generics(config):
 # Vivado only support passing numeric generics, either integer or verilog style bit vector
 def vivado_generics(config):
     ret = ' '.join([f"-generic {k}={bool_to_bit(v)}" for k, v in config.items('Generics') if supported_vivado_generic(k,v)])
-    print(f"[config_parser.py] Vivado Generics: {ret}", file=sys.stderr)
+    # print(f"[config_parser.py] Vivado Generics: {ret}", file=sys.stderr)
     return ret
 
 def variables(config):
     # TODO rewrite the whole script with hierarchical parsing and better error handling!
     ret = " " if not config.has_section('Variables') else '\n'.join([f"{k}={v}" for k, v in config.items('Variables')])
-    print(f"[config_parser.py] Variables:\n{ret}", file=sys.stderr)
-    return ret + " \n"
+    # print(f"[config_parser.py] Variables:\n{ret}", file=sys.stderr)
+    return ret + " "
 
 if __name__ == "__main__":
     config = configparser.ConfigParser(inline_comment_prefixes="#")
