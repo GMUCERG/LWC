@@ -304,24 +304,33 @@ def get_parser():
         formatter_class=CustomFormatter,
         prog='cryptotvgen',
         description = textwrap.dedent('''\
-            Test vectors generator for NIST Lightweight Cryptography
-            candidates. The script REQUIREs that the C library for the
-            intended algorithm is compiled first.'''))
+            Test vectors generator for NIST Lightweight Cryptography candidates.\n\n'''))
 
     mainop = parser.add_argument_group(
         textwrap.dedent('''\
-            :::::Required Parameters:::'''),
-        'Library path specifier::')
-    mainop.add_argument(
-        '--lib_path',
-        default=None,
-        help='lib directory')
+            :::::Path specifiers:::'''),
+        'Not required if using `--prepare_libs` in automatic mode (see below and README)')
+    
     mainop.add_argument(
         '--candidates_dir',
         action=ValidateCandidatesDir,
         default=None,
-        help='candidates directory')
-                
+        metavar='<PATH/TO/CANDIDATES/SOURCE/DIRECTORY>',
+        help=textwrap.dedent('''\
+           Relative or absolute path to the top _directory_ where the `crypto_aead `crypto_hash` folders candidates directory,
+           Source directory structure in this folder must follow SUPERCOP directory structure.
+           (default: %(default)s, which will use $HOME/.cryptotvgen)''')
+    )
+    mainop.add_argument(
+        '--lib_path',
+        default=None,
+        metavar='<PATH/TO/LIBRARY/DIRECTORY>',
+        help=textwrap.dedent('''\
+            Relative or absolute path to the top _directory_ where `crypto_aead` and `crypto_hash` folders with the dynamic shared libraries (*.so or *.dll) reside.
+            e.g. `../software/dummy_lwc_ref/lib` 
+            (default: %(default)s, which means if candidates_dir option is specified will use `candidates_dir`/lib 
+                    and if neither candidates_dir nor lib_path are specified will use  $HOME/.cryptotvgen/lib)''')
+    )
     secondaryop = parser.add_argument_group(
         textwrap.dedent('''\
             :::::At least one of these parameters are required:::'''),
@@ -330,17 +339,15 @@ def get_parser():
         '--aead',
         metavar='<ALGORITHM_VARIANT_NAME>',
         help=textwrap.dedent('''\
-            Shared library's for AEAD algorithm, e.g. gimli24v1
-            Note: The library should be generated prior to the start
-            of the program.'''))
+            Name of a the variant of an AEAD algorithm for which to generate test-vectors, e.g. gimli24v1
+            Note: The library should have been be generated previously by running in `--prepare_libs`.'''))
 
     secondaryop.add_argument(
         '--hash',
         metavar='<ALGORITHM_VARIANT_NAME>',
         help=textwrap.dedent('''\
-            Shared library's for HASH algorithm, i.e. gimli24v1
-            Note: The library should be generated prior to the start
-            of the program.'''))
+            Name of a the variant of a hash algorithm for which to generate test-vectors, e.g. asconxofv12
+            Note: The library should have been be generated previously by running in `--prepare_libs`.'''))
 
     test = parser.add_argument_group(':::::Test Generation Parameters:::',
             textwrap.dedent('''\
@@ -371,14 +378,23 @@ def get_parser():
             Randomly generates N test vectors with
             varying AD_LEN, PT_LEN, and operation (For use only with AEAD)'''))
     test.add_argument(
-        '--prepare_libs', default=None, metavar='variant', nargs='*', action=ValidatePrepareLibs,
-        help='Download and build reference implementations from SUPERCOP. "all" means libraries. see also --supercop_version')
+        '--prepare_libs', default=None, metavar='<variant_prefix>', nargs='*', action=ValidatePrepareLibs,
+        help=textwrap.dedent('''\
+            Build dynamically shared libraries required for testvector generation.
+            If one or more <variant_prefix> arguments are given, only build variants whose name starts with either of these prefixes, otherwise will build all libraries. 
+            e.g. `--prepare_libs ascon` will only build all AEAD and hash variants of "ascon*"
+            Automatic mode: If no `--candidates_dir` option is present it will download and extract reference implementations from SUPERCOP.
+            Subfolder mode: If `--candidates_dir` is specified, only build libraries found in sources directories of `candidates_dir` (uses SUPERCOP directory structure)
+            (default: %(default)s)\
+            See also `--supercop_version`''')
+    )
     test.add_argument(
         '--supercop_version', default=sc_default_version,
         help=f'SUPERCOP version to download and use. Default: {sc_default_version}')
     test.add_argument(
         '--gen_custom_mode', type=int, default=0, choices=range(3),
-        metavar='MODE', help=textwrap.dedent('''\ The mode of test vector generation used by the --gen_custom option.
+        metavar='MODE', help=textwrap.dedent('''\
+            The mode of test vector generation used by the --gen_custom option.
 
             Meaning of MODE values:
                 0 = All random data
@@ -536,11 +552,11 @@ def get_parser():
 
             Example:
 
-            --gen_test_combine 1 20 0
+            --gen_test_combined 1 20 0
 
             Generates tests 1 to 20 with MODE=0.
 
-            --gen_test_combine 5 5 1
+            --gen_test_combined 5 5 1
 
             Generates test 5 with MODE=1.''')
         )
