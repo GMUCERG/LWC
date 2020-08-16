@@ -597,10 +597,13 @@ begin
         wait until start_latency_timer = '1';
         latency_done <= '0';
         latency <= 0;
+        if pdi_ready /= '1' then -- Wait unti first word is read before starting timer
+            wait until pdi_ready = '1';
+        end if;
         latency_start := clk_cycle_counter;
         wait until rising_edge(clk);
-        
         if do_valid /= '1' then
+         --   wait on do;
             wait until do_valid = '1'; -- wait until first word of output
             wait until falling_edge(clk);
         end if;
@@ -609,7 +612,7 @@ begin
     end process;
         
 
-    genSegmentStall : process
+    genMeasurementMode : process
         variable seg_cnt : integer := 0;
         variable seg_last : std_logic;
         variable seg_eot : std_logic;
@@ -723,6 +726,11 @@ begin
                         next; -- skip
                     end if;
                 else
+                    if seg_cnt = to_integer(unsigned(seg_length)) and 
+                        (seg_type = HDR_PT or seg_type = HDR_CT) then 
+                            report "STARTING TIMER";
+                            start_latency_timer <= '1';
+                    end if;
                     if (seg_cnt <= 4 and G_PWIDTH = 32) or (seg_cnt <= 2 and G_PWIDTH = 16) or (seg_cnt <= 1 and G_PWIDTH = 8) then
                         report "Last word of AD/PT/CT data" & time'image(now);
                         seg_cnt := 0;
@@ -737,9 +745,9 @@ begin
                             end if;
                             stall_msg <= '1'; -- last data word of segment wait until cipher is done
                             if latency_done /= '1' and start_latency_timer = '1' then
-                                start_latency_timer <= '0';
                                 wait until latency_done = '1';
                             end if;
+                            start_latency_timer <= '0';
                             if do_last /= '1' and (do /= SUCCESS_WORD or do /= FAILURE_WORD) then
                                 wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
                             end if;
@@ -788,14 +796,6 @@ begin
                             end if;
                         end if;
                     else
-                        -- only continue if this word is read
-                        while (pdi_valid /= '1' or pdi_ready /= '1') loop
-                            wait until rising_edge(clk);
-                        end loop;
-                        if seg_cnt = to_integer(unsigned(seg_length)) and 
-                        (seg_type = HDR_PT or seg_type = HDR_CT) then 
-                            start_latency_timer <= '1';
-                        end if;
                         seg_cnt := seg_cnt - (G_PWIDTH / 8);
                     end if;
                 end if;
