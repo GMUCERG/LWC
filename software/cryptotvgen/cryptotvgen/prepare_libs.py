@@ -17,8 +17,6 @@ except ImportError:
     # Try backported to PY<37 `importlib_resources`.
     import importlib_resources as pkg_resources
 
-# TODO change `print`s to appropriate log functions
-
 
 lwc_candidates = {'hash': ['ace', 'ascon', 'drygascon', 'esch', 'gimli', 'knot', 'photonbeetle',
                            'saturnin', 'skinnyhash', 'subterranean', 'xoodyak'],
@@ -48,7 +46,7 @@ def get_latest_supercop_version_url(sc_version):
             url = sc_base_url + match.group(1)
             version = match.group(2)
             print(f'Latest version of SUPERCOP seems to be {version} avariable from {url}')
-        except Exception as e: #TODO
+        except Exception as e:
             raise e
         return (version, url)
     else:
@@ -69,10 +67,10 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
     # default ctgen data dir root, make sure exists or create
     ctgen_candidates_dir = ctgen_get_dir()
 
-    # TODO
     impl_src_dir = 'ref'
 
     def build_variants(variants, candidates_dir):
+        valid_str = "#########\n\n FAILED builds\n###########\n\n"
         for vname, vtype in variants:
             # print(f'running make CRYPTO_VARIANT={vname} CRYPTO_TYPE={vtype} in {candidates_dir}')
             cmd = ['make', '-f',  str(ctgen_candidates_dir / mkfile_name), '-C', str(candidates_dir),
@@ -85,8 +83,8 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
             try:
                 cp.check_returncode()
             except:
-                print(f'`{" ".join(cmd)}` failed! (exit code: {cp.returncode})')
-                sys.exit(1)
+                valid_str += f'`{" ".join(cmd)}` failed! (exit code: {cp.returncode})\n'
+        print(valid_str)
                 
     def filter_variants(variants):
 
@@ -95,7 +93,7 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
         else:
             variants = [v for v in variants if any(v[0].startswith(l) for l in libs)]
             print(f'building only the following variants: {variants}')
-        return variants  # TODO
+        return variants
 
     def generate_artifacats():
         ctgen_includes_dir = ctgen_get_dir('includes')
@@ -139,8 +137,6 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
 
         crypto_dir_regexps = {crypto_type: re.compile(f'supercop-{sc_version}/crypto_{crypto_type}/([^/]+)/{impl_src_dir}/')
                               for crypto_type in lwc_candidates.keys()}
-
-        # TODO make this more efficient, though unlikely to be a performance bottleneck
 
         def match_tarinfo(tarinfo):
             for crypto_type in lwc_candidates.keys():

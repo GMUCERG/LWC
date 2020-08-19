@@ -53,8 +53,10 @@ See help for details and available options.
 ```
 $ cryptotvgen --prepare_libs --candidates_dir=software/dummy_lwc_ref
 ```
-Replace `software/dummy_lwc_ref` with the relative/absolute path to the subfolder containing `crypto_aead` and `crypto_hash` folders containing the reference implementation of an algorithm. 
-This could also be the root to an already extracted SUPERCOP distribution. The built libraries will be in then available in `software/dummy_lwc_ref/lib` folder.
+Replace `software/dummy_lwc_ref` with the relative path to the subfolder containing
+`crypto_aead` and `crypto_hash` folders containing the reference implementation of an algorithm.
+This could also be the root to an already extracted SUPERCOP distribution. The built libraries
+will be in then available in the `candidates_dir_path/lib` example `software/dummy_lwc_ref/lib` folder.
 
 
 
