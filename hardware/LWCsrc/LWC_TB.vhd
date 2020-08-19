@@ -118,7 +118,6 @@ architecture behavior of LWC_TB is
     signal stall_sdi_valid      : std_logic := '0';
     signal stall_do_full        : std_logic := '0';
     signal stall_msg            : std_logic := '0';
-    signal stall_msg_valid      : std_logic := '0';
     constant SUCCESS_WORD       : std_logic_vector(G_PWIDTH - 1 downto 0) := INST_SUCCESS & (G_PWIDTH - 5 downto 0 => '0');
     constant FAILURE_WORD       : std_logic_vector(G_PWIDTH - 1 downto 0) := INST_FAILURE & (G_PWIDTH - 5 downto 0 => '0');
     --! Measurement signals
@@ -613,16 +612,14 @@ begin
         
 
     genMeasurementMode : process
-        variable seg_cnt : integer := 0;
+        variable seg_cnt, seg_cnt_start : integer := 0;
         variable seg_last : std_logic;
         variable seg_eot : std_logic;
         variable seg_eoi : std_logic;
         variable seg_type : std_logic_vector(3 downto 0);
-        variable seg_length : std_logic_vector(15 downto 0);
         variable ins_opcode : std_logic_vector(3 downto 0);
         variable msg_start_time, exec_time : integer;
         variable pt_size, ct_size, ad_size, hash_size, new_key : integer := 0;
-       -- variable latency_measure : integer := 0;
         variable msg_id: integer := 0;
         variable first_seg : integer := 1;
         variable timingMsg         : line;
@@ -634,19 +631,15 @@ begin
                 writeline(timing_file, timingMsg);
                 write(timingMsg, string'("Msg ID,New Key,AE/AD,AD Size,Msg Size,Execution Time,Latency"));
                 writeline(timing_csv, timingMsg);
-                wait on pdi_delayed; -- Wait for a new pdi_data word
                 first_seg := 0;
             else
                 write(timingMsg, string'("")); -- new line
                 writeline(timing_file, timingMsg);
-                wait until pdi_valid = '1';
             end if;
-            wait until falling_edge(clk); 
-          --  latency_measure := 0;
+            wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
             msg_start_time := 0;
             pt_size:=0; ct_size:=0; ad_size:=0; hash_size:=0; new_key := 0;
-            seg_cnt := 0; seg_type := "0000"; seg_length := x"0000";
-           -- latency_time := 0;
+            seg_cnt := 0; seg_type := "0000";
             exec_time := 0;
             seg_cnt := 0;
             -- Determine Instruction
@@ -655,21 +648,14 @@ begin
                 msg_start_time := clk_cycle_counter;
                 if ins_opcode = INST_ACTKEY then
                     new_key := 1;
-                    wait on pdi_delayed; -- Wait for next pdi_word which contains next instruction opcode
-                    wait until falling_edge(clk); 
+                    wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
                     ins_opcode := pdi_delayed(G_PWIDTH-1 downto G_PWIDTH-4);
                 end if;
             end if;
-            -- 
+                ----- Segment loop-------------
             segment_loop : while True loop
-                while (pdi_valid /= '1' or pdi_ready /= '1') loop
-                    wait until rising_edge(clk);
-                end loop;
-                wait until falling_edge(clk);
-                if pdi_valid /= '1' then
-                    next; -- skip invalid word
-                end if;
-                
+                wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
+                -- Obtain segment header
                 if seg_cnt = 0 then
                     -- parse segment header
                     seg_type := pdi_delayed(G_PWIDTH-1 downto G_PWIDTH-4);
@@ -677,21 +663,18 @@ begin
                     seg_eot := pdi_delayed(G_PWIDTH-7);
                     seg_last := pdi_delayed(G_PWIDTH-8);
                     if G_PWIDTH = 8 then
-                        wait until falling_edge(clk);
-                        wait until falling_edge(clk);
-                        seg_length(15 downto 8) := pdi_delayed;
-                        wait until falling_edge(clk);
-                        seg_length(7 downto 0) := pdi_delayed;
-                        seg_cnt := to_integer(unsigned(seg_length));
+                       wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
+                       wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1'; --wait segment length top
+                       seg_cnt := to_integer(unsigned(pdi_delayed & "00000000"));
+                       wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
+                       seg_cnt := seg_cnt + to_integer(unsigned(pdi_delayed));
                     elsif G_PWIDTH = 16 then
-                        wait until falling_edge(clk); -- wait next word
-                        seg_length := pdi_delayed;
-                        seg_cnt := to_integer(unsigned(seg_length));
-                        --   wait until pdi_valid = '1';
+                       wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1'; --wait segment length top
+                       seg_cnt := to_integer(unsigned(pdi_delayed));
                     else --G_PWIDTH 32
-                        seg_length := pdi_delayed(15 downto 0);
-                        seg_cnt := to_integer(unsigned(seg_length));
+                        seg_cnt := to_integer(unsigned(pdi_delayed(15 downto 0)));
                     end if;
+                    seg_cnt_start := seg_cnt;
                     if seg_type = HDR_PT then pt_size := pt_size + seg_cnt;
                     elsif seg_type = HDR_CT then ct_size := ct_size + seg_cnt;
                     elsif seg_type = HDR_AD then ad_size := ad_size + seg_cnt;
@@ -700,92 +683,41 @@ begin
                     -- Need to handle the case when segment header but the len is 0
                     if seg_cnt = 0 and seg_last = '1' and
                                 (seg_type = HDR_PT or seg_type = HDR_TAG or seg_type = HDR_HASH_MSG) then
-                       -- stall_msg <= '1'; -- last segment  wait until cipher is done
-                        wait until rising_edge(clk); -- keep valid signal for an extra cycle for postprocesser cmd
-                        stall_msg <= '1';
-                        if do_last /= '1' and (do /= SUCCESS_WORD or do /= FAILURE_WORD) then
-                            wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
-                        end if;
-                        wait until rising_edge(clk);
+
+                        wait until falling_edge(clk);
+                        stall_msg <= '1'; -- last segment  wait until cipher is done
+                        wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
                         stall_msg <= '0';
                         exec_time := clk_cycle_counter-msg_start_time;
                         msg_id := msg_id + 1;
                         exit;
-                    elsif seg_cnt = 0 and seg_type = HDR_AD and seg_eot = '1' then
-                        if seg_eoi = '1' then
-                            msg_id := msg_id + 1;
-                        end if;
-                        next; -- skip
                     end if;
                 else
-                    if seg_cnt = to_integer(unsigned(seg_length)) and 
-                        (seg_type = HDR_PT or seg_type = HDR_CT) then 
-                            report "STARTING TIMER";
-                            start_latency_timer <= '1';
+                    if (seg_cnt = seg_cnt_start) and (seg_type = HDR_PT or seg_type = HDR_CT) then 
+                        report "STARTING TIMER";
+                        start_latency_timer <= '1';
                     end if;
                     if (seg_cnt <= 4 and G_PWIDTH = 32) or (seg_cnt <= 2 and G_PWIDTH = 16) or (seg_cnt <= 1 and G_PWIDTH = 8) then
-                        report "Last word of AD/PT/CT data" & time'image(now);
+                        report "Last word of AD/PT/CT data    " & time'image(now);
                         seg_cnt := 0;
-                        
                         if ((seg_type = HDR_PT or seg_type = HDR_TAG or seg_type = HDR_HASH_MSG) and seg_last = '1')then
-                            -- wait on pdi_delayed; -- Wait next word
-                           -- wait until falling_edge(clk);
-                            wait until rising_edge(clk);
-                            
-                            if pdi_ready /= '1' then -- Don't stall messages until the last word is absorbed
-                                wait until pdi_ready = '1';wait until rising_edge(clk);
-                            end if;
-                            stall_msg <= '1'; -- last data word of segment wait until cipher is done
+                            wait until falling_edge(clk);
+                            stall_msg <= '1'; -- last segment wait until cipher is done
                             if latency_done /= '1' and start_latency_timer = '1' then
                                 wait until latency_done = '1';
-                            end if;
-                            start_latency_timer <= '0';
-                            if do_last /= '1' and (do /= SUCCESS_WORD or do /= FAILURE_WORD) then
-                                wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
-                            end if;
-                            exec_time := clk_cycle_counter-msg_start_time;
-                            wait until rising_edge(clk);
-                            stall_msg <= '0';
-                            msg_id := msg_id + 1;
-                            exit;
-                        elsif seg_type = HDR_AD then -- case with empty PT/CT; measure exec time, ignore latency
-                            if seg_eoi = '1' then
-                                -- Wait next word
-                                if G_PWIDTH = 8 then
-                                    wait until rising_edge(clk);
-                                    wait until rising_edge(clk);
-                                    wait until rising_edge(clk);
-                                    wait until rising_edge(clk);
-                                    wait until rising_edge(clk);
-                                 --   wait on pdi_delayed;wait until falling_edge(clk);
-                                elsif G_PWIDTH = 16 then
-                                    wait until rising_edge(clk);
-                                    wait until rising_edge(clk);
-                                    wait until rising_edge(clk);
-                                else
-                                    wait until rising_edge(clk);
-                                    wait until rising_edge(clk);
-                                end if;
-
-                                if ins_opcode = INST_DEC then
-                                    next; -- continue on DEC opcode for tag verification header
-                                else
-                                    stall_msg <= '1'; -- last segment  wait until cipher is done
-                                    if do_valid /= '1' then
-                                        wait until do_valid = '1'; -- wait until first word of output
-                                    end if;
-                                    if do_last /= '1' and (do /= SUCCESS_WORD or do /= FAILURE_WORD) then
-                                        wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
-                                    end if;
-                                    exec_time := clk_cycle_counter-msg_start_time;
-                                    wait until rising_edge(clk);
+                                if (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD)) then
                                     stall_msg <= '0';
+                                    exec_time := clk_cycle_counter-msg_start_time;
                                     msg_id := msg_id + 1;
                                     exit;
                                 end if;
-                            elsif seg_eot = '1' then
-                                next;
                             end if;
+                            start_latency_timer <= '0';
+                            wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
+                            stall_msg <= '0';
+                            exec_time := clk_cycle_counter-msg_start_time;
+                            msg_id := msg_id + 1;
+                            exit;
                         end if;
                     else
                         seg_cnt := seg_cnt - (G_PWIDTH / 8);
