@@ -683,7 +683,8 @@ begin
                     -- Need to handle the case when segment header but the len is 0
                     if seg_cnt = 0 and seg_last = '1' and
                                 (seg_type = HDR_PT or seg_type = HDR_TAG or seg_type = HDR_HASH_MSG) then
-                        wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
+
+                        wait until falling_edge(clk);
                         stall_msg <= '1'; -- last segment  wait until cipher is done
                         wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
                         stall_msg <= '0';
