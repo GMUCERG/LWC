@@ -48,7 +48,7 @@ def get_latest_supercop_version_url(sc_version):
             url = sc_base_url + match.group(1)
             version = match.group(2)
             print(f'Latest version of SUPERCOP seems to be {version} avariable from {url}')
-        except Exception as e: # TODO
+        except Exception as e: #TODO
             raise e
         return (version, url)
     else:
@@ -96,7 +96,7 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
         else:
             variants = [v for v in variants if any(v[0].startswith(l) for l in libs)]
             print(f'building only the following variants: {variants}')
-        return variants  #TODO
+        return variants  # TODO
 
     def generate_artifacats():
         ctgen_includes_dir = ctgen_get_dir('includes')
