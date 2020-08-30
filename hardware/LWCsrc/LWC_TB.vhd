@@ -32,7 +32,7 @@ entity LWC_TB IS
         --! External bus: supported values are 8, 16 and 32 bits
         G_W                 : integer := 32;
         G_STOP_AT_FAULT     : boolean := True;
-        G_TEST_MODE         : integer := 4;
+        G_TEST_MODE         : integer := 0;
         G_TEST_IPSTALL      : integer := 10;
         G_TEST_ISSTALL      : integer := 100;
         G_TEST_OSTALL       : integer := 40;
