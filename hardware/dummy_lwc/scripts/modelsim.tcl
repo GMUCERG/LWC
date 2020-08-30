@@ -23,7 +23,7 @@ set src_vhdl [subst {
 # ----------------------------------------
 # Set simulation files
 set tb_vhdl [subst {
-    "$INTERFACE_REPO/std_logic_1164_additions.vhd"
+    "$INTERFACE_REPO/lwc_std_logic_1164_additions.vhd"
     "$INTERFACE_REPO/$TOP_LEVEL_NAME.vhd"
 }]
 

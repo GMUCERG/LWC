@@ -1,0 +1,14 @@
+#-----------------------------------------------------------
+# Vivado v2019.2 (64-bit)
+# SW Build 2708876 on Wed Nov  6 21:39:14 MST 2019
+# IP Build 2700528 on Thu Nov  7 00:09:20 MST 2019
+# Start of session at: Wed Aug  5 23:27:49 2020
+# Process ID: 10693
+# Current directory: /home/rishub/src/LWC/hardware/dummy_lwc/src_rtl
+# Command line: vivado -mode batch -nojournal -notrace -source /home/rishub/src/LWC/hardware/scripts/synth/tools/vivado/run.tcl
+# Log file: /home/rishub/src/LWC/hardware/dummy_lwc/src_rtl/vivado.log
+# Journal file: 
+#-----------------------------------------------------------
+source /home/rishub/src/LWC/hardware/scripts/synth/tools/vivado/run.tcl -notrace
+couldn't read file "/home/rishub/src/LWC/hardware/scripts/synth/tools/vivado/run.tcl": no such file or directory
+INFO: [Common 17-206] Exiting Vivado at Wed Aug  5 23:27:55 2020...
