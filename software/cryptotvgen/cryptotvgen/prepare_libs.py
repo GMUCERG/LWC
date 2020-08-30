@@ -64,10 +64,15 @@ def ctgen_get_dir(sub_dir=None):
     assert data_dir.exists() and data_dir.is_dir()
     return data_dir
 
+def ctgen_get_supercop_dir():
+    return ctgen_get_dir() / 'supercop'
+
 
 def prepare_libs(sc_version, libs, candidates_dir, lib_path):
     # default ctgen data dir root, make sure exists or create
-    ctgen_candidates_dir = ctgen_get_dir()
+    ctgen_candidates_dir = ctgen_get_supercop_dir()
+    ctgen_includes_dir = ctgen_get_dir('includes')
+    ctgen_mkfile = ctgen_get_dir()
 
     # TODO
     impl_src_dir = 'ref'
@@ -75,7 +80,7 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
     def build_variants(variants, candidates_dir):
         for vname, vtype in variants:
             # print(f'running make CRYPTO_VARIANT={vname} CRYPTO_TYPE={vtype} in {candidates_dir}')
-            cmd = ['make', '-f',  str(ctgen_candidates_dir / mkfile_name), '-C', str(candidates_dir),
+            cmd = ['make', '-f',  str(ctgen_mkfile / mkfile_name), '-C', str(candidates_dir),
                    f'CRYPTO_VARIANT={vname}', f'CRYPTO_TYPE={vtype}', f'CANDIDATE_PATH={candidates_dir}',
                    f'IMPL_SRC_DIR={impl_src_dir}']
             if lib_path:
@@ -98,14 +103,12 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
         return variants  # TODO
 
     def generate_artifacats():
-        ctgen_includes_dir = ctgen_get_dir('includes')
-
         # TODO add function defs common to cffi
         (ctgen_includes_dir / 'crypto_aead.h').touch()
         (ctgen_includes_dir / 'crypto_hash.h').touch()
 
         mk_content = pkg_resources.read_text(__package__, mkfile_name)
-        with open(ctgen_candidates_dir / mkfile_name, 'w') as f:
+        with open(ctgen_mkfile / mkfile_name, 'w') as f:
             f.write(mk_content)
 
     def get_sc_tar(sc_version):
@@ -166,8 +169,10 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
         sc_tar.extractall(path=tmp_dir, members=extract_list)
         print('extraction complete')
 
+        if os.path.exists(candidates_dir):
+            shutil.rmtree(candidates_dir)
         shutil.copytree(str(pathlib.Path(tmp_dir) / f'supercop-{sc_version}'),
-                        str(candidates_dir), dirs_exist_ok=True)
+                        str(candidates_dir))
         shutil.rmtree(tmp_dir)
         print('moved sources to cryptotvgen data dir')
     else:
