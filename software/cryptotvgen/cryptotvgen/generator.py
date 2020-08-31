@@ -1246,18 +1246,18 @@ def gen_benckmark_routine(opts):
 
     # Ensure new key
     routine_new_key = [[True, False, 0,0, False]]
-    routine_new_key[0].append(basic_aead_sizes(True, False, opts.block_size_ad, opts.block_size))
-    routine_new_key[0].append(basic_aead_sizes(True, True, opts.block_size_ad, opts.block_size))
+    routine_new_key += basic_aead_sizes(True, False, opts.block_size_ad, opts.block_size)
+    routine_new_key += basic_aead_sizes(True, True, opts.block_size_ad, opts.block_size)
     data_enc = gen_dataset(opts, routine_new_key, 1, 1)
     opts.dest = os.path.join(orig_dest, 'basic_aead_sizes_new_key')
-    gen_tv_and_write_files(opts, data[0])
+    gen_tv_and_write_files(opts, data_enc[0])
     print(f'Generated: {os.path.abspath(opts.dest)}')
 
     # Ensure at least one new key
     routine_reuse_key = [[True, False, 0,0, False]]
-    routine_reuse_key[0].append(basic_aead_sizes(False, False, opts.block_size_ad, opts.block_size))
-    routine_reuse_key[0].append(basic_aead_sizes(False, True, opts.block_size_ad, opts.block_size))
+    routine_reuse_key += basic_aead_sizes(False, False, opts.block_size_ad, opts.block_size)
+    routine_reuse_key += basic_aead_sizes(False, True, opts.block_size_ad, opts.block_size)
     data_enc = gen_dataset(opts, routine_reuse_key, 1, 1)
     opts.dest = os.path.join(orig_dest, 'basic_aead_sizes_reuse_key')
-    gen_tv_and_write_files(opts, data[0])
+    gen_tv_and_write_files(opts, data_enc[0])
     print(f'Generated: {os.path.abspath(opts.dest)}')
