@@ -18,7 +18,7 @@ from enum import Enum
 
 from .options import routines
 from .log import setup_logger
-from .prepare_libs import ctgen_get_dir
+from .prepare_libs import ctgen_get_supercop_dir
 
 
 __all__ = ['gen_random', 'gen_dataset', 'gen_test_routine',
@@ -350,7 +350,7 @@ def get_cffi_path(opts, hashop):
     if opts.lib_path:
         lib_path = Path(opts.lib_path)
     else:
-        candidates_dir = Path(opts.candidates_dir) if opts.candidates_dir else ctgen_get_dir()
+        candidates_dir = Path(opts.candidates_dir) if opts.candidates_dir else ctgen_get_supercop_dir()
         lib_path = candidates_dir / 'lib'
     
     name = None
