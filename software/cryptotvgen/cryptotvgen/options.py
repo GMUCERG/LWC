@@ -33,9 +33,6 @@ class ValidateBlockSizeAd(argparse.Action):
     ''' Validate block_size_ad '''
     def __call__(self, parser, args, values, option_string=None):
         # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
-        if values > args.block_size:
-            raise(argparse.ArgumentError(
-                self, 'block_size_ad cannot be larger than block_size'))
         setattr(args, self.dest, values)
 
 class ValidateMsgFormat(argparse.Action):

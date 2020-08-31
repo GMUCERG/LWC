@@ -82,6 +82,8 @@ if __name__ == '__main__':
         '--aead', aead_lib_name,
         '--io', f'{PDI_width}', f'{SDI_width}',
         '--key_size', f'{key_size}',
+        '--block_size', f'{block_size_message}',
+        '--block_size_ad', f'{block_size_ad}',
         '--npub_size', f'{npub_size}',
         '--nsec_size', f'{nsec_size}',
         '--tag_size', f'{tag_size}',
@@ -89,7 +91,9 @@ if __name__ == '__main__':
         '--human_readable', '--verify_lib',
         ]
     if hash_lib_name is not None:
-        args += ['--hash', hash_lib_name,]
+        args += ['--hash', hash_lib_name,
+                 '--message_digest_size', f'{block_size_msg_digest}', 
+                ]
     orig_args = copy.deepcopy(args)
 
     # Desired measurements with new key every time
