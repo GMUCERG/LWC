@@ -28,13 +28,6 @@ class UseDebugLibrary(argparse.Action):
             new_path = path
             args.algorithm_class_paths[algorithm_class] = new_path
 
-
-class ValidateBlockSizeAd(argparse.Action):
-    ''' Validate block_size_ad '''
-    def __call__(self, parser, args, values, option_string=None):
-        # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
-        setattr(args, self.dest, values)
-
 class ValidateMsgFormat(argparse.Action):
     ''' Validate message format '''
     def __call__(self, parser, args, values, option_string=None):
@@ -59,13 +52,13 @@ class ValidateMsgFormat(argparse.Action):
 
 
 routines = ('gen_random', 'gen_custom', 'gen_test_routine', 'gen_single',
-            'gen_hash', 'gen_test_combined', 'prepare_libs')
+            'gen_hash', 'gen_test_combined', 'gen_benchmark', 'prepare_libs')
 
 class ValidateGenRandom(argparse.Action):
     ''' Validate gen_random option '''
     def __call__(self, parser, args, values, option_string=None):
         if args.hash is not None:
-            sys.exit('`--gen_random` can only be used in for AEAD testvectors')
+            sys.exit('`--gen_random` can only be used in for AEAD test vectors')
 
         if (values < 1 or values > 1000):
             raise argparse.ArgumentError(
@@ -265,6 +258,16 @@ class ValidateGenSingle(argparse.Action):
         setattr(args, 'routines', routine)
         setattr(args, self.dest, input)
 
+class ValidateGenBenchmarkRoutine(argparse.Action):
+    ''' Validate gen_benchmark_routine option '''
+    def __call__(self, parser, args, values, option_string=None):
+        try:
+            routine = getattr(args, 'routines')
+            routine.append(routines.index(self.dest))
+        except AttributeError:
+            routine = [routines.index(self.dest), ]
+        setattr(args, 'routines', routine)
+
 class InvalidateArgument(argparse.Action):
     def __call__(self, parser, args, values, option_string=None):
         raise argparse.ArgumentError(
@@ -375,10 +378,17 @@ def get_parser():
         '--prepare_libs', default=None, metavar='<variant_prefix>', nargs='*', action=ValidatePrepareLibs,
         help=textwrap.dedent('''\
             Build dynamically shared libraries required for testvector generation.
-            If one or more <variant_prefix> arguments are given, only build variants whose name starts with either of these prefixes, otherwise will build all libraries. 
-            e.g. `--prepare_libs ascon` will only build all AEAD and hash variants of "ascon*"
-            Automatic mode: If no `--candidates_dir` option is present it will download and extract reference implementations from SUPERCOP.
-            Subfolder mode: If `--candidates_dir` is specified, only build libraries found in sources directories of `candidates_dir` (uses SUPERCOP directory structure)
+            If one or more <variant_prefix> arguments are given, only build variants
+            whose name starts with either of these prefixes, otherwise will build
+            all libraries.
+            e.g. `--prepare_libs ascon` will only build all AEAD and hash variants
+            of "ascon*"
+
+            Automatic mode: If no `--candidates_dir` option is present it will
+                            download and extract reference implementations from SUPERCOP.
+            Subfolder mode: If `--candidates_dir` is specified, only build
+                            libraries found in sources directories of `candidates_dir`
+                            (uses SUPERCOP directory structure)
             (default: %(default)s)\
             See also `--supercop_version`''')
     )
@@ -386,8 +396,34 @@ def get_parser():
         '--supercop_version', default='latest',
         help=textwrap.dedent('''\
             'SUPERCOP version to download and use. 
-            Either use specific version with `YYYYMMDD` format or use `latest` to automatically determine the latest available versio from the SUPERCOP website.''')
+            Either use specific version with `YYYYMMDD` format or use `latest`
+            to automatically determine the latest available version from the SUPERCOP website.''')
     )
+    test.add_argument(
+        '--gen_benchmark', default=False, action=ValidateGenBenchmarkRoutine, nargs=0,
+        help=textwrap.dedent('''\
+            This mode generates several the following sets of test vectors
+            1) basic_aead_sizes_new_key: encryption and decryption of the following sizes
+                using a new key every time.
+                Format: (ad,PT/CT)
+                (5*--block_size_ad//8,0), (4*--block_size_ad//8,0), (1536,0), (64,0), (16,0)
+                (0,5*--block_size//8), (0,4*--block_size//8), (0,1536), (64,0), (0,16)
+                (5*--block_size_ad//8,5*--block_size), (4*--block_size_ad//8,4*--block_size),
+                (1536,1536), (64,64), (16,16)
+            2) basic_aead_sizes_reuse_key: Same sizes at new key but reusing key
+            3) basic_hash_sizes: (0, 16, 64, 1536, 4*--block_size_msg_digest//8,
+                                 5*--block_size_msg_digest//8)
+            4) blanket_aead_test: for i in range 0 to (2*--block_size_ad//8)-1
+                                    for x in range 0 to 2*--block_size//8)-1
+                                        tests += (i,x)
+                                Encryption only
+            5) blanket_hash_test: 0 to (4*--block_size_msg_digest//8) -1
+
+            Additional arguments to provide --aead, --block_size, and --block_size_ad.
+
+            Optional arguments --hash and --block_size_msg_digest allow for the generation
+            of the hash test vectors
+        '''))
     test.add_argument(
         '--gen_custom_mode', type=int, default=0, choices=range(3),
         metavar='MODE', help=textwrap.dedent('''\
@@ -689,9 +725,11 @@ def get_parser():
         help='''Algorithm's data block size''')
     impops.add_argument(
         '--block_size_ad', type=int, metavar='BITS',
-        action=ValidateBlockSizeAd,
         help='''Algorithm's associated data block size.
         This parameter is assumed to be equal to block_size if unspecified.''')
+    impops.add_argument(
+        '--block_size_msg_digest', type=int, default=None,
+        help='''Algorithm's hash data block size''')
     impops.add_argument(
         '--ciph_exp', default=False,
         action='store_true',
