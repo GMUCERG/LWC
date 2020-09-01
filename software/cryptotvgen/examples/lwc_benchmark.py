@@ -71,17 +71,24 @@ def blanket_message_test():
             return_string+=f"1,0,{ad_size},{mess_size},0:"
     return return_string
 
+def blanket_message_hash_test():
+    return_string = ""
+    for hash_size in range(4*block_size_msg_digest//8):
+            return_string+=f"0,0,0,{hash_size},1:"
+    return return_string
+
 if __name__ == '__main__':
     # Print the help text
     if (len(sys.argv) > 1 and sys.argv[1] == '-h'):
         sys.exit(cli.run_cryptotvgen(sys.argv[1:]))
-
     # Create the list of arguments for cryptotvgen
     args = [
         '--lib_path', str(script_dir.parents[1] / 'dummy_lwc_ref' / 'lib'),
         '--aead', aead_lib_name,
         '--io', f'{PDI_width}', f'{SDI_width}',
         '--key_size', f'{key_size}',
+        '--block_size', f'{block_size_message}',
+        '--block_size_ad', f'{block_size_ad}',
         '--npub_size', f'{npub_size}',
         '--nsec_size', f'{nsec_size}',
         '--tag_size', f'{tag_size}',
@@ -89,8 +96,11 @@ if __name__ == '__main__':
         '--human_readable', '--verify_lib',
         ]
     if hash_lib_name is not None:
+        args += ['--hash', hash_lib_name,
+                 '--message_digest_size', f'{block_size_msg_digest}', 
+                ]
         args += ['--hash', hash_lib_name,]
-    orig_args = copy.deepcopy(args)
+    orig_args = args.copy()
 
     # Desired measurements with new key every time
     args += msg_format + ['--dest', os.path.join(dest_folder,"throughput_new_key")]
@@ -103,7 +113,7 @@ if __name__ == '__main__':
     cli.run_cryptotvgen(args)
 
     # Desired measurements using the same key every time
-    args = orig_args
+    args = orig_args.copy()
     args += msg_format + ['--dest', os.path.join(dest_folder,"throughput_reuse_key")]
     # First message is just providing the new key
     gen_cus_string = "1,0,0,0,0:" + gen_custom_string_aead(0,0) + gen_custom_string_aead(0,1)
@@ -112,11 +122,18 @@ if __name__ == '__main__':
     cli.run_cryptotvgen(args)
 
     # Blanket test all possible message AD/PT message combinations between 0 and 2 x blocksize
-    args = orig_args
+    args = orig_args.copy()
     args += msg_format + ['--dest', os.path.join(dest_folder,"blanket_support_test")]
     gen_cus_string = blanket_message_test() + finish_custom()
     args += ['--gen_custom', gen_cus_string]
     cli.run_cryptotvgen(args)
+
+    if hash_lib_name is not None:
+        args = orig_args.copy()
+        args += msg_format + ['--dest', os.path.join(dest_folder,"blanket_hash_support_test")]
+        gen_cus_string = blanket_message_hash_test() + finish_custom()
+        args += ['--gen_custom', gen_cus_string]
+        cli.run_cryptotvgen(args)
      
 
 

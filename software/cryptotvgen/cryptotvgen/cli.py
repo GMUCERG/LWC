@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from .generator import gen_dataset, gen_hash, gen_random, gen_single, gen_test_combined, gen_test_routine, print_header
+from .generator import gen_dataset, gen_hash, gen_random, gen_single, gen_test_combined, \
+         gen_test_routine, print_header, gen_benckmark_routine, gen_tv_and_write_files
 from .options import get_parser
-from .prepare_libs import prepare_libs, ctgen_get_dir
+from .prepare_libs import prepare_libs
 import textwrap
 import os
 import sys
@@ -23,7 +24,6 @@ def run_cryptotvgen(args=sys.argv[1:]):
         prepare_libs(sc_version=opts.supercop_version, libs=opts.prepare_libs,
                      candidates_dir=opts.candidates_dir, lib_path=opts.lib_path)
         return 0
-    
     try:
         routines = opts.routines
     except AttributeError:
@@ -59,8 +59,6 @@ def run_cryptotvgen(args=sys.argv[1:]):
     if opts.candidates_dir:
         if not lib_path:
             lib_path = pathlib.Path(opts.candidates_dir) / 'lib'
-    
-
     for routine in opts.routines:
         if routine == 0:
             data = gen_random(opts, msg_no, key_no)
@@ -73,25 +71,17 @@ def run_cryptotvgen(args=sys.argv[1:]):
             gen_single_index += 1
         elif routine == 4:   # Hash
             data = gen_hash(opts, msg_no)
-        else:                # Combined AEAD and Hash
+        elif routine == 5:   # Combined AEAD and Hash
             data = gen_test_combined(opts, msg_no, key_no)
+        elif routine == 6:
+            gen_benckmark_routine(opts)
+            return 0
 
         dataset += data[0]
         msg_no = data[1]+1
         key_no = data[2]+1
 
-    print_header(opts)
-    for tv in dataset:
-        tv.gen_tv()
-        tv.gen_nist_tv()
-        tv.gen_cc_hls()
-
-    # Add EOF tag
-    for file_name in [opts.pdi_file, opts.do_file, opts.sdi_file]:
-        file_path = os.path.join(opts.dest, file_name)
-        with open(file_path, 'a') as f:
-            f.write('###EOF\n')
-
+    gen_tv_and_write_files(opts, dataset)
     print("Done! Please visit destination folder\n\t"
           "{}\n"
           "for generated files (pdi.txt, sdi.txt, and do.txt)".format(os.path.abspath(opts.dest)))

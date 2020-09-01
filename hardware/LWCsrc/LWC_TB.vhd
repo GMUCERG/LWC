@@ -42,6 +42,8 @@ entity LWC_TB IS
         G_FNAME_SDI         : string  := "../KAT/KAT_MS_32/sdi.txt";
         G_FNAME_DO          : string  := "../KAT/KAT_MS_32/do.txt";
         G_FNAME_LOG         : string  := "log.txt";
+        G_FNAME_TIMING      : string  := "timing.txt";
+        G_FNAME_TIMING_CSV  : string  := "timing.csv";
         G_FNAME_RESULT      : string  := "result.txt"
     );
 end LWC_TB;
@@ -116,7 +118,13 @@ architecture behavior of LWC_TB is
     signal stall_sdi_valid      : std_logic := '0';
     signal stall_do_full        : std_logic := '0';
     signal stall_msg            : std_logic := '0';
+    constant SUCCESS_WORD       : std_logic_vector(G_PWIDTH - 1 downto 0) := INST_SUCCESS & (G_PWIDTH - 5 downto 0 => '0');
+    constant FAILURE_WORD       : std_logic_vector(G_PWIDTH - 1 downto 0) := INST_FAILURE & (G_PWIDTH - 5 downto 0 => '0');
+    --! Measurement signals
     signal clk_cycle_counter    : integer := 0;
+    signal latency : integer := 0;
+    signal latency_done : std_logic := '0';
+    signal start_latency_timer : std_logic := '0';
     ------------- clock constant ------------------
     constant clk_period         : time := G_PERIOD;
     constant io_clk_period      : time := clk_period;
@@ -152,6 +160,8 @@ architecture behavior of LWC_TB is
     file do_file        : text open read_mode  is G_FNAME_DO;
 
     file log_file       : text open write_mode is G_FNAME_LOG;
+    file timing_file    : text open write_mode is G_FNAME_TIMING;
+    file timing_csv     : text open write_mode is G_FNAME_TIMING_CSV;
     file result_file    : text open write_mode is G_FNAME_RESULT;
     ------------- end of input files --------------------
 --    signal TestVector : integer;
@@ -426,7 +436,9 @@ begin
         variable opcode         : std_logic_vector(3 downto 0);
     begin
         wait for 6*clk_period;
-
+        if G_TEST_MODE = 4 then
+            file_open(do_file, G_FNAME_DO, read_mode); -- reset the file pointer
+        end if;
         while (not endfile (do_file) and valid_line and (not force_exit)) loop
             --! Keep reading new line until a valid line is found
             LWC_HREAD( line_data, word_block, read_result );
@@ -444,6 +456,7 @@ begin
                     word_count := 1;
                 else
                     valid_line := False;
+                 --   report temp_read_bs;
                     if (temp_read = cons_tb) then
                         instr_encoding := True;
                     end if;
@@ -566,6 +579,7 @@ begin
         write(logMsg, string'("[Log] Done"));
         writeline(log_file,logMsg);
         stop_clock <= True;
+        file_close(do_file);
         wait;
     end process;
     --! =======================================================================
@@ -579,140 +593,361 @@ begin
         wait until rising_edge(io_clk);
         clk_cycle_counter <= clk_cycle_counter + 1;
     end process;
+    
+    latency_counter : process
+    variable latency_start : integer;
+    begin
+        wait until start_latency_timer = '1';
+        latency_done <= '0';
+        latency <= 0;
+        if pdi_ready /= '1' then -- Wait until first word is read before starting timer
+            wait until pdi_ready = '1';
+        end if;
+        latency_start := clk_cycle_counter;
+        wait until rising_edge(clk);
+        if do_valid /= '1' then
+         --   wait on do;
+            wait until do_valid = '1'; -- wait until first word of output
+            wait until falling_edge(clk);
+        end if;
+        latency <= clk_cycle_counter - latency_start;
+        latency_done <= '1';
+    end process;
+        
 
-    genSegmentStall : process
-        variable seg_cnt : integer := 0;
+    genMeasurementMode : process
+        variable seg_cnt, seg_cnt_start : integer := 0;
         variable seg_last : std_logic;
-        variable seg_header : std_logic_vector(3 downto 0);
+        variable seg_eot : std_logic;
+        variable seg_eoi : std_logic;
+        variable seg_type : std_logic_vector(3 downto 0);
         variable ins_opcode : std_logic_vector(3 downto 0);
-        variable msg_start_time, latency_start, exec_time, latency_time : integer;
+        variable msg_start_time, exec_time : integer;
+        variable start_time : time;
         variable pt_size, ct_size, ad_size, hash_size, new_key : integer := 0;
-        variable latency_measure : integer := 0;
         variable msg_id: integer := 0;
+        variable first_seg : integer := 1;
+        variable timingMsg         : line;
+        variable line_data : line;
+        variable linelength : integer;
+        variable read_result    : boolean;
+        variable temp_read      : string(1 to 200);
+        variable block_size : integer := -1; --block sizes in bytes
+        variable block_size_ad : integer := -1;
+        variable block_size_hash : integer := -1;
+        variable ina, inm, inc, inh : integer := 0;
+        variable charindex : integer :=  15; --std_logic_vector(G_PWIDTH - 1 downto 0);
     begin
         if G_TEST_MODE = 4 then
             stall_msg <= '0';
+            if first_seg = 1 then
+                -- parse block size from do file
+                while (not endfile (do_file)) loop
+                        readline(do_file, line_data);
+                        linelength := line_data'length;
+                        read(line_data, temp_read(1 to line_data'length), read_result);
+                        if temp_read(1 to 15) = "# block_size   " then
+                            while temp_read(charindex) /= '-' loop
+                                charindex := charindex + 1;
+                            end loop;
+                            block_size := (integer'value(temp_read(charindex+1 to linelength))) / 8;
+                        elsif temp_read(1 to 15) = "# block_size_ad" then
+                            while temp_read(charindex) /= '-' loop
+                                charindex := charindex + 1;
+                            end loop;
+                            block_size_ad := (integer'value(temp_read(charindex+1 to linelength))) / 8;
+                        elsif temp_read(1 to 21) = "# message_digest_size" then
+                            while temp_read(charindex) /= '-' loop
+                                charindex := charindex + 1;
+                            end loop;
+                            block_size_hash := (integer'value(temp_read(charindex+1 to linelength))) / 8;
+                            exit;
+                         end if;
+                end loop;
+                file_close(do_file);
+                write(timingMsg, string'("### Timing Results for LWC Core ###"));
+                writeline(timing_file, timingMsg);
+                write(timingMsg, string'("Msg ID,New Key,AE/AD,Hash,AD Size,Msg Size,Na,Nm,Nc,Nh,Bla,Blm,Blc,Blh,Ina,Inm,Inc,Inh,Execution Time,Latency"));
+                writeline(timing_csv, timingMsg);
+                first_seg := 0;
+            else
+                write(timingMsg, string'("")); -- new line
+                writeline(timing_file, timingMsg);
+            end if;
             wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
-            latency_measure := 0;
             msg_start_time := 0;
             pt_size:=0; ct_size:=0; ad_size:=0; hash_size:=0; new_key := 0;
-            seg_cnt := 0; seg_header := "0000";
-            latency_time := 0;
+            seg_cnt := 0; seg_type := "0000";
             exec_time := 0;
             seg_cnt := 0;
             -- Determine Instruction
             ins_opcode := pdi_delayed(G_PWIDTH-1 downto G_PWIDTH-4);
             if ins_opcode = INST_ENC or ins_opcode = INST_DEC or ins_opcode = INST_HASH or ins_opcode = INST_ACTKEY then
-                msg_start_time := clk_cycle_counter;
+              msg_start_time := clk_cycle_counter;
+              start_time := time(now);
                 if ins_opcode = INST_ACTKEY then
                     new_key := 1;
                     wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
                     ins_opcode := pdi_delayed(G_PWIDTH-1 downto G_PWIDTH-4);
                 end if;
+            end if;
                 ----- Segment loop-------------
-                segment_loop8 : while True loop
-                    wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
-                    -- Obtain segment header
-                    if seg_cnt <= 0 then
-                        seg_header := pdi_delayed(G_PWIDTH-1 downto G_PWIDTH-4);
-                        seg_last := pdi_delayed(G_PWIDTH-8);
-                        if G_PWIDTH = 8 then
-                            wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
-                            wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1'; --wait segment length top
-                            seg_cnt := to_integer(unsigned(pdi_delayed & "00000000"));
-                            wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
-                            seg_cnt := seg_cnt + to_integer(unsigned(pdi_delayed));
-                        elsif G_PWIDTH = 16 then
-                            wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1'; --wait segment length top
-                            seg_cnt := to_integer(unsigned(pdi_delayed));
-                        else --G_PWIDTH 32
-                            seg_cnt := to_integer(unsigned(pdi_delayed(15 downto 0)));
-                        end if;
-                        if seg_header = HDR_PT then pt_size := pt_size + seg_cnt;
-                        elsif seg_header = HDR_CT then ct_size := ct_size + seg_cnt;
-                        elsif seg_header = HDR_AD then ad_size := ad_size + seg_cnt;
-                        elsif seg_header = HDR_HASH_MSG then hash_size := hash_size + seg_cnt;
-                        end if;
-                        -- Need to handle the case when segment header but the len is 0
-                        if seg_cnt = 0 and seg_last = '1' and
-                                   (seg_header = HDR_PT or seg_header = HDR_TAG or seg_header = HDR_HASH_MSG) then
-                            stall_msg <= '1'; -- last segment  wait until cipher is done
-                            wait until (do_last = '1' and (do(G_PWIDTH-1 downto G_PWIDTH-4) = INST_SUCCESS or do(G_PWIDTH-1 downto G_PWIDTH-4) = INST_FAILURE));
+            segment_loop : while True loop
+                wait until falling_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
+                -- Obtain segment header
+                if seg_cnt = 0 then
+                    -- parse segment header
+                    seg_type := pdi_delayed(G_PWIDTH-1 downto G_PWIDTH-4);
+                    seg_eoi := pdi_delayed(G_PWIDTH-6);
+                    seg_eot := pdi_delayed(G_PWIDTH-7);
+                    seg_last := pdi_delayed(G_PWIDTH-8);
+                    if G_PWIDTH = 8 then
+                       wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
+                       wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1'; --wait segment length top
+                       seg_cnt := to_integer(unsigned(pdi_delayed & "00000000"));
+                       wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
+                       seg_cnt := seg_cnt + to_integer(unsigned(pdi_delayed));
+                    elsif G_PWIDTH = 16 then
+                       wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1'; --wait segment length top
+                       seg_cnt := to_integer(unsigned(pdi_delayed));
+                    else --G_PWIDTH 32
+                        seg_cnt := to_integer(unsigned(pdi_delayed(15 downto 0)));
+                    end if;
+                    seg_cnt_start := seg_cnt;
+                    if seg_type = HDR_PT then pt_size := pt_size + seg_cnt;
+                    elsif seg_type = HDR_CT then ct_size := ct_size + seg_cnt;
+                    elsif seg_type = HDR_AD then ad_size := ad_size + seg_cnt;
+                    elsif seg_type = HDR_HASH_MSG then hash_size := hash_size + seg_cnt;
+                    end if;
+                    -- Need to handle the case when segment header but the len is 0
+                    if seg_cnt = 0 and seg_last = '1' and
+                                (seg_type = HDR_PT or seg_type = HDR_TAG or seg_type = HDR_HASH_MSG) then
+
+                        wait until falling_edge(clk);
+                        stall_msg <= '1'; -- last segment  wait until cipher is done
+                        wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
+                        stall_msg <= '0';
+                        exec_time := clk_cycle_counter-msg_start_time;
+                        msg_id := msg_id + 1;
+                        exit;
+                    end if;
+                else
+                    if (seg_cnt = seg_cnt_start) and (seg_type = HDR_PT or seg_type = HDR_CT) then 
+                        start_latency_timer <= '1';
+                    end if;
+                    if (seg_cnt <= 4 and G_PWIDTH = 32) or (seg_cnt <= 2 and G_PWIDTH = 16) or (seg_cnt <= 1 and G_PWIDTH = 8) then
+                        seg_cnt := 0;
+                        if ((seg_type = HDR_PT or seg_type = HDR_TAG or seg_type = HDR_HASH_MSG) and seg_last = '1')then
+                            wait until falling_edge(clk);
+                            stall_msg <= '1'; -- last segment wait until cipher is done
+                            if latency_done /= '1' and start_latency_timer = '1' then
+                                wait until latency_done = '1';
+                                if (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD)) then
+                                    stall_msg <= '0';
+                                    exec_time := clk_cycle_counter-msg_start_time;
+                                    msg_id := msg_id + 1;
+                                    exit;
+                                end if;
+                            end if;
+                            start_latency_timer <= '0';
+                            wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
                             stall_msg <= '0';
                             exec_time := clk_cycle_counter-msg_start_time;
                             msg_id := msg_id + 1;
                             exit;
                         end if;
-
                     else
-                        -- Measure latency
-                        if (seg_header = HDR_PT or seg_header = HDR_CT) then
-                            if latency_measure = 0 then
-                                latency_measure := 1;
-                                latency_start := clk_cycle_counter;
-                            elsif latency_measure = 1 and do_valid = '1' then
-                                latency_measure := 2;
-                                latency_time := clk_cycle_counter - latency_start;
-                            end if;
-                        end if;
-                        if G_PWIDTH = 8 then
-                            if seg_cnt <= 1 and (seg_header = HDR_PT or seg_header = HDR_TAG or seg_header = HDR_HASH_MSG) and seg_last = '1' then
-                                stall_msg <= '1'; -- last segment  wait until cipher is done
-                                wait until (do_last = '1' and (do(7 downto 4) = INST_SUCCESS or do(7 downto 4) = INST_FAILURE));
-                                stall_msg <= '0';
-                                exec_time := clk_cycle_counter-msg_start_time;
-                                msg_id := msg_id + 1;
-                                exit;
-                            end if;
-                            seg_cnt := seg_cnt - 1;
-                        elsif G_PWIDTH = 16 then
-                            if seg_cnt <= 2 and (seg_header = HDR_PT or seg_header = HDR_TAG or seg_header = HDR_HASH_MSG) and seg_last = '1' then
-                                stall_msg <= '1'; -- last segment  wait until cipher is done
-                                wait until (do_last = '1' and (do(15 downto 12) = INST_SUCCESS or do(15 downto 12) = INST_FAILURE));
-                                stall_msg <= '0';
-                                exec_time := clk_cycle_counter-msg_start_time;
-                                msg_id := msg_id + 1;
-                                exit;
-                            end if;
-                            seg_cnt := seg_cnt - 2;
-                        else --G_PWIDTH = 32
-                            if seg_cnt <= 4 and (seg_header = HDR_PT or seg_header = HDR_TAG or seg_header = HDR_HASH_MSG) and seg_last = '1' then
-                                stall_msg <= '1'; -- this is the last segment of the packet wait until cipher is done
-                                wait until (do_last = '1' and (do(31 downto 28) = INST_SUCCESS or do(31 downto 28) = INST_FAILURE));
-                                exec_time := clk_cycle_counter-msg_start_time;
-                                msg_id := msg_id + 1;
-                                exit;
-                            end if;
-                            seg_cnt := seg_cnt - 4;
-                        end if;
+                        seg_cnt := seg_cnt - (G_PWIDTH / 8);
                     end if;
-                end loop segment_loop8;
-                ----- End Segment loop-------------
-                report "MsgId: " & integer'image(msg_id);
-                if new_key = 1 then
-                    report "New Key";
                 end if;
-                if seg_header = HDR_PT then
-                    report "Authenticated Encryption";
-                    report "AD size = " & integer'image(ad_size) & " bytes, PT size = " & integer'image(pt_size) & " bytes";
-                    report "Execution time = " & integer'image(exec_time);
-                    report "Latency = " & integer'image(latency_time);
-                elsif seg_header = HDR_TAG then
-                    report "Authenticated Decryption";
-                    report "AD size = " & integer'image(ad_size) & " bytes, CT size = " & integer'image(ct_size) & " bytes";
-                    report "Execution time = " & integer'image(exec_time);
-                    report "Latency = " & integer'image(latency_time);
-                elsif seg_header = HDR_HASH_MSG then
-                    report "Hashing";
-                    report "Hash msg size = " & integer'image(hash_size) & " bytes";
-                    report "Execution time = " & integer'image(exec_time);
-                end if;
-            else 
-                report "Invalide OPCODE " & LWC_TO_HSTRING(pdi_delayed) severity failure;
+            end loop segment_loop;
+            if ad_size mod block_size_ad > 0 then
+                ina := 1;
+            else
+                ina := 0;
             end if;
-        else
-            wait;
-        end if;
+            report "MsgId: " & integer'image(msg_id) & " at " & time'image(start_time);
+            write(timingMsg, string'("Msg ID: ") &
+                  integer'image(msg_id) &
+                  string'(" at ") &
+                  time'image(start_time));
+            writeline(timing_file, timingMsg);
+            if new_key = 1 then
+                report "New Key";
+                write(timingMsg, string'("New Key"));
+                writeline(timing_file, timingMsg);
+            end if;
+            if seg_type = HDR_PT or seg_type = HDR_AD then
+                if pt_size mod block_size > 0 then
+                    inm := 1;
+                else
+                    inm := 0;
+                end if;
+                report "Authenticated Encryption";
+                report "AD size = " & integer'image(ad_size) & " bytes, PT size = " & integer'image(pt_size) & " bytes";
+                report "Na = " & integer'image((ad_size/block_size_ad)) & " Bla = " & integer'image(ad_size mod block_size_ad) & " Ina = " & integer'image(ina);
+                report "Nm = " & integer'image((pt_size/block_size)) & " Blm = " & integer'image(pt_size mod block_size) & " Inm = " & integer'image(inm);
+                report "Execution time = " & integer'image(exec_time) & " cycles";
+                report "Latency = " & integer'image(latency) & " cycles";
+                
+                write(timingMsg, string'("Authenticated Encryption"));
+                writeline(timing_file, timingMsg);
+                
+                write(timingMsg, string'("AD size = ") &
+                                 integer'image(ad_size) &
+                                 string'(" bytes, PT size = ") & 
+                                 integer'image(pt_size) &
+                                 string'(" bytes"));
+                                 
+                writeline(timing_file, timingMsg);
+                
+                write(timingMsg, string'("Na = ") & integer'image(ad_size/block_size_ad) &
+                                 string'(" Bla = ") & integer'image(ad_size mod block_size_ad) &
+                                 string'(" Ina = ") & integer'image(ina) &
+                                 string'(" Nm = ") & integer'image(pt_size/block_size) &
+                                 string'(" Blm = ") & integer'image(pt_size mod block_size) &
+                                 string'(" Inm = ") & integer'image(inm));
+                writeline(timing_file, timingMsg);
+                write(timingMsg, string'("Execution time = ") &
+                                 integer'image(exec_time) & 
+                                 string'(" cycles"));
+                writeline(timing_file, timingMsg);
+                
+                write(timingMsg, string'("Latency = ") &
+                                 integer'image(latency) & 
+                                 string'(" cycles"));
+                writeline(timing_file, timingMsg);
+                write(timingMsg,integer'image(msg_id) &
+                                string'(",") &
+                                integer'image(new_key) &
+                                string'(",0,0,") &
+                                integer'image(ad_size) &
+                                string'(",") &
+                                integer'image(pt_size) &
+                                string'(",") &
+                                integer'image(ad_size/block_size_ad) &
+                                string'(",") &
+                                integer'image(pt_size/block_size) &
+                                string'(",0,0,") &
+                                integer'image(ad_size mod block_size_ad) &
+                                string'(",") &
+                                integer'image(pt_size mod block_size) &
+                                string'(",0,0,") &
+                                integer'image(ina) &
+                                string'(",") &
+                                integer'image(inm) &
+                                string'(",0,0,") &
+                                integer'image(exec_time) &
+                                string'(",") &
+                                integer'image(latency));
+                writeline(timing_csv, timingMsg);
+            elsif seg_type = HDR_TAG then
+                if ct_size mod block_size > 0 then
+                    inc := 1;
+                else
+                    inc := 0;
+                end if;
+                report "Authenticated Decryption";
+                report "AD size = " & integer'image(ad_size) & " bytes, CT size = " & integer'image(ct_size) & " bytes";
+                report "Na = " & integer'image((ad_size/block_size_ad)) & " Bla = " & integer'image(ad_size mod block_size_ad) & " Ina = " & integer'image(ina);
+                report "Nc = " & integer'image((ct_size/block_size)) & " Blm = " & integer'image(ct_size mod block_size) & " Inc = " & integer'image(inc);
+                report "Execution time = " & integer'image(exec_time) & " cycles";
+                report "Latency = " & integer'image(latency) & " cycles";
+                write(timingMsg, string'("Authenticated Decryption"));
+                writeline(timing_file, timingMsg);
+                
+                write(timingMsg, string'("AD size = ") &
+                                 integer'image(ad_size) &
+                                 string'(" bytes, CT size = ") & 
+                                 integer'image(ct_size) &
+                                 string'(" bytes"));
+                writeline(timing_file, timingMsg);
+                write(timingMsg, string'("Na = ") & integer'image(ad_size/block_size_ad) &
+                                 string'(" Bla = ") & integer'image(ad_size mod block_size_ad) &
+                                 string'(" Ina = ") & integer'image(ina) &
+                                 string'(" Nc = ") & integer'image(ct_size/block_size) &
+                                 string'(" Blc = ") & integer'image(ct_size mod block_size) &
+                                 string'(" Inc = ") & integer'image(inc));
+                writeline(timing_file, timingMsg);
+                write(timingMsg, string'("Execution time = ") &
+                                 integer'image(exec_time) & 
+                                 string'(" cycles"));
+                writeline(timing_file, timingMsg);
+                
+                write(timingMsg, string'("Latency = ") &
+                                 integer'image(latency) & 
+                                 string'(" cycles"));
+                writeline(timing_file, timingMsg);
+                write(timingMsg,integer'image(msg_id) &
+                                string'(",") &
+                                integer'image(new_key) &
+                                string'(",1,0,") &
+                                integer'image(ad_size) &
+                                string'(",") &
+                                integer'image(ct_size) &
+                                string'(",") &
+                                integer'image(ad_size/block_size_ad) &
+                                string'(",0,") &
+                                integer'image(ct_size/block_size) &
+                                string'(",0,") &
+                                integer'image(ad_size mod block_size_ad) &
+                                string'(",0,") &
+                                integer'image(ct_size mod block_size) &
+                                string'(",0,") &
+                                integer'image(ina) &
+                                string'(",0,") &
+                                integer'image(inc) &
+                                string'(",0,") &
+                                integer'image(exec_time) &
+                                string'(",") &
+                                integer'image(latency));
+                writeline(timing_csv, timingMsg);
+            elsif seg_type = HDR_HASH_MSG then
+                if hash_size mod block_size_hash > 0 then
+                    inh := 1;
+                else
+                    inh := 0;
+                end if;
+                report "Hashing";
+                report "Hash msg size = " & integer'image(hash_size) & " bytes";
+                report "Nh = " & integer'image((hash_size/block_size_hash)) & " Blh = " & integer'image(hash_size mod block_size_hash) & " Inc = " & integer'image(inh);
+                report "Execution time = " & integer'image(exec_time) & " cycles";
+                
+                write(timingMsg, string'("Hashing"));
+                writeline(timing_file, timingMsg);
+                
+                write(timingMsg, string'("Hash msg size = ") &
+                                 integer'image(hash_size) &
+                                 string'(" bytes"));
+                writeline(timing_file, timingMsg);
+                write(timingMsg, string'("Nh = ") & integer'image(hash_size/block_size_hash) &
+                                 string'(" Blh = ") & integer'image(hash_size mod block_size_hash) &
+                                 string'(" Inh = ") & integer'image(inh));
+                writeline(timing_file, timingMsg);
+                write(timingMsg, string'("Execution time = ") &
+                                 integer'image(exec_time) & 
+                                 string'(" cycles"));
+                writeline(timing_file, timingMsg);
+                write(timingMsg,integer'image(msg_id) &
+                                string'(",") &
+                                integer'image(new_key) &
+                                string'(",0,1,0,") &
+                                integer'image(hash_size) &
+                                string'(",0,0,0,") &
+                                integer'image(hash_size/block_size_hash) &
+                                string'(",0,0,0,") &
+                                integer'image(hash_size mod block_size_hash) &
+                                string'(",0,0,0,") &
+                                integer'image(inh) &
+                                string'(",") & 
+                                integer'image(exec_time) &
+                                string'(",") &
+                                integer'image(latency));
+                writeline(timing_csv, timingMsg);
+            end if;
+         else
+             wait;
+         end if;
     end process;
 
 
