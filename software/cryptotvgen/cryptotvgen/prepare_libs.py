@@ -2,7 +2,6 @@ import os
 import sys
 import logging
 import re
-import shutil
 import tarfile
 import urllib.request
 import tempfile
