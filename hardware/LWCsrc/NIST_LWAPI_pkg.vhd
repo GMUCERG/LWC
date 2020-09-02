@@ -30,6 +30,12 @@ package NIST_LWAPI_pkg is
     --! External bus: supported values are 8, 16 and 32 bits
     constant W       : integer := 32;
     constant SW      : integer := W;
+    
+        
+    --! Asynchronous and active-low reset.
+    --! Can be set to `True` when targeting ASICs given that your CryptoCore supports it.
+    constant ASYNC_RSTN      : boolean := false;
+    
 
     --! Default values for do_data bus
     --! to avoid leaking intermeadiate values if do_valid = '0'.
