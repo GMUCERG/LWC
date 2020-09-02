@@ -247,7 +247,6 @@ begin
             );
     Inst_Header_Fifo: entity work.fwft_fifo(structure)
         generic map (
-                G_ASYNC_RSTN    => ASYNC_RSTN,
                 G_W             => W,
                 G_LOG2DEPTH     => 2
             )

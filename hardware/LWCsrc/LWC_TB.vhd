@@ -24,7 +24,6 @@ use std.textio.all;
 
 use work.lwc_std_logic_1164_additions.all;
 use work.NIST_LWAPI_pkg.all;
-use work.design_pkg.ASYNC_RSTN;
 
 
 entity LWC_TB IS
@@ -194,7 +193,6 @@ begin
     --! ============ --
     genPDIfifo: entity work.fwft_fifo(structure)
 	    generic map (
-	        G_ASYNC_RSTN => ASYNC_RSTN,
 	        G_W          => G_PWIDTH,
 	        G_LOG2DEPTH  => G_LOG2_FIFODEPTH)
 	    port map (
@@ -215,7 +213,6 @@ begin
 
     genSDIfifo: entity work.fwft_fifo(structure)
 	    generic map (
-	        G_ASYNC_RSTN => ASYNC_RSTN,
 	        G_W          => G_SWIDTH,
 	        G_LOG2DEPTH  => G_LOG2_FIFODEPTH)
 	    port map (
@@ -236,7 +233,6 @@ begin
 
     genDOfifo: entity work.fwft_fifo(structure)
 	    generic map (
-	        G_ASYNC_RSTN => ASYNC_RSTN,
 	        G_W          => G_PWIDTH,
 	        G_LOG2DEPTH  => G_LOG2_FIFODEPTH)
 	    port map (
