@@ -50,8 +50,6 @@ end LWC_TB;
 
 architecture behavior of LWC_TB is
 	
-		
-	constant SW               : integer := G_W;
     --! bus width. 
     constant G_PWIDTH           : integer := G_W;
     constant G_SWIDTH           : integer := SW;
@@ -257,9 +255,6 @@ begin
     do_ready            <= do_ready_selected after 1/4*clk_period;
 
     uut: entity work.LWC(structure)
-    	generic map(
-    		G_W          => G_W
-    	)
 	    port map (
 	        clk          => clk,
 	        rst          => rst,

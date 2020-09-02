@@ -3,7 +3,7 @@ from pathlib import Path, PurePath, PurePosixPath
 import json
 import re
 import subprocess
-import os
+import shutil
 import sys
 
 script_dir = Path(__file__).parent.resolve()
@@ -133,16 +133,21 @@ def test_all():
             if get_lang(file) == 'verilog':
                 verilog_files.append(file)
     # print(f'VHDL_FILES={vhdl_files}')
-    
+
     orig_design_pkg = None
-    
+    orig_lwapi_pkg = None
+
     for f in vhdl_files:
         f_path = Path(f).resolve()
         if f_path.name.lower() == 'design_pkg.vhd':
             orig_design_pkg = f_path
+        if f_path.name.lower() == 'nist_lwapi_pkg.vhd':
+            orig_lwapi_pkg = f_path
 
     if not orig_design_pkg:
         sys.exit(f"'design_pkg.vhd' not found in VHDL files of sources.list!")
+    if not orig_lwapi_pkg:
+        sys.exit(f"'NIST_LWAPI_pkg.vhd' not found in VHDL files of sources.list!")
 
     param_variants = [(32, 32), (32, 16), (32, 8), (16, 16), (8, 8)]
 
@@ -158,27 +163,41 @@ def test_all():
 
     # TODO run other targets as well
     make_goal = 'sim-ghdl'
-    
+
     results_dir = Path('testall_results').resolve()
-    results_dir.mkdir(exist_ok=True)    
+    results_dir.mkdir(exist_ok=True)
     logs_dir = Path('testall_logs').resolve()
     logs_dir.mkdir(exist_ok=True)
 
+    generated_sources = (core_src_path / 'generated_srcs')
+    generated_sources.mkdir(exist_ok=True)
+
+
     for vhdl_std in ['93', '08']:
         for ms in [False, True]:
+            replace_files_map = {}
             for w, ccw in param_variants:
+                replaced_lwapi_pkg = (
+                    generated_sources / f'NIST_LWAPI_pkg_W{w}.vhd').resolve()
+                lwapi_pkg_changes = [
+                    (r'(constant\s+W\s*:\s*integer\s*:=\s*)(\d+)(\s*;)', f'\\g<1>{w}\\g<3>')
+                ]
+                gen_from_template(orig_lwapi_pkg, replaced_lwapi_pkg, lwapi_pkg_changes)
+                replace_files_map[orig_lwapi_pkg] = replaced_lwapi_pkg
+
                 for async_rstn in [False, True]:
                     print(f'\n\n{"="*12}- Testing vhdl_std={vhdl_std} ms={ms} w={w} ccw={ccw} async_rstn={async_rstn} -{"="*12}\n')
                     gen_tv_dir = gen_tv_subfolder / f'TV{"_MS" if ms else ""}_{w}'
                     gen_tv(w, 2 if ms else None, gen_tv_dir)
 
                     replaced_design_pkg = (
-                        core_src_path / f'design_pkg_{ccw}{"_arstn" if async_rstn else ""}.vhd').resolve()
+                        generated_sources / f'design_pkg_{ccw}{"_arstn" if async_rstn else ""}.vhd').resolve()
                     design_pkg_changes = [
                         (r'(constant\s+variant\s+:\s+set_selector\s+:=\s+)dummy_lwc_.*;', f'\\g<1>dummy_lwc_{ccw};'),
                         (r'(constant\s+ASYNC_RSTN\s+:\s+boolean\s+:=\s+).*;', f'\\g<1>{async_rstn};')
                     ]
                     gen_from_template(orig_design_pkg, replaced_design_pkg, design_pkg_changes)
+                    replace_files_map[orig_design_pkg] = replaced_design_pkg
 
                     # TODO alternatively, parse config.ini and generate anew
                     generated_config_ini = gen_configs_subfolder / \
@@ -197,17 +216,24 @@ def test_all():
                     ]
                     gen_from_template(orig_config_ini, generated_config_ini, config_ini_changes)
 
-                    cfg_vhdl_files = [str(replaced_design_pkg) if Path(f).resolve().samefile(orig_design_pkg)
-                                      else f for f in vhdl_files]
+                    def replace_file(f):
+                        for orig in replace_files_map.keys():
+                            if Path(f).resolve().samefile(orig):
+                                return replace_files_map[orig]
+                        return f
+
+                    cfg_vhdl_files = [str(replace_file(f)) for f in vhdl_files]
+
                     cmd = [make_cmd, make_goal,
                            f"VHDL_FILES={' '.join(cfg_vhdl_files)}",
                            f"VERILOG_FILES={' '.join(verilog_files)}",
                            f"CONFIG_LOC={generated_config_ini}",
-                        #    "REBUILD=1"
+                           "REBUILD=1"
                            ]
                     print(f'running `{" ".join(cmd)}` in {core_src_path}')
                     cp = subprocess.run(cmd, cwd=core_src_path)
                     cp.check_returncode()
+                    cp = subprocess.run([make_cmd, 'clean-ghdl'], cwd=core_src_path)
 
 
 if __name__ == "__main__":

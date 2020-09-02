@@ -29,24 +29,21 @@ use work.design_pkg.all;
 use work.NIST_LWAPI_pkg.all;
 
 entity LWC is
-	generic (
-		G_W          : integer := 32
-	);
     port (
         --! Global ports
         clk             : in  std_logic;
         rst             : in  std_logic;
         --! Publica data ports
-        pdi_data        : in  std_logic_vector(G_W-1 downto 0);
+        pdi_data        : in  std_logic_vector(W-1 downto 0);
         pdi_valid       : in  std_logic;
         pdi_ready       : out std_logic;
         --! Secret data ports
         -- NOTE for future dev: this G_W is really SW!
-        sdi_data        : in  std_logic_vector(G_W-1 downto 0);
+        sdi_data        : in  std_logic_vector(W-1 downto 0);
         sdi_valid       : in  std_logic;
         sdi_ready       : out std_logic;
         --! Data out ports
-        do_data         : out std_logic_vector(G_W-1 downto 0);
+        do_data         : out std_logic_vector(W-1 downto 0);
         do_ready        : in  std_logic;
         do_valid        : out std_logic;
         do_last         : out std_logic
@@ -54,8 +51,6 @@ entity LWC is
 end LWC;
 
 architecture structure of LWC is
-		
-	constant SW  : integer := G_W;
 	
     --==========================================================================
     --!Cipher
@@ -98,11 +93,11 @@ architecture structure of LWC is
     --!FIFO
     --==========================================================================
     ------!Pre-Processor to FIFO
-    signal cmd_FIFO_in              : std_logic_vector(G_W-1 downto 0);
+    signal cmd_FIFO_in              : std_logic_vector(W-1 downto 0);
     signal cmd_valid_FIFO_in        : std_logic;
     signal cmd_ready_FIFO_in        : std_logic;
     ------!FIFO to Post_Processor
-    signal cmd_FIFO_out             : std_logic_vector(G_W-1 downto 0);
+    signal cmd_FIFO_out             : std_logic_vector(W-1 downto 0);
     signal cmd_valid_FIFO_out       : std_logic;
     signal cmd_ready_FIFO_out       : std_logic;
     --==========================================================================
@@ -146,13 +141,13 @@ begin
     --   The following combinations (sw, ccsw) are supported: (32, 32), (32, 16),
     --   (32, 8), (16, 16), and (8, 8). However, w and sw must be always the same."
 
-    assert false report "[LWC] GW=" & integer'image(G_W) &
+    assert false report "[LWC] GW=" & integer'image(W) &
         ", SW=" & integer'image(SW) &
         ", CCW=" & integer'image(CCW) &
         ", CCSW=" & integer'image(CCSW) severity note;
     
-    assert ((G_W = 32 and (CCW = 32 or CCW = 16 or CCW = 8)) or 
-    	(G_W = 16 and CCW = 16) or (G_W = 8 and CCW = 8)) 
+    assert ((W = 32 and (CCW = 32 or CCW = 16 or CCW = 8)) or 
+    	(W = 16 and CCW = 16) or (W = 8 and CCW = 8)) 
     	report "[LWC] Invalid combination of (G_W, CCW)" severity failure;
     	
     assert ((SW = 32 and (CCSW = 32 or CCSW = 16 or CCSW = 8)) or 
@@ -164,7 +159,7 @@ begin
 
     Inst_PreProcessor: entity work.PreProcessor(PreProcessor)
     	generic map(
-        		G_W             => G_W,
+        		G_W             => W,
         		G_SW            => SW,
         		G_ASYNC_RSTN    => ASYNC_RSTN
 			)
@@ -227,7 +222,7 @@ begin
             );
     Inst_PostProcessor: entity work.PostProcessor(PostProcessor)
     	generic map(
-        		G_W            => G_W,
+        		G_W            => W,
         		G_ASYNC_RSTN   => ASYNC_RSTN
         	)
         port map(
@@ -253,7 +248,7 @@ begin
     Inst_Header_Fifo: entity work.fwft_fifo(structure)
         generic map (
                 G_ASYNC_RSTN    => ASYNC_RSTN,
-                G_W             => G_W,
+                G_W             => W,
                 G_LOG2DEPTH     => 2
             )
         port map(
