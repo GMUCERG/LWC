@@ -182,8 +182,8 @@ def test_all():
                     replaced_lwapi_pkg = (
                         generated_sources / f'NIST_LWAPI_pkg_W{w}{"_ASYNC_RSTN" if async_rstn else ""}.vhd').resolve()
                     lwapi_pkg_changes = [
-                        (r'(constant\s+W\s*:\s*integer\s*:=\s*)(\d+)(\s*;)', f'\\g<1>{w}\\g<3>'),
-                        (r'(constant\s+ASYNC_RSTN\s+:\s+boolean\s+:=\s+).*;', f'\\g<1>{async_rstn};')
+                        (r'(constant\s+W\s*:\s*integer\s*:=\s*)\d+(\s*;)', f'\\g<1>{w}\\g<2>'),
+                        (r'(constant\s+ASYNC_RSTN\s*:\s+boolean\s*:=\s*)\w+(\s*;)', f'\\g<1>{async_rstn}\\g<2>')
                     ]
                     gen_from_template(orig_lwapi_pkg, replaced_lwapi_pkg, lwapi_pkg_changes)
                     replace_files_map[orig_lwapi_pkg] = replaced_lwapi_pkg
@@ -195,7 +195,7 @@ def test_all():
                     replaced_design_pkg = (
                         generated_sources / f'design_pkg_{ccw}.vhd').resolve()
                     design_pkg_changes = [
-                        (r'(constant\s+variant\s+:\s+set_selector\s+:=\s+)dummy_lwc_.*;', f'\\g<1>dummy_lwc_{ccw};')
+                        (r'(constant\s+variant\s*:\s*set_selector\s*:=\s*dummy_lwc_)\d+(\s*;)', f'\\g<1>{ccw}\\g<2>')
                     ]
                     gen_from_template(orig_design_pkg, replaced_design_pkg, design_pkg_changes)
                     replace_files_map[orig_design_pkg] = replaced_design_pkg
