@@ -1,0 +1,93 @@
+{
+    "design": {
+        "name": "dummy_lwc",
+        "description": "Implementation of the dummy_lwc cipher and hash",
+        "author": [
+            "[Patrick Karl](patrick.karl@tum.de)"
+        ],
+        "url": "https://github.com/GMUCERG/LWC",
+        "sources": [
+            {
+                "file": "src_rtl/design_pkg.vhd"
+            },
+            {
+                "file": "src_rtl/LWC/NIST_LWAPI_pkg.vhd"
+            },
+            {
+                "file": "src_rtl/SPDRam.vhd"
+            },
+            {
+                "file": "src_rtl/CryptoCore.vhd"
+            },
+            {
+                "file": "src_rtl/LWC/StepDownCountLd.vhd"
+            },
+            {
+                "file": "src_rtl/LWC/data_sipo.vhd"
+            },
+            {
+                "file": "src_rtl/LWC/key_piso.vhd"
+            },
+            {
+                "file": "src_rtl/LWC/data_piso.vhd"
+            },
+            {
+                "file": "src_rtl/LWC/fwft_fifo.vhd"
+            },
+            {
+                "file": "src_rtl/LWC/PreProcessor.vhd"
+            },
+            {
+                "file": "src_rtl/LWC/PostProcessor.vhd"
+            },
+            {
+                "file": "src_rtl/LWC/LWC.vhd"
+            },
+            {
+                "file": "src_tb/lwc_std_logic_1164_additions.vhd",
+                "sim_only": true
+            },
+            {
+                "file": "src_tb/LWC_TB.vhd",
+                "sim_only": true
+            }
+        ],
+        "vhdl_std": "02",
+        "vhdl_synopsys": true,
+        "top": "LWC",
+        "clock_port": "clk",
+        "tb_top": "LWC_TB",
+        "tb_generics": {
+            "G_FNAME_PDI": {
+                "file": "KAT/KAT_32/pdi.txt"
+            },
+            "G_FNAME_SDI": {
+                "file": "KAT/KAT_32/sdi.txt"
+            },
+            "G_FNAME_DO": {
+                "file": "KAT/KAT_32/do.txt"
+            }
+        },
+        "generics": {}
+    },
+    "flows": {
+        "diamond": {
+            "fpga_part": "LFE5U-25F-6BG381C",
+            "clock_period": 12.0,
+            "synthesis_engine": "synplify",
+            "strategy": "Timing"
+        },
+        "vivado": {
+            "fpga_part": "xc7a12tcsg325-3",
+            "clock_period": 5.0,
+            "strategy": "Timing",
+            "optimize_power": "False",
+            "sim_run": "all"
+        },
+        "quartus": {
+            "fpga_part": "10CL016YU256C6G",
+            "strategy": "Timing",
+            "clock_period": 6.1
+        }
+    }
+}
