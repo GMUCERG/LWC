@@ -29,7 +29,6 @@ use work.NIST_LWAPI_pkg.all;
 entity LWC_TB IS
     generic (
         --! External bus: supported values are 8, 16 and 32 bits
-        G_W                 : integer := 32;
         G_STOP_AT_FAULT     : boolean := True;
         G_TEST_MODE         : integer := 0;
         G_TEST_IPSTALL      : integer := 10;
@@ -50,7 +49,7 @@ end LWC_TB;
 architecture behavior of LWC_TB is
 	
     --! bus width. 
-    constant G_PWIDTH           : integer := G_W;
+    constant G_PWIDTH           : integer := W;
     constant G_SWIDTH           : integer := SW;
     -- for automated/scripted testing override:
     --    W and SW in work.NIST_LWAPI_pkg
