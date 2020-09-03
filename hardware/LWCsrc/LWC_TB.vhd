@@ -601,7 +601,7 @@ begin
             wait until do_valid = '1'; -- wait until first word of output
             wait until falling_edge(clk);
         end if;
-        latency <= clk_cycle_counter - latency_start;
+        latency <= (clk_cycle_counter - latency_start) + 1; -- Add 1 for Fifo write
         latency_done <= '1';
     end process;
         
@@ -658,7 +658,7 @@ begin
                 file_close(do_file);
                 write(timingMsg, string'("### Timing Results for LWC Core ###"));
                 writeline(timing_file, timingMsg);
-                write(timingMsg, string'("Msg ID,New Key,AE/AD,Hash,AD Size,Msg Size,Na,Nm,Nc,Nh,Bla,Blm,Blc,Blh,Ina,Inm,Inc,Inh,Execution Time,Latency"));
+                write(timingMsg, string'("Msg ID,New Key,Operation,AD Size,Msg Size,Na,Nm,Nc,Nh,Bla,Blm,Blc,Blh,Ina,Inm,Inc,Inh,Execution Time,Latency"));
                 writeline(timing_csv, timingMsg);
                 first_seg := 0;
             else
@@ -811,7 +811,7 @@ begin
                 write(timingMsg,integer'image(msg_id) &
                                 string'(",") &
                                 integer'image(new_key) &
-                                string'(",0,0,") &
+                                string'(",AE,") &
                                 integer'image(ad_size) &
                                 string'(",") &
                                 integer'image(pt_size) &
@@ -872,7 +872,7 @@ begin
                 write(timingMsg,integer'image(msg_id) &
                                 string'(",") &
                                 integer'image(new_key) &
-                                string'(",1,0,") &
+                                string'(",AD,") &
                                 integer'image(ad_size) &
                                 string'(",") &
                                 integer'image(ct_size) &
@@ -922,7 +922,7 @@ begin
                 write(timingMsg,integer'image(msg_id) &
                                 string'(",") &
                                 integer'image(new_key) &
-                                string'(",0,1,0,") &
+                                string'(",HASH,0,") &
                                 integer'image(hash_size) &
                                 string'(",0,0,0,") &
                                 integer'image(hash_size/block_size_hash) &
