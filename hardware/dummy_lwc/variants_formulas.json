@@ -1,5 +1,5 @@
 {
-    "V1": {
+    "v1": {
         "desc": "CCW=CCSW=8",
         "formulas": {
             "ae": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nm + Inm*ceil((Blm+1)/4) + 8",
@@ -7,7 +7,7 @@
             "hash": "8 + 8*Nh + Inh*ceil((Blh+1)/4) + 8"
         }
     },
-    "V2": {
+    "v2": {
         "desc": "CCW=CCSW=16",
         "formulas": {
             "ae": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nm + Inm*ceil((Blm+1)/4) + 8",
@@ -15,7 +15,7 @@
             "hash": "8 + 8*Nh + Inh*ceil((Blh+1)/4) + 8"
         }
     },
-    "V3": {
+    "v3": {
         "desc": "CCW=CCSW=32",
         "formulas": {
             "ae": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nm + Inm*ceil((Blm+1)/4) + 8",
