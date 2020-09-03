@@ -39,17 +39,18 @@
         "tb_top": "LWC_TB",
         "tb_generics": {
             "G_FNAME_PDI": {
-                "file": "KAT/v3/pdi.txt"
+                "file": "KAT/V3/pdi.txt"
             },
             "G_FNAME_SDI": {
-                "file": "KAT/v3/sdi.txt"
+                "file": "KAT/V3/sdi.txt"
             },
             "G_FNAME_DO": {
-                "file": "KAT/v3/do.txt"
+                "file": "KAT/V3/do.txt"
             },
             "G_TEST_MODE": 4
         },
-        "generics": {}
+        "generics": {},
+        "variant_id" : "V3"
     },
     "flows": {
         "diamond": {

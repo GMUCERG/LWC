@@ -1,26 +1,26 @@
 {
-    "v1": {
-        "desc": "CCW=CCSW=8",
+    "V1": {
+        "desc": "with CCW=CCSW=8:",
         "formulas": {
-            "ae": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nm + Inm*ceil((Blm+1)/4) + 8",
-            "ad": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nc + Inc*ceil((Blc+1)/4) + 9",
-            "hash": "8 + 8*Nh + Inh*ceil((Blh+1)/4) + 8"
+            "AE": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nm  + Inm*ceil((Blm+1)/4)  + 8",
+            "AD": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nc  + Inc*ceil((Blc+1)/4)  + 9",
+            "HASH": "8 + 8*Nh + Inh*ceil((Blh+1)/4) + 8"
         }
     },
-    "v2": {
-        "desc": "CCW=CCSW=16",
+    "V2": {
+        "desc": "with CCW=CCSW=16:",
         "formulas": {
-            "ae": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nm + Inm*ceil((Blm+1)/4) + 8",
-            "ad": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nc + Inc*ceil((Blc+1)/4) + 9",
-            "hash": "8 + 8*Nh + Inh*ceil((Blh+1)/4) + 8"
+            "AE": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nm  + Inm*ceil((Blm+1)/4)  + 8",
+            "AD": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nc  + Inc*ceil((Blc+1)/4)  + 9",
+            "HASH": "8 + 8*Nh + Inh*ceil((Blh+1)/4) + 8"
         }
     },
-    "v3": {
-        "desc": "CCW=CCSW=32",
+    "V3": {
+        "desc": "with CCW=CCSW=32:",
         "formulas": {
-            "ae": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nm + Inm*ceil((Blm+1)/4) + 8",
-            "ad": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nc + Inc*ceil((Blc+1)/4) + 9",
-            "hash": "8 + 8*Nh + Inh*ceil((Blh+1)/4) + 8"
+            "AE": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nm  + Inm*ceil((Blm+1)/4)  + 8",
+            "AD": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nc  + Inc*ceil((Blc+1)/4)  + 9",
+            "HASH": "8 + 8*Nh + Inh*ceil((Blh+1)/4) + 8"
         }
     }
 }
