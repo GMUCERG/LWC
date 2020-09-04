@@ -1,1 +1,0 @@
-../../../LWCsrc/data_sipo.vhd
