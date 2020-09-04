@@ -31,13 +31,13 @@
         "vhdl_std": "02",
         "tb_generics": {
             "G_FNAME_PDI": {
-                "file": "KAT/v1/pdi.txt"
+                "file": "KAT/v2/pdi.txt"
             },
             "G_FNAME_SDI": {
-                "file": "KAT/v1/sdi.txt"
+                "file": "KAT/v2/sdi.txt"
             },
             "G_FNAME_DO": {
-                "file": "KAT/v1/do.txt"
+                "file": "KAT/v2/do.txt"
             },
             "G_TEST_MODE": 4
         },
