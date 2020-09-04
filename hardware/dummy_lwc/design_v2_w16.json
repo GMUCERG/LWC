@@ -1,0 +1,46 @@
+{
+    "design": {
+        "name": "dummy_lwc",
+        "description": "Implementation of the dummy_lwc cipher and hash",
+        "author": [
+            "[Patrick Karl](patrick.karl@tum.de)"
+        ],
+        "url": "https://github.com/GMUCERG/LWC",
+        "sources": [
+            "src_rtl/v2/design_pkg.vhd",
+            "src_rtl/v2/LWC/NIST_LWAPI_pkg_w16.vhd",
+            "src_rtl/v2/SPDRam.vhd",
+            "src_rtl/v2/CryptoCore.vhd",
+            "src_rtl/v2/LWC/StepDownCountLd.vhd",
+            "src_rtl/v2/LWC/data_sipo.vhd",
+            "src_rtl/v2/LWC/key_piso.vhd",
+            "src_rtl/v2/LWC/data_piso.vhd",
+            "src_rtl/v2/LWC/fwft_fifo.vhd",
+            "src_rtl/v2/LWC/PreProcessor.vhd",
+            "src_rtl/v2/LWC/PostProcessor.vhd",
+            "src_rtl/v2/LWC/LWC.vhd",
+            {
+                "file": "src_tb/LWC/lwc_std_logic_1164_additions.vhd",
+                "sim_only": true
+            },
+            {
+                "file": "src_tb/LWC/LWC_TB.vhd",
+                "sim_only": true
+            }
+        ],
+        "vhdl_std": "02",
+        "tb_generics": {
+            "G_FNAME_PDI": {
+                "file": "KAT/v2/pdi.txt"
+            },
+            "G_FNAME_SDI": {
+                "file": "KAT/v2/sdi.txt"
+            },
+            "G_FNAME_DO": {
+                "file": "KAT/v2/do.txt"
+            },
+            "G_TEST_MODE": 4
+        },
+        "variant_id" : "v2"
+    }
+}
