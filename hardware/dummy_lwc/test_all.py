@@ -173,12 +173,12 @@ def test_all():
     generated_sources.mkdir(exist_ok=True)
 
 
-    for vhdl_std in ['93', '08']:
-        for ms in [False, True]:
+    for vhdl_std in ['93']:
+        for ms in [False]:
             replace_files_map = {}
             for w, ccw in param_variants:
 
-                for async_rstn in [False, True]:
+                for async_rstn in [False]:
                     replaced_lwapi_pkg = (
                         generated_sources / f'NIST_LWAPI_pkg_W{w}{"_ASYNC_RSTN" if async_rstn else ""}.vhd').resolve()
                     lwapi_pkg_changes = [
@@ -204,8 +204,6 @@ def test_all():
                     generated_config_ini = gen_configs_subfolder / \
                         f"config_{w}{'_MS' if ms else ''}_vhdl{vhdl_std}.ini"
                     config_ini_changes = [
-                        (r'(G_W\s*=\s*)\d+', f'\\g<1>{w}'),
-                        (r'(G_SW\s*=\s*)\d+', f'\\g<1>{w}'),
                         (r'(G_FNAME_PDI\s*=\s*).*', f'\\g<1>"{gen_tv_dir}/pdi.txt"'),
                         (r'(G_FNAME_SDI\s*=\s*).*', f'\\g<1>"{gen_tv_dir}/sdi.txt"'),
                         (r'(G_FNAME_DO\s*=\s*).*', f'\\g<1>"{gen_tv_dir}/do.txt"'),

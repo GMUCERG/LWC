@@ -5,7 +5,7 @@ Ina, Inm, Inc, Inh : binary variables equal to 1 if the last block of the respec
 Bla, Blm, Blc, and Blh : the number of bytes in the incomplete block of associated data, plaintext, ciphertext, and hash message, respectively
 
 
-V1 with CCW=CCSW=8:
+v1 with CCW=CCSW=32:
 	
 
 	Reference software:    
@@ -23,23 +23,23 @@ V1 with CCW=CCSW=8:
 		1
 
 	Key setup time:
-		16
+		4
     
 	Execution time of authenticated encryption:
-		12 + 16*Na + Ina*(Bla + 1) + 16*Nm  + Inm*(Blm + 1)  + 32
+		3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nm  + Inm*ceil((Blm+1)/4)  + 8
 	Execution time of authenticated decryption:
-		12 + 16*Na + Ina*(Bla + 1) + 16*Nc  + Inc*(Blc + 1)  + 33
+		3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nc  + Inc*ceil((Blc+1)/4)  + 9
 	Execution time of hashing:
-		32 + 32*Nh + Inh*(Blh + 1) + 32
+		8 + 8*Nh + Inh*ceil((Blh+1)/4) + 8
 
 
-    Authentication Throughput for large Na = 8/T = 8*f
-    Encryption Throughput for large Nm = 8/T = 8*f
-    Decryption Throughput for large Nc = 8/T = 8*f
-    Hashing Throughput for large Nh = 8/T = 8*f
-		
+    Authentication Throughput for large Na = 32/T = 32*f
+    Encryption Throughput for large Nm = 32/T = 32*f
+    Decryption Throughput for large Nc = 32/T = 32*f
+    Hashing Throughput for large Nh = 32/T = 32*f
+
 ---------------------------------------------------------------------------
-V2 with CCW=CCSW=16:
+v2 with CCW=CCSW=16:
 	
 
 	Reference software:    
@@ -73,7 +73,7 @@ V2 with CCW=CCSW=16:
     Hashing Throughput for large Nh = 16/T = 16*f
 
 ---------------------------------------------------------------------------
-V3 with CCW=CCSW=32:
+v3 with CCW=CCSW=8:
 	
 
 	Reference software:    
@@ -91,17 +91,17 @@ V3 with CCW=CCSW=32:
 		1
 
 	Key setup time:
-		4
+		16
     
 	Execution time of authenticated encryption:
-		3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nm  + Inm*ceil((Blm+1)/4)  + 8
+		12 + 16*Na + Ina*(Bla + 1) + 16*Nm  + Inm*(Blm + 1)  + 32
 	Execution time of authenticated decryption:
-		3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nc  + Inc*ceil((Blc+1)/4)  + 9
+		12 + 16*Na + Ina*(Bla + 1) + 16*Nc  + Inc*(Blc + 1)  + 33
 	Execution time of hashing:
-		8 + 8*Nh + Inh*ceil((Blh+1)/4) + 8
+		32 + 32*Nh + Inh*(Blh + 1) + 32
 
 
-    Authentication Throughput for large Na = 32/T = 32*f
-    Encryption Throughput for large Nm = 32/T = 32*f
-    Decryption Throughput for large Nc = 32/T = 32*f
-    Hashing Throughput for large Nh = 32/T = 32*f
+    Authentication Throughput for large Na = 8/T = 8*f
+    Encryption Throughput for large Nm = 8/T = 8*f
+    Decryption Throughput for large Nc = 8/T = 8*f
+    Hashing Throughput for large Nh = 8/T = 8*f

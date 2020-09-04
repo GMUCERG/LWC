@@ -32,7 +32,7 @@ GHDL_ANALYSIS_OPTS = -frelaxed-rules --warn-no-vital-generic -frelaxed $(GHDL_OP
 GHDL_ELAB_OPTS = $(GHDL_STD_OPT) $(if $(GHDL_IEEE_SYNOPSYS),-fsynopsys,)
 
 ### GHDL analyze testbench files, elaborate, and run
-.PHONY: sim-ghdl help-ghdl clean-ghdl lint-vhdl-synth
+.PHONY: sim-ghdl help-ghdl clean-ghdl lint-vhdl-synth $(WORK_LIB)-obj$(VHDL_STD).cf
 
 ### GHDL analyse
 $(WORK_LIB)-obj$(VHDL_STD).cf: $(SIM_VHDL_FILES) $(FORCE_REBUILD) config-vars

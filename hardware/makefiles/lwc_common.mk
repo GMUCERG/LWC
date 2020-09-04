@@ -30,7 +30,7 @@ VIVADO_BIN = $(DOCKER_CMD) -e PATH="/opt/Xilinx/Vivado/2019.2/bin:/usr/bin:/bin"
 endif
 
 TOP ?= LWC
-SOURCE_LIST_FILE ?= $(CORE_ROOT)/source_list.txt
+SOURCES_LIST ?= $(CORE_ROOT)/source_list.txt
 PYTHON3_BIN ?= python3
 CONFIG_LOC ?= $(CORE_ROOT)/config.ini
 
@@ -53,8 +53,8 @@ endif
 #######################
 
 ifeq ($(VERILOG_FILES)$(VHDL_FILES),)
-VHDL_FILES := $(shell cat $(SOURCE_LIST_FILE) | egrep .*\.vhdl?)
-VERILOG_FILES := $(shell cat $(SOURCE_LIST_FILE) | egrep .*\.s?v | egrep -v .*\.vhdl?)
+VHDL_FILES := $(shell cat $(SOURCES_LIST) | egrep .*\.vhdl?)
+VERILOG_FILES := $(shell cat $(SOURCES_LIST) | egrep .*\.s?v | egrep -v .*\.vhdl?)
 endif
 
 # expand variables inside `source_list.txt`
