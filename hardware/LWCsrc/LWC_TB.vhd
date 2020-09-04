@@ -695,7 +695,7 @@ begin
                        wait until falling_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
                        wait until falling_edge(clk) and pdi_ready = '1' and pdi_valid = '1'; --wait segment length top
                        seg_cnt := to_integer(unsigned(pdi_delayed & "00000000"));
-                       wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
+                       wait until falling_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
                        seg_cnt := seg_cnt + to_integer(unsigned(pdi_delayed));
                     elsif G_PWIDTH = 16 then
                        wait until falling_edge(clk) and pdi_ready = '1' and pdi_valid = '1'; --wait segment length top
