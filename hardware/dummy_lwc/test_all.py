@@ -27,7 +27,9 @@ make_cmd = 'make'
 
 print(f'script_dir={script_dir}')
 
-sources_list = core_src_path / 'source_list.txt'
+sources_list = core_src_path / 'v1' / 'src_rtl' / 'source_list.txt'
+tb_sources_list = core_src_path / 'v1' / 'src_tb' / 'source_list.txt'
+
 variables = {'LWCSRC_DIR': str(lwc_root / 'hardware' / 'LWCsrc')}
 # END OF SETTINGS
 

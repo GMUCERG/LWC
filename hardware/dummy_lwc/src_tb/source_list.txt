@@ -1,0 +1,2 @@
+src_tb/LWC/lwc_std_logic_1164_additions.vhd
+src_tb/LWC/LWC_TB.vhd

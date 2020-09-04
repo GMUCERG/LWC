@@ -20,11 +20,11 @@
             "src_rtl/LWC/PostProcessor.vhd",
             "src_rtl/LWC/LWC.vhd",
             {
-                "file": "src_tb/lwc_std_logic_1164_additions.vhd",
+                "file": "src_tb/LWC/lwc_std_logic_1164_additions.vhd",
                 "sim_only": true
             },
             {
-                "file": "src_tb/LWC_TB.vhd",
+                "file": "src_tb/LWC/LWC_TB.vhd",
                 "sim_only": true
             }
         ],
