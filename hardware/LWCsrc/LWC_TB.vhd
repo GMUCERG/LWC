@@ -30,15 +30,15 @@ entity LWC_TB IS
     generic (
         --! External bus: supported values are 8, 16 and 32 bits
         G_STOP_AT_FAULT     : boolean := True;
-        G_TEST_MODE         : integer := 0;
+        G_TEST_MODE         : integer := 4;
         G_TEST_IPSTALL      : integer := 10;
         G_TEST_ISSTALL      : integer := 100;
         G_TEST_OSTALL       : integer := 40;
         G_LOG2_FIFODEPTH    : integer := 8;
         G_PERIOD            : time    := 10 ns;
-        G_FNAME_PDI         : string  := "../KAT/v1/pdi.txt";
-        G_FNAME_SDI         : string  := "../KAT/v1/sdi.txt";
-        G_FNAME_DO          : string  := "../KAT/v1/do.txt";
+        G_FNAME_PDI         : string  := "../KAT/v1_MS_W16/pdi.txt";
+        G_FNAME_SDI         : string  := "../KAT/v1_MS_W16/sdi.txt";
+        G_FNAME_DO          : string  := "../KAT/v1_MS_W16/do.txt";
         G_FNAME_LOG         : string  := "log.txt";
         G_FNAME_TIMING      : string  := "timing.txt";
         G_FNAME_TIMING_CSV  : string  := "timing.csv";
@@ -692,13 +692,13 @@ begin
                     seg_eot := pdi_delayed(G_PWIDTH-7);
                     seg_last := pdi_delayed(G_PWIDTH-8);
                     if G_PWIDTH = 8 then
-                       wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
-                       wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1'; --wait segment length top
+                       wait until falling_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
+                       wait until falling_edge(clk) and pdi_ready = '1' and pdi_valid = '1'; --wait segment length top
                        seg_cnt := to_integer(unsigned(pdi_delayed & "00000000"));
                        wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
                        seg_cnt := seg_cnt + to_integer(unsigned(pdi_delayed));
                     elsif G_PWIDTH = 16 then
-                       wait until rising_edge(clk) and pdi_ready = '1' and pdi_valid = '1'; --wait segment length top
+                       wait until falling_edge(clk) and pdi_ready = '1' and pdi_valid = '1'; --wait segment length top
                        seg_cnt := to_integer(unsigned(pdi_delayed));
                     else --G_PWIDTH 32
                         seg_cnt := to_integer(unsigned(pdi_delayed(15 downto 0)));
