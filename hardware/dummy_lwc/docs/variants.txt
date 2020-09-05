@@ -26,9 +26,9 @@ v1 with CCW=CCSW=32:
 		4
     
 	Execution time of authenticated encryption:
-		3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nm  + Inm*ceil((Blm+1)/4)  + 8
+		3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nm + Inm*ceil((Blm+1)/4) + 8
 	Execution time of authenticated decryption:
-		3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nc  + Inc*ceil((Blc+1)/4)  + 9
+		3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nc + Inc*ceil((Blc+1)/4) + 9
 	Execution time of hashing:
 		8 + 8*Nh + Inh*ceil((Blh+1)/4) + 8
 
@@ -60,9 +60,9 @@ v2 with CCW=CCSW=16:
 		8
     
 	Execution time of authenticated encryption:
-		6 + 8*Na + Ina*ceil((Bla+1)/2) + 8*Nm  + Inm*ceil((Blm+1)/2)  + 16
+		6 + 8*Na + Ina*ceil((Bla+1)/2) + 8*Nm + Inm*ceil((Blm+1)/2) + 16
 	Execution time of authenticated decryption:
-		6 + 8*Na + Ina*ceil((Bla+1)/2) + 8*Nc  + Inc*ceil((Blc+1)/2)  + 17
+		6 + 8*Na + Ina*ceil((Bla+1)/2) + 8*Nc + Inc*ceil((Blc+1)/2) + 17
 	Execution time of hashing:
 		16 + 16*Nh + Inh*ceil((Blh+1)/2) + 16
 
@@ -94,9 +94,9 @@ v3 with CCW=CCSW=8:
 		16
     
 	Execution time of authenticated encryption:
-		12 + 16*Na + Ina*(Bla + 1) + 16*Nm  + Inm*(Blm + 1)  + 32
+		12 + 16*Na + Ina*(Bla + 1) + 16*Nm + Inm*(Blm + 1) + 32
 	Execution time of authenticated decryption:
-		12 + 16*Na + Ina*(Bla + 1) + 16*Nc  + Inc*(Blc + 1)  + 33
+		12 + 16*Na + Ina*(Bla + 1) + 16*Nc + Inc*(Blc + 1) + 33
 	Execution time of hashing:
 		32 + 32*Nh + Inh*(Blh + 1) + 32
 
