@@ -887,11 +887,12 @@ begin
     -- Concatenate the lengths (in bits) of ad and pt/ct for tag absorbtion. Reorder due to Endianess.
     -- Extract single word from len_s vector.
     len_s <= reverse_byte(msg_bit_cnt_vec_s) & reverse_byte(ad_bit_cnt_vec_s);
-    len_word_s <= len_s(CCW*(word_cnt_s+1) - 1 downto CCW*word_cnt_s) when (state_s = ABSORB_LENGTH) else (others => '-');
+    len_word_s <= std_logic_vector(shift_right(unsigned(len_s), CCW*word_cnt_s)(CCW-1 downto 0)); -- (CCW*(word_cnt_s+1) - 1 downto CCW*word_cnt_s);
 
     -- Convert the block counter to a std_logic vector. Reorder due to Endianess.
     -- and extract single word from block_num_s vector.
     block_num_s <= reverse_byte(std_logic_vector(resize(block_cnt_s, block_num_s'length)));
-    block_num_word_s <= block_num_s(CCW*(word_cnt_s+1) - 1 downto CCW*word_cnt_s) when (state_s = ABSORB_MSG) else (others => '-');
-
+--    block_num_word_s <= block_num_s(CCW*(word_cnt_s+1) - 1 downto CCW*word_cnt_s);
+	block_num_word_s <= std_logic_vector(shift_right(unsigned(block_num_s), CCW*word_cnt_s)(CCW-1 downto 0));
+	
 end behavioral;
