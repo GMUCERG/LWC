@@ -657,7 +657,7 @@ begin
                 file_close(do_file);
                 write(timingMsg, string'("### Timing Results for LWC Core ###"));
                 writeline(timing_file, timingMsg);
-                write(timingMsg, string'("Msg ID,New Key,Operation,AD Size,Msg Size,Na,Nm,Nc,Nh,Bla,Blm,Blc,Blh,Ina,Inm,Inc,Inh,Execution Time,Latency"));
+                write(timingMsg, string'("Msg ID,New Key,Operation,AD Size,Msg Size,Na,Nm,Nc,Nh,Bla,Blm,Blc,Blh,Ina,Inm,Inc,Inh,Actual Execution Time,Actual Latency"));
                 writeline(timing_csv, timingMsg);
                 first_seg := 0;
             else
