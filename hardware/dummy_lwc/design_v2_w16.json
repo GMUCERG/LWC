@@ -8,7 +8,7 @@
         "url": "https://github.com/GMUCERG/LWC",
         "sources": [
             "src_rtl/v2/design_pkg.vhd",
-            "src_rtl/v2/LWC/NIST_LWAPI_pkg.vhd",
+            "src_rtl/v2/LWC/NIST_LWAPI_pkg_w16.vhd",
             "src_rtl/v2/SPDRam.vhd",
             "src_rtl/v2/CryptoCore.vhd",
             "src_rtl/v2/LWC/StepDownCountLd.vhd",
@@ -31,13 +31,13 @@
         "vhdl_std": "02",
         "tb_generics": {
             "G_FNAME_PDI": {
-                "file": "KAT/v2/pdi.txt"
+                "file": "KAT/v2_W16/pdi.txt"
             },
             "G_FNAME_SDI": {
-                "file": "KAT/v2/sdi.txt"
+                "file": "KAT/v2_W16/sdi.txt"
             },
             "G_FNAME_DO": {
-                "file": "KAT/v2/do.txt"
+                "file": "KAT/v2_W16/do.txt"
             },
             "G_TEST_MODE": 4
         },
