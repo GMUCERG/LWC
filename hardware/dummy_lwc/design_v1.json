@@ -47,10 +47,10 @@
             "G_FNAME_DO": {
                 "file": "KAT/v1/do.txt"
             },
-            "G_TEST_MODE": 4
+            "G_TEST_MODE": 0,
+            "G_MAX_FAILURES" : 3
         },
-        "generics": {},
-        "variant_id" : "v1"
+        "generics": {}
     },
     "flows": {
         "diamond": {
