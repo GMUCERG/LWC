@@ -29,7 +29,7 @@ use work.NIST_LWAPI_pkg.all;
 entity LWC_TB IS
     generic (
         --! External bus: supported values are 8, 16 and 32 bits
-        G_STOP_AT_FAULT     : boolean := True;
+        G_MAX_FAILURES      : integer := 100;
         G_TEST_MODE         : integer := 0;
         G_TEST_IPSTALL      : integer := 10;
         G_TEST_ISSTALL      : integer := 100;
@@ -42,6 +42,7 @@ entity LWC_TB IS
         G_FNAME_LOG         : string  := "log.txt";
         G_FNAME_TIMING      : string  := "timing.txt";
         G_FNAME_TIMING_CSV  : string  := "timing.csv";
+        G_FNAME_FAILED_TVS  : string  := "failed_test_vectors.txt";
         G_FNAME_RESULT      : string  := "result.txt"
     );
 end LWC_TB;
@@ -159,6 +160,7 @@ architecture behavior of LWC_TB is
     file timing_file    : text open write_mode is G_FNAME_TIMING;
     file timing_csv     : text open write_mode is G_FNAME_TIMING_CSV;
     file result_file    : text open write_mode is G_FNAME_RESULT;
+    file failures_file  : text open write_mode is G_FNAME_FAILED_TVS;
     ------------- end of input files --------------------
 --    signal TestVector : integer;
 begin
@@ -410,9 +412,9 @@ begin
         variable line_no        : integer := 0;
         variable line_data      : line;
         variable logMsg         : line;
+        variable failMsg         : line;
         variable tb_block       : std_logic_vector(20      -1 downto 0);
-        variable word_block     : std_logic_vector(G_PWIDTH-1 downto 0)
-            := (others=>'0');
+        variable word_block     : std_logic_vector(G_PWIDTH-1 downto 0) := (others=>'0');
         variable read_result    : boolean;
         variable temp_read      : string(1 to 6);
         variable valid_line     : boolean := True;
@@ -424,6 +426,7 @@ begin
         variable keyid          : integer;
         variable isEncrypt      : boolean := False;
         variable opcode         : std_logic_vector(3 downto 0);
+        variable num_fails      : integer := 0;
     begin
         wait for 6*clk_period;
         if G_TEST_MODE = 4 then
@@ -528,7 +531,14 @@ begin
                     report "Expected: " & LWC_TO_HSTRING(word_block)
                         & " Actual: " & LWC_TO_HSTRING(fdo_dout) severity error;
                     write(result_file, "fail");
-                    if (G_STOP_AT_FAULT = True) then
+                    num_fails := num_fails + 1;
+                    write(failMsg,  "--- Failure #" & integer'image(num_fails) & " ---"& LF
+                    	& "   Data line " & integer'image(line_no) & LF
+                    	& "   Word      " & integer'image(word_count) & LF
+                        & "   Msg ID    " & integer'image(msgid) & LF
+                        & "   Key ID    " & integer'image(keyid) & LF);
+                    writeline(failures_file, failMsg);
+                    if num_fails >= G_MAX_FAILURES then
                         force_exit := True;
                     else
                         if isEncrypt = False then

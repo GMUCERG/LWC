@@ -1,0 +1,56 @@
+{
+    "v1": {
+        "description": "CCW=CCSW=32",
+        "design": "design_v1.json",
+        "operations": {
+            "AE": {
+                "execution_formula": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nm + Inm*ceil((Blm+1)/4) + 8",
+                "latency_formula": "1"
+            },
+            "AD": {
+                "execution_formula": "3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nc + Inc*ceil((Blc+1)/4) + 9",
+                "latency_formula": "1"
+            },
+            "HASH": {
+                "execution_formula": "8 + 8*Nh + Inh*ceil((Blh+1)/4) + 8",
+                "latency_formula": "1"
+            }
+        }
+    },
+    "v2": {
+        "description": "CCW=CCSW=16",
+        "design": "design_v2.json",
+        "operations": {
+            "AE": {
+                "execution_formula": "6 + 8*Na + Ina*ceil((Bla+1)/2) + 8*Nm + Inm*ceil((Blm+1)/2) + 16",
+                "latency_formula": "1"
+            },
+            "AD": {
+                "execution_formula": "6 + 8*Na + Ina*ceil((Bla+1)/2) + 8*Nc + Inc*ceil((Blc+1)/2) + 17",
+                "latency_formula": "1"
+            },
+            "HASH": {
+                "execution_formula": "16 + 16*Nh + Inh*ceil((Blh+1)/2) + 16",
+                "latency_formula": "1"
+            }
+        }
+    },
+    "v3": {
+        "description": "CCW=CCSW=8",
+        "design": "design_v3.json",
+        "operations": {
+            "AE": {
+                "execution_formula": "12 +` 16*Na + Ina*(Bla + 1) + 16*Nm  + Inm*(Blm + 1)  + 32",
+                "latency_formula": "1"
+            },
+            "AD": {
+                "execution_formula": "12 + 16*Na + Ina*(Bla + 1) + 16*Nc  + Inc*(Blc + 1)  + 33",
+                "latency_formula": "1"
+            },
+            "HASH": {
+                "execution_formula": "32 + 32*Nh + Inh*(Blh + 1) + 32",
+                "latency_formula": "1"
+            }
+        }
+    }
+}
