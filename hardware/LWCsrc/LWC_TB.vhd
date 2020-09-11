@@ -119,9 +119,9 @@ architecture behavior of LWC_TB is
     constant FAILURE_WORD       : std_logic_vector(G_PWIDTH - 1 downto 0) := INST_FAILURE & (G_PWIDTH - 5 downto 0 => '0');
     --! Measurement signals
     signal clk_cycle_counter    : integer := 0;
-    signal latency : integer := 0;
-    signal latency_done : std_logic := '0';
-    signal start_latency_timer : std_logic := '0';
+    signal latency              : integer := 0;
+    signal latency_done         : std_logic := '0';
+    signal start_latency_timer  : std_logic := '0';
     ------------- clock constant ------------------
     constant clk_period         : time := G_PERIOD;
     constant io_clk_period      : time := clk_period;
@@ -336,7 +336,7 @@ begin
             fpdi_din <= word_block;
                wait for io_clk_period;
         end loop;
-        tv_count<= tv_count+1;
+        tv_count <= tv_count + 1;
         fpdi_din_valid <= '0';
         wait;
     end process;
@@ -412,7 +412,7 @@ begin
         variable line_no        : integer := 0;
         variable line_data      : line;
         variable logMsg         : line;
-        variable failMsg         : line;
+        variable failMsg        : line;
         variable tb_block       : std_logic_vector(20      -1 downto 0);
         variable word_block     : std_logic_vector(G_PWIDTH-1 downto 0) := (others=>'0');
         variable read_result    : boolean;
@@ -427,6 +427,7 @@ begin
         variable isEncrypt      : boolean := False;
         variable opcode         : std_logic_vector(3 downto 0);
         variable num_fails      : integer := 0;
+        variable testcase       : integer := 0;
     begin
         wait for 6*clk_period;
         if G_TEST_MODE = 4 then
@@ -459,16 +460,16 @@ begin
                     force_exit := True;
                 end if;
 
-                if (instr_encoding = True) then
+                if (instr_encoding) then
+                	testcase := testcase + 1;
                     LWC_HREAD(line_data, tb_block, read_result); --! read data
                     instr_encoding := False;
                     read_result    := False;
                     opcode := tb_block(19 downto 16);
                     keyid  := to_integer(to_01(unsigned(tb_block(15 downto 8))));
                     msgid  := to_integer(to_01(unsigned(tb_block(7  downto 0))));
---                    TestVector<= to_integer(to_01(unsigned(tb_block(7  downto 0))));
                     isEncrypt := False;
-                    if ((opcode = INST_DEC or opcode = INST_ENC)
+                    if ((opcode = INST_DEC or opcode = INST_ENC or opcode = INST_HASH)
                         or (opcode = INST_SUCCESS or opcode = INST_FAILURE))
                     then
                         write(logMsg, string'("[Log] == Verifying msg ID #")
@@ -477,6 +478,8 @@ begin
                         if (opcode = INST_ENC) then
                             isEncrypt := True;
                             write(logMsg, string'(" for ENC"));
+                        elsif (opcode = INST_HASH) then
+                            write(logMsg, string'(" for HASH"));
                         else
                             write(logMsg, string'(" for DEC"));
                         end if;
@@ -521,22 +524,30 @@ begin
                         & string'(" Received: ") & LWC_TO_HSTRING(fdo_dout));
                     writeline(log_file,logMsg);
 
-                    --! Stop the simulation right away when an error is detected
-                    report "---------Data line #"  & integer'image(line_no)
+                    report " --- Testcase #" & integer'image(testcase)
+                        & " Data line #" & integer'image(line_no)
+                        & " Word #" & integer'image(word_count)
                         & " Msg ID #" & integer'image(msgid)
                         & " Key ID #" & integer'image(keyid)
-                        & " Word #" & integer'image(word_count)
-                        & " at " & time'image(now) & " FAILS T_T --------"
+                        & " at " & time'image(now) & " FAILS ---"
                         severity error;
                     report "Expected: " & LWC_TO_HSTRING(word_block)
                         & " Actual: " & LWC_TO_HSTRING(fdo_dout) severity error;
-                    write(result_file, "fail");
+                    write(result_file, string'("fail"));
                     num_fails := num_fails + 1;
-                    write(failMsg,  "--- Failure #" & integer'image(num_fails) & " ---"& LF
-                    	& "   Data line " & integer'image(line_no) & LF
-                    	& "   Word      " & integer'image(word_count) & LF
-                        & "   Msg ID    " & integer'image(msgid) & LF
-                        & "   Key ID    " & integer'image(keyid) & LF);
+                    write(failMsg,  string'("Failure #") & integer'image(num_fails)
+                    	& " MsgID: " & integer'image(testcase) & " Operation: ");
+                    if (opcode = INST_ENC) then
+                        write(failMsg, string'("ENC"));
+                    elsif(opcode = INST_HASH) then
+                        write(failMsg, string'("HASH"));
+                    else
+                        write(failMsg, string'("DEC"));
+                    end if;
+                    write(failMsg, string'(" Line: ") & integer'image(line_no)
+                    	& " Word: " & integer'image(word_count)
+                    	& " Expected: " & LWC_TO_HSTRING(word_block)
+                        & " Received: " & LWC_TO_HSTRING(fdo_dout));
                     writeline(failures_file, failMsg);
                     if num_fails >= G_MAX_FAILURES then
                         force_exit := True;
@@ -625,7 +636,7 @@ begin
         variable msg_start_time, exec_time : integer;
         variable start_time : time;
         variable pt_size, ct_size, ad_size, hash_size, new_key : integer := 0;
-        variable msg_id: integer := 0;
+        variable msg_idx: integer := 0;
         variable first_seg : integer := 1;
         variable timingMsg         : line;
         variable line_data : line;
@@ -728,7 +739,7 @@ begin
                         wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
                         stall_msg <= '0';
                         exec_time := clk_cycle_counter-msg_start_time;
-                        msg_id := msg_id + 1;
+                        msg_idx := msg_idx + 1;
                         exit;
                     end if;
                 else
@@ -745,7 +756,7 @@ begin
                                 if (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD)) then
                                     stall_msg <= '0';
                                     exec_time := clk_cycle_counter-msg_start_time;
-                                    msg_id := msg_id + 1;
+                                    msg_idx := msg_idx + 1;
                                     exit;
                                 end if;
                             end if;
@@ -753,7 +764,7 @@ begin
                             wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
                             stall_msg <= '0';
                             exec_time := clk_cycle_counter-msg_start_time;
-                            msg_id := msg_id + 1;
+                            msg_idx := msg_idx + 1;
                             exit;
                         end if;
                     else
@@ -766,9 +777,9 @@ begin
             else
                 ina := 0;
             end if;
-            report "MsgId: " & integer'image(msg_id) & " at " & time'image(start_time);
+            report "MsgId: " & integer'image(msg_idx) & " at " & time'image(start_time);
             write(timingMsg, string'("Msg ID: ") &
-                  integer'image(msg_id) &
+                  integer'image(msg_idx) &
                   string'(" at ") &
                   time'image(start_time));
             writeline(timing_file, timingMsg);
@@ -817,7 +828,7 @@ begin
                                  integer'image(latency) & 
                                  string'(" cycles"));
                 writeline(timing_file, timingMsg);
-                write(timingMsg,integer'image(msg_id) &
+                write(timingMsg,integer'image(msg_idx) &
                                 string'(",") &
                                 integer'image(new_key) &
                                 string'(",AE,") &
@@ -878,7 +889,7 @@ begin
                                  integer'image(latency) & 
                                  string'(" cycles"));
                 writeline(timing_file, timingMsg);
-                write(timingMsg,integer'image(msg_id) &
+                write(timingMsg,integer'image(msg_idx) &
                                 string'(",") &
                                 integer'image(new_key) &
                                 string'(",AD,") &
@@ -928,7 +939,7 @@ begin
                                  integer'image(exec_time) & 
                                  string'(" cycles"));
                 writeline(timing_file, timingMsg);
-                write(timingMsg,integer'image(msg_id) &
+                write(timingMsg,integer'image(msg_idx) &
                                 string'(",") &
                                 integer'image(new_key) &
                                 string'(",HASH,0,") &
