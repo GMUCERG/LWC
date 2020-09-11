@@ -1,6 +1,6 @@
 {
     "design": {
-        "name": "dummy_lwc",
+        "name": "dummy_lwc_v1",
         "description": "Implementation of the dummy_lwc cipher and hash",
         "author": [
             "[Patrick Karl](patrick.karl@tum.de)"
