@@ -524,11 +524,9 @@ begin
                         & string'(" Received: ") & LWC_TO_HSTRING(fdo_dout));
                     writeline(log_file,logMsg);
 
-                    report " --- Testcase #" & integer'image(testcase)
+                    report " --- MsgID #" & integer'image(testcase)
                         & " Data line #" & integer'image(line_no)
                         & " Word #" & integer'image(word_count)
-                        & " Msg ID #" & integer'image(msgid)
-                        & " Key ID #" & integer'image(keyid)
                         & " at " & time'image(now) & " FAILS ---"
                         severity error;
                     report "Expected: " & LWC_TO_HSTRING(word_block)
