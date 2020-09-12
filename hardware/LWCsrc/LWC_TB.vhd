@@ -163,6 +163,26 @@ architecture behavior of LWC_TB is
     file failures_file  : text open write_mode is G_FNAME_FAILED_TVS;
     ------------- end of input files --------------------
 --    signal TestVector : integer;
+	
+	----------------- component decrations ------------------
+	-- LWC is instantiated as component to make mixed-language simulation possible
+	component LWC
+		port(
+			clk       : in  std_logic;
+			rst       : in  std_logic;
+			pdi_data  : in  std_logic_vector(W - 1 downto 0);
+			pdi_valid : in  std_logic;
+			pdi_ready : out std_logic;
+			sdi_data  : in  std_logic_vector(W - 1 downto 0);
+			sdi_valid : in  std_logic;
+			sdi_ready : out std_logic;
+			do_data   : out std_logic_vector(W - 1 downto 0);
+			do_ready  : in  std_logic;
+			do_valid  : out std_logic;
+			do_last   : out std_logic
+		);
+	end component LWC;
+	
 begin
 
     genClk: process
@@ -250,9 +270,10 @@ begin
     fdo_din_valid       <= '0' when stall_do_full = '1' else do_valid;
     do_ready_selected   <= '0' when stall_do_full = '1' else fdo_din_ready;
     do_ready            <= do_ready_selected after 1/4*clk_period;
-
-    uut: entity work.LWC(structure)
-	    port map (
+	
+	-- LWC is instantiated as a component for mixed languages simulation
+	uut: LWC
+		port map(
 	        clk          => clk,
 	        rst          => rst,
 	        pdi_data     => pdi_delayed,
@@ -265,7 +286,8 @@ begin
 	        do_ready     => do_ready,
 	        do_valid     => do_valid,
 	        do_last      => do_last
-	    );
+		);
+
     --! =================== --
     --! END OF PORT MAPPING --
     --! =================== --

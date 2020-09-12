@@ -27,8 +27,9 @@ make_cmd = 'make'
 
 print(f'script_dir={script_dir}')
 
-sources_list = core_src_path / 'v1' / 'src_rtl' / 'source_list.txt'
-tb_sources_list = core_src_path / 'v1' / 'src_tb' / 'source_list.txt'
+variant_src_rtl = core_src_path / 'src_rtl' / 'v1'
+sources_list = variant_src_rtl / 'source_list.txt'
+tb_sources_list = core_src_path / 'src_tb' / 'v1' / 'source_list.txt'
 
 variables = {'LWCSRC_DIR': str(lwc_root / 'hardware' / 'LWCsrc')}
 # END OF SETTINGS
@@ -105,8 +106,8 @@ def gen_hdl_prj():
         for var, subst in variables.items():
             data = re.sub(r'\$\(' + var + r'\)', subst, data)
         for file in data.splitlines():
-            if not PurePath(file).is_absolute():
-                file = str(PurePath(core_src_path) / file)
+            if not Path(file).is_absolute():
+                file = str(Path(variant_src_rtl) / file)
             prj['files'].append({'file': file, 'language': get_lang(file)})
         prj["options"] = {
             "ghdl_analysis": [
@@ -128,8 +129,8 @@ def test_all():
             data = re.sub(r'\$\(' + var + r'\)', subst, data)
 
         for file in data.splitlines():
-            if not PurePath(file).is_absolute():
-                file = str(PurePath(core_src_path) / file)
+            if not Path(file).is_absolute():
+                file = str(Path(variant_src_rtl) / file)
             if get_lang(file) == 'vhdl':
                 vhdl_files.append(file)
             if get_lang(file) == 'verilog':
@@ -234,7 +235,7 @@ def test_all():
                     print(f'running `{" ".join(cmd)}` in {core_src_path}')
                     cp = subprocess.run(cmd, cwd=core_src_path)
                     cp.check_returncode()
-                    cp = subprocess.run([make_cmd, 'clean-ghdl'], cwd=core_src_path)
+                    cp = subprocess.run([make_cmd, 'clean-ghdl', f"SOURCES_LIST={sources_list}"], cwd=core_src_path)
 
 
 if __name__ == "__main__":

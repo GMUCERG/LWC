@@ -4,7 +4,7 @@
 LWC_ROOT=../..
 
 # Change if `sources_list` file is in a different location
-#SOURCE_LIST_FILE := source_list_2.txt
+#SOURCE_LIST := source_list_2.txt
 
 
 ## DON'T CHANGE ANYTHING BELOW THIS LINE ##
