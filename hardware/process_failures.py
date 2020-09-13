@@ -203,12 +203,13 @@ def patch_do_record(do_record: List[Segment], line_num, word_num, orig_word, rep
         if hdr_data.line_num == line_num and word_num == 1 and hdr_data.header == orig_word:
             hdr_data.header = replace_word
             return
-        for data in hdr_data.data:
-            # print(f'l: {data.line_num} w: {data.word_num} word: {data.word}')
-            if data.line_num == line_num and data.word_num == word_num and data.word == orig_word:
-                # print(f'found!')
-                data.word = replace_word
-                return
+        if isinstance(hdr_data, Segment):
+            for data in hdr_data.data:
+                # print(f'l: {data.line_num} w: {data.word_num} word: {data.word}')
+                if data.line_num == line_num and data.word_num == word_num and data.word == orig_word:
+                    # print(f'found!')
+                    data.word = replace_word
+                    return
     raise Exception(f'record not found: line:{line_num} word:{word_num} orig_word:{orig_word} in {do_record}')
 
 
@@ -219,6 +220,8 @@ with open(failed_test_vectors_txt) as f:
         line = line.strip()
         if line:
             match = failed_test_re.match(line)
+            if not match:
+                raise Exception(f'error parsing {failed_test_vectors_txt}')
             msgid = int(match.group('msgid'))
             line_num = int(match.group('line'))
             word_num = int(match.group('word'))
