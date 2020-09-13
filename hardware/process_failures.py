@@ -37,6 +37,16 @@ class Opcode(Enum):
     # SUCCESS = 0b1110
     # FAILURE = 0b1111
 
+    def to_name(self):
+        if self == Opcode.HASH:
+            return 'Hashing'
+        if self == Opcode.ENC:
+            return 'Authenticated Encryption'
+        if self == Opcode.HASH:
+            return 'Authenticated Decryption'
+        return None
+
+
 class HeaderType(Enum):
     AD         = 0b0001
     PT         = 0b0100
@@ -107,9 +117,12 @@ class Status():
         self.line_num = line_num
         self.type = StatusType(int(stt[0], 16))
 
-msg_id_comment_re = re.compile(r'\#\#\#\# MsgID=\s*(?P<msgid>\d+).*')
 
-def parse_di(file):
+msg_id_comment_re = re.compile(r'\#\#\#\# MsgID=\s*(?P<msgid>\d+),\s*KeyID=\s*(?P<keyid>\d+)')
+
+keyid_of_msgid = {}
+
+def parse_di(file, is_sdi=False):
     di_dict = {}
     current_inst = None
     current_sega = None
@@ -121,6 +134,11 @@ def parse_di(file):
             match = msg_id_comment_re.match(line)
             if match:
                 msgid = int(match.group('msgid'))
+                keyid = int(match.group('keyid'))
+                if is_sdi:
+                    msgid = keyid
+                else:
+                    keyid_of_msgid[msgid] = keyid
                 di_dict[msgid] = []
             elif line and not line.startswith('#'):
                 t,d = line.split(' = ')
@@ -216,22 +234,34 @@ with open(failed_test_vectors_txt) as f:
 def shortname(enum):
     return str(enum).split('.')[1]
 
-def print_inst(inst):
-    print(f'Instruction: {shortname(inst.op)}')
-    for hdr_dat in inst.hdr_data:
-        print(f"{shortname(hdr_dat.header.type)}: {hdr_dat.all_data()}")
+
+
 
 for idx, (msgid, received) in enumerate(recieved_do.items()):
     pdi = decoded_pdi[msgid]
-    sdi = decoded_sdi.get(msgid)
+    keyid = keyid_of_msgid[msgid]
+    sdi = decoded_sdi.get(keyid)
 
     expected = expected_do[msgid]
     print(f'------------ Failure #{idx+1}   MsgID = {msgid} ------------')
 
-    for inst in sdi:
-        print_inst(inst)
+    new_key = False
     for inst in pdi:
-        print_inst(inst)
+        op_name = inst.op.to_name()
+        if op_name:
+            print(f'Operation: {op_name}')
+        if inst.op == Opcode.ACTKEY:
+            print("New Key KeyID={keyid}")
+            new_key = True
+        elif inst.op == Opcode.ENC or inst.op == Opcode.DEC:
+            if not new_key:
+                print(f"Reusing previously loaded key (KeyID={keyid})")
+            for hdr_dat in sdi[0].hdr_data:
+                print(f"{shortname(hdr_dat.header.type)}: {hdr_dat.all_data()}")
+        for hdr_dat in inst.hdr_data:
+            print(f"{shortname(hdr_dat.header.type)}: {hdr_dat.all_data()}")
+        for hdr_dat in inst.hdr_data:
+            print(f"{shortname(hdr_dat.header.type)}: {hdr_dat.all_data()}")
     for recv_seg, exp_seg in zip(received, expected):
         if isinstance(recv_seg, Status):
             if recv_seg.type != exp_seg.type:
