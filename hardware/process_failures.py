@@ -254,7 +254,7 @@ for idx, (msgid, received) in enumerate(recieved_do.items()):
         if op_name:
             print(f'Operation: {op_name}')
         if inst.op == Opcode.ACTKEY:
-            print("New Key KeyID={keyid}")
+            print(f"New Key KeyID={keyid}")
             new_key = True
         elif inst.op == Opcode.ENC or inst.op == Opcode.DEC:
             if not new_key:
