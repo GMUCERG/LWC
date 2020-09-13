@@ -162,7 +162,6 @@ architecture behavior of LWC_TB is
     file result_file    : text open write_mode is G_FNAME_RESULT;
     file failures_file  : text open write_mode is G_FNAME_FAILED_TVS;
     ------------- end of input files --------------------
---    signal TestVector : integer;
 	
 	----------------- component decrations ------------------
 	-- LWC is instantiated as component to make mixed-language simulation possible
@@ -556,14 +555,14 @@ begin
                     write(result_file, string'("fail"));
                     num_fails := num_fails + 1;
                     write(failMsg,  string'("Failure #") & integer'image(num_fails)
-                    	& " MsgID: " & integer'image(testcase) & " Operation: ");
-                    if (opcode = INST_ENC) then
-                        write(failMsg, string'("ENC"));
-                    elsif(opcode = INST_HASH) then
-                        write(failMsg, string'("HASH"));
-                    else
-                        write(failMsg, string'("DEC"));
-                    end if;
+                    	& " MsgID: " & integer'image(testcase));-- & " Operation: ");
+--                    if (opcode = INST_ENC) then
+--                        write(failMsg, string'("ENC"));
+--                    elsif(opcode = INST_HASH) then
+--                        write(failMsg, string'("HASH"));
+--                    else
+--                        write(failMsg, string'("DEC"));
+--                    end if;
                     write(failMsg, string'(" Line: ") & integer'image(line_no)
                     	& " Word: " & integer'image(word_count)
                     	& " Expected: " & LWC_TO_HSTRING(word_block)
