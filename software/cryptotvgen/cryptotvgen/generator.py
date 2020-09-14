@@ -352,7 +352,7 @@ def get_cffi_path(opts, hashop):
     else:
         candidates_dir = Path(opts.candidates_dir) if opts.candidates_dir else ctgen_get_supercop_dir()
         lib_path = candidates_dir / 'lib'
-    
+
     name = None
     if hashop:
         op = "hash"
@@ -362,14 +362,14 @@ def get_cffi_path(opts, hashop):
         name = opts.aead
     if not name:
         sys.exit(f'--{op} <ALGORITHM-VARIANT> not specified!')
-        
+
     lib_ext = '.dll' if sys.platform in ['win32', 'win64', 'msys'] else '.so'
     libname = f'{name}{lib_ext}'
     cffi_path = lib_path / f'crypto_{op}' / libname
     if not cffi_path.exists():
         sys.exit(f'Dynamic library: {cffi_path} does not exist! Please make sure `lib_path` is correct and that you have already run `cryptotvgen --prepare_libs [--cadidates_dir=<PATH>]`?')
     return str(cffi_path)
-    
+
 
 class TestVector(object):
     ''' TestVector class '''
@@ -377,11 +377,11 @@ class TestVector(object):
 
     def __init__(self, opts, msg_id, key_id,
                  new_key, op, key, npub, nsec_pt, ad, pt, hashop):
-        
+
         self.hashop = hashop
         cffi_path = get_cffi_path(opts, hashop)
         self.lib = ffi.dlopen(cffi_path)
-            
+
         self.key_id = 0 if hashop else key_id
         self.opts = opts
         self.msg_id = msg_id
@@ -526,9 +526,11 @@ class TestVector(object):
 
     def is_last_vld_segment(self, sgt, msg_format):
         ''' Determine whether this segment is the last valid data segment '''
-        ignore_sgts = ('len','tag')
+        ignore_sgts = ('len','tag', 'hash_tag')
         if sgt in ignore_sgts:
             return False
+        if (sgt == 'hash'):
+            return True
         if len(self.get_data(sgt)) <= 0:
             return False
 
@@ -573,7 +575,7 @@ class TestVector(object):
                 log.info("AD = {}".format(self.ad))
                 log.info("CT = {}{}".format(self.ct, self.tag))
 
-                assert nsec_pt == self.nsec_pt                
+                assert nsec_pt == self.nsec_pt
                 assert pt == self.pt
                 assert auth_result == 0
 
@@ -633,7 +635,7 @@ class TestVector(object):
                 data = self.get_data(sgt)
 
                 # Sub-segment
-                max_sgmt = (self.opts.block_size/8)*self.opts.max_block_per_sgmt                                                
+                max_sgmt = (self.opts.block_size/8)*self.opts.max_block_per_sgmt
                 tot_sgmt = int(math.ceil(lenbytes(data)/max_sgmt))
                 if (sgt in ['tag', 'hash_tag']):    # No segment split for tag/hash_tag
                     tot_sgmt = 1
@@ -987,9 +989,9 @@ def gen_dataset(opts, routine, start_msg_no, start_key_no, mode=0):
 def gen_single(opts, start_msg_no, start_key_no, index):
     if (opts.verbose):
         print('gen_single')
-    dataset = []       
+    dataset = []
     decrypt = True if opts.gen_single[index][0] == 1 else False
-    hashop  = True if opts.gen_single[index][0] == 2 else False    
+    hashop  = True if opts.gen_single[index][0] == 2 else False
     new_key = not hashop
     dataset.append(TestVector(opts, start_msg_no, start_key_no,
                               new_key, decrypt,
@@ -997,7 +999,7 @@ def gen_single(opts, start_msg_no, start_key_no, index):
                               opts.gen_single[index][3], opts.gen_single[index][4],
                               opts.gen_single[index][5], hashop))
     if hashop:
-        start_key_no = start_key_no - 1 
+        start_key_no = start_key_no - 1
     return dataset, start_msg_no, start_key_no
 
 def gen_random(opts, start_msg_no, start_key_no):
@@ -1174,7 +1176,7 @@ def determine_params(opts):
         for line in hash_api_h.splitlines():
             if "CRYPTO_BYTES" in line:
                 opts.message_digest_size = 8 * int(line.split()[-1])
- 
+
 def blanket_message_hash_test(block_size_msg_digest):
     routine = []
     for hash_size in range(4*block_size_msg_digest//8):
@@ -1252,7 +1254,7 @@ def gen_benckmark_routine(opts):
     opts.dest = os.path.join(orig_dest, 'pow_16_16')
     gen_tv_and_write_files(opts, data[0])
     print(f'Generated: {os.path.abspath(opts.dest)}')
-    
+
     data = gen_dataset(opts, [[True, False, 0, 64, False]], 1, 1)
     opts.dest = os.path.join(orig_dest, 'pow_0_64')
     gen_tv_and_write_files(opts, data[0])
@@ -1265,7 +1267,7 @@ def gen_benckmark_routine(opts):
     opts.dest = os.path.join(orig_dest, 'pow_64_64')
     gen_tv_and_write_files(opts, data[0])
     print(f'Generated: {os.path.abspath(opts.dest)}')
-    
+
     data = gen_dataset(opts, [[True, False, 0, 1536, False]], 1, 1)
     opts.dest = os.path.join(orig_dest, 'pow_0_1536')
     gen_tv_and_write_files(opts, data[0])
@@ -1304,7 +1306,7 @@ def gen_benckmark_routine(opts):
     opts.dest = os.path.join(orig_dest, 'pow_5x_5x')
     gen_tv_and_write_files(opts, data[0])
     print(f'Generated: {os.path.abspath(opts.dest)}')
-    
+
     data = gen_dataset(opts, blanket_message_aead_test(opts), 1, 1)
     opts.dest = os.path.join(orig_dest, 'kats_for_verification')
     gen_tv_and_write_files(opts, data[0])
