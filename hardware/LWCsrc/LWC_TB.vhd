@@ -494,8 +494,7 @@ begin
                         or (opcode = INST_SUCCESS or opcode = INST_FAILURE))
                     then
                         write(logMsg, string'("[Log] == Verifying msg ID #")
-                            & integer'image(msgid)
-                            & string'(" with key ID #") & integer'image(keyid));
+                            & integer'image(testcase));
                         if (opcode = INST_ENC) then
                             isEncrypt := True;
                             write(logMsg, string'(" for ENC"));
@@ -507,8 +506,8 @@ begin
                         writeline(log_file,logMsg);
                     end if;
 
-                    report "---------Started verifying message number "
-                        & integer'image(msgid) & " at "
+                    report "---------Started verifying MsgID = "
+                        & integer'image(testcase) & " at "
                         & time'image(now) severity note;
                 else
                     LWC_HREAD(line_data, word_block, read_result); --! read data
