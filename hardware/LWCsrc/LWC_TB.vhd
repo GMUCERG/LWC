@@ -686,7 +686,7 @@ begin
                                 charindex := charindex + 1;
                             end loop;
                             block_size_ad := (integer'value(temp_read(charindex+1 to linelength))) / 8;
-                        elsif temp_read(1 to 21) = "# message_digest_size" then
+                        elsif temp_read(1 to 23) = "# block_size_msg_digest" then
                             while temp_read(charindex) /= '-' loop
                                 charindex := charindex + 1;
                             end loop;
