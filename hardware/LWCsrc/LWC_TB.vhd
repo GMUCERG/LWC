@@ -689,7 +689,9 @@ begin
                             while temp_read(charindex) /= '-' loop
                                 charindex := charindex + 1;
                             end loop;
-                            block_size_hash := (integer'value(temp_read(charindex+1 to linelength))) / 8;
+                            if temp_read(linelength-3 to linelength) /= "None" then
+                                block_size_hash := integer'value(temp_read(charindex+1 to linelength))/8;
+                            end if;
                             exit;
                          end if;
                 end loop;
