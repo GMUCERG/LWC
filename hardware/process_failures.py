@@ -111,11 +111,15 @@ class Instruction():
 class StatusType(Enum):
     SUCCESS = 14
     FAILURE = 15
+    UNKNOWN = 00
 
 class Status():
     def __init__(self, line_num, stt) -> None:
         self.line_num = line_num
-        self.type = StatusType(int(stt[0], 16))
+        try:
+            self.type = StatusType(int(stt[0], 16))
+        except ValueError:
+            self.type = StatusType.UNKNOWN
 
 
 msg_id_comment_re = re.compile(r'\#\#\#\# MsgID=\s*(?P<msgid>\d+),\s*KeyID=\s*(?P<keyid>\d+)')
@@ -198,6 +202,7 @@ def patch_do_record(do_record: List[Segment], line_num, word_num, orig_word, rep
     for hdr_data in do_record:
         # check header/status itself
         if hdr_data.line_num == line_num and word_num == 1 and isinstance(hdr_data, Status):
+            # print(line_num)
             hdr_data=Status(line_num, replace_word)
             return
         if hdr_data.line_num == line_num and word_num == 1 and hdr_data.header == orig_word:
