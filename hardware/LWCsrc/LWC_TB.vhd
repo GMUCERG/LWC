@@ -781,7 +781,11 @@ begin
                                 end if;
                             end if;
                             start_latency_timer <= '0';
-                            wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
+                            if do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD) then
+                                null;
+                            else
+                                wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
+                            end if;
                             stall_msg <= '0';
                             exec_time := clk_cycle_counter-msg_start_time;
                             msg_idx := msg_idx + 1;
