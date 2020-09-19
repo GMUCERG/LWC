@@ -781,9 +781,7 @@ begin
                                 end if;
                             end if;
                             start_latency_timer <= '0';
-                            if do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD) then
-                                null;
-                            else
+		            if (do_last /= '1' or (do /= SUCCESS_WORD and do /= FAILURE_WORD)) then
                                 wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
                             end if;
                             stall_msg <= '0';
