@@ -756,7 +756,9 @@ begin
 
                         wait until falling_edge(clk);
                         stall_msg <= '1'; -- last segment  wait until cipher is done
-                        wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
+                        if (do_last /= '1' or (do /= SUCCESS_WORD and do /= FAILURE_WORD)) then
+                                wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
+                        end if;
                         stall_msg <= '0';
                         exec_time := clk_cycle_counter-msg_start_time;
                         msg_idx := msg_idx + 1;
