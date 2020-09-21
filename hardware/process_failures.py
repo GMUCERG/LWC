@@ -281,8 +281,6 @@ if args.all_path:
                             print(f"{shortname(hdr_dat.header.type)}: {hdr_dat.all_data()}", file=outfile)
                     for hdr_dat in inst.hdr_data:
                         print(f"{shortname(hdr_dat.header.type)}: {hdr_dat.all_data()}", file=outfile)
-                    for hdr_dat in inst.hdr_data:
-                        print(f"{shortname(hdr_dat.header.type)}: {hdr_dat.all_data()}", file=outfile)
                 for recv_seg, exp_seg in zip(received, expected):
                     if isinstance(recv_seg, Status):
                         if recv_seg.type != exp_seg.type:
@@ -296,4 +294,6 @@ if args.all_path:
                         if rd != ed:
                             print(f'{shortname(recv_seg.header.type)}:', file=outfile)
                             print(f'    Expected: {ed}\n    Received: {rd}', file=outfile)
+                        else:
+                            print(f'{shortname(recv_seg.header.type)}: {rd}', file=outfile)
                 print(file=outfile)
