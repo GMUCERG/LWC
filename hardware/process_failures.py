@@ -46,7 +46,7 @@ class Opcode(Enum):
             return 'Hashing'
         if self == Opcode.ENC:
             return 'Authenticated Encryption'
-        if self == Opcode.HASH:
+        if self == Opcode.DEC:
             return 'Authenticated Decryption'
         return None
 
@@ -194,7 +194,7 @@ def parse_do(file):
 
 
 if args.all_path:
-    for failed_test_vectors_txt in glob('*/**/failed_test_vectors.txt'):
+    for failed_test_vectors_txt in glob('**/*/failed_test_vectors.txt', recursive=True):
         print(f'processing {failed_test_vectors_txt}')
         kat_dir = Path(failed_test_vectors_txt).parent
 
@@ -256,44 +256,45 @@ if args.all_path:
             return str(enum).split('.')[1]
 
 
-        with open(kat_dir / 'processed_failures.txt', 'w') as outfile:
-            print(f'writing {outfile.name}')
-            for idx, (msgid, received) in enumerate(recieved_do.items()):
-                pdi = decoded_pdi[msgid]
-                keyid = keyid_of_msgid[msgid]
-                sdi = decoded_sdi.get(keyid)
+        if recieved_do:
+            with open(kat_dir / 'processed_failures.txt', 'w') as outfile:
+                print(f'writing {outfile.name}')
+                for idx, (msgid, received) in enumerate(recieved_do.items()):
+                    pdi = decoded_pdi[msgid]
+                    keyid = keyid_of_msgid[msgid]
+                    sdi = decoded_sdi.get(keyid)
 
-                expected = expected_do[msgid]
-                print(f'------------ Failure #{idx+1}   MsgID = {msgid} ------------', file=outfile)
+                    expected = expected_do[msgid]
+                    print(f'------------ Failure #{idx+1}   MsgID = {msgid} ------------', file=outfile)
 
-                new_key = False
-                for inst in pdi:
-                    op_name = inst.op.to_name()
-                    if op_name:
-                        print(f'Operation: {op_name}', file=outfile)
-                    if inst.op == Opcode.ACTKEY:
-                        print(f"New Key KeyID={keyid}", file=outfile)
-                        new_key = True
-                    elif inst.op == Opcode.ENC or inst.op == Opcode.DEC:
-                        if not new_key:
-                            print(f"Reusing previously loaded key (KeyID={keyid})", file=outfile)
-                        for hdr_dat in sdi[0].hdr_data:
+                    new_key = False
+                    for inst in pdi:
+                        op_name = inst.op.to_name()
+                        if op_name:
+                            print(f'Operation: {op_name}', file=outfile)
+                        if inst.op == Opcode.ACTKEY:
+                            print(f"New Key KeyID={keyid}", file=outfile)
+                            new_key = True
+                        elif inst.op == Opcode.ENC or inst.op == Opcode.DEC:
+                            if not new_key:
+                                print(f"Reusing previously loaded key (KeyID={keyid})", file=outfile)
+                            for hdr_dat in sdi[0].hdr_data:
+                                print(f"{shortname(hdr_dat.header.type)}: {hdr_dat.all_data()}", file=outfile)
+                        for hdr_dat in inst.hdr_data:
                             print(f"{shortname(hdr_dat.header.type)}: {hdr_dat.all_data()}", file=outfile)
-                    for hdr_dat in inst.hdr_data:
-                        print(f"{shortname(hdr_dat.header.type)}: {hdr_dat.all_data()}", file=outfile)
-                for recv_seg, exp_seg in zip(received, expected):
-                    if isinstance(recv_seg, Status):
-                        if recv_seg.type != exp_seg.type:
-                            print(f"Received status: {recv_seg.type} Expected: {exp_seg.type}", file=outfile)
-                    else:
-                        # if recv_seg.header != exp_seg.header:
-                        #     print(f'Header:')
-                        #     print(f'    Expected:{exp_seg.header.type}\n    Received:{recv_seg.header.type}')
-                        rd = recv_seg.all_data()
-                        ed = exp_seg.all_data()
-                        if rd != ed:
-                            print(f'{shortname(recv_seg.header.type)}:', file=outfile)
-                            print(f'    Expected: {ed}\n    Received: {rd}', file=outfile)
+                    for recv_seg, exp_seg in zip(received, expected):
+                        if isinstance(recv_seg, Status):
+                            if recv_seg.type != exp_seg.type:
+                                print(f"Received status: {recv_seg.type} Expected: {exp_seg.type}", file=outfile)
                         else:
-                            print(f'{shortname(recv_seg.header.type)}: {rd}', file=outfile)
-                print(file=outfile)
+                            # if recv_seg.header != exp_seg.header:
+                            #     print(f'Header:')
+                            #     print(f'    Expected:{exp_seg.header.type}\n    Received:{recv_seg.header.type}')
+                            rd = recv_seg.all_data()
+                            ed = exp_seg.all_data()
+                            if rd != ed:
+                                print(f'{shortname(recv_seg.header.type)}:', file=outfile)
+                                print(f'    Expected: {ed}\n    Received: {rd}', file=outfile)
+                            else:
+                                print(f'{shortname(recv_seg.header.type)}: {rd}', file=outfile)
+                    print(file=outfile)
