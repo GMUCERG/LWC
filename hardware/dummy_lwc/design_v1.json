@@ -53,20 +53,20 @@
         "generics": {}
     },
     "flows": {
-        "diamond": {
+        "diamond_synth": {
             "fpga_part": "LFE5U-25F-6BG381C",
             "clock_period": 12.0,
             "synthesis_engine": "synplify",
             "strategy": "Timing"
         },
-        "vivado": {
+        "vivado_synth": {
             "fpga_part": "xc7a12tcsg325-3",
             "clock_period": 5.0,
             "strategy": "Timing",
             "optimize_power": "False",
             "sim_run": "all"
         },
-        "quartus": {
+        "quartus_synth": {
             "fpga_part": "10CL016YU256C6G",
             "strategy": "Timing",
             "clock_period": 6.1

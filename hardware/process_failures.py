@@ -115,11 +115,15 @@ class Instruction():
 class StatusType(Enum):
     SUCCESS = 14
     FAILURE = 15
+    UNKNOWN = 00
 
 class Status():
     def __init__(self, line_num, stt) -> None:
         self.line_num = line_num
-        self.type = StatusType(int(stt[0], 16))
+        try:
+            self.type = StatusType(int(stt[0], 16))
+        except ValueError:
+            self.type = StatusType.UNKNOWN
 
 
 msg_id_comment_re = re.compile(r'\#\#\#\# MsgID=\s*(?P<msgid>\d+),\s*KeyID=\s*(?P<keyid>\d+)')
