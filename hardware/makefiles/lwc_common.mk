@@ -146,7 +146,6 @@ help-top:
 	@printf "%b" "\t - $(GREEN) sim-vcs $(NO_COLOR) \t\t simulate using Synopsys VCS (VHDL and Verilog) \n";
 	@echo
 	@printf "%b" "$(CYAN)* Synthesis$(NO_COLOR)\n";
-	@printf "%b" "\t - $(GREEN) synth-dc $(NO_COLOR) \t\t ASIC synthesis using Synopsys Design Compiler \n";
 	@printf "%b" "\t - $(GREEN) synth-vivado $(NO_COLOR) \t FPGA synthesis using Xilinx Vivado Design Suite\n";
 	@printf "%b" "\t - $(GREEN) synth-yosys-fpga $(NO_COLOR) \t FPGA synthesis using Yosys and GHDL. \n";
 	@echo
