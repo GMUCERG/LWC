@@ -47,9 +47,8 @@ Some notable generics include:
 - `G_TEST_MODE`(integer): see "Test Mode"below. (default: 0)
 - `G_PERIOD`(time): simulation clock period (default: 10 ns)
 - `G_FNAME_PDI`, `G_FNAME_SDI`, `G_FNAME_DO`(string): Paths to testvector input and expected output files.
-- `G_FNAME_LOG` (string) path to testbench log file
-- `G_FNAME_TIMING_CSV`
-- `G_FNAME_FAILED_TVS`(string) path to generated file containing all failed test-vectors. It will be an empty file if all TVs passed. (default: "failed_test_vectors.txt")
+- `G_FNAME_LOG`(string): Path to testbench generated log file.
+- `G_FNAME_FAILED_TVS`(string): Path to testbench generated file containing all failed test-vectors. It will be an empty file if all testvectors passed. (default: "failed_test_vectors.txt")
 
 Please see [LWC_TB.vhd](hardware/LWCsrc/LWC_TB.vhd) for the full list of testbench generics.
 
@@ -57,7 +56,6 @@ Note: Commercial and open-source simulators provide mechanisms for overriding th
 
 #### Measurement Mode
 - The `LWC_TB` now includes an experimental measurement mode intended to aid designers with verification of derived formulas for execution and latency times. To activate this mode, set `G_TEST_MODE` to 4. Measurement Mode yields results in simulator reports and two file formats: `txt` and `csv`, whose output files can be specified by the `G_FNAME_TIMING` and `G_FNAME_TIMING_CSV` generics respectively. Run this mode with `dummy_lwc` example for a sample of the output. Note, this mode is still being actively developed and may have outstanding issues.
-
 
 ## Software
 
