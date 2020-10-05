@@ -28,7 +28,6 @@ use work.NIST_LWAPI_pkg.all;
 
 entity LWC_TB IS
     generic (
-        --! External bus: supported values are 8, 16 and 32 bits
         G_MAX_FAILURES      : integer := 100;
         G_TEST_MODE         : integer := 0;
         G_TEST_IPSTALL      : integer := 10;
