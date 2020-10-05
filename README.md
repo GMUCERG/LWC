@@ -29,15 +29,15 @@ Templates for `CryptoCore` and `design_pkg`.
 
 #### `design_pkg.vhd` constants
 Definition and initialization of these constants _MUST_ be present in the user-provided `design_pkg.vhd` file. See [dummy core's design_pkg](hardware/dummy_lwc/src_rtl/design_pkg.vhd) for an example.
-- `CCW`: specifies the bus width (in bits) of `CryptoCore`'s PDI data and can be 8, 16, or 32. 
-- `CCSW`: The bus width (in bits) of `CryptoCore`'s SDI data and is expected to be equal to `CCW`.
+- `CCW`: Specifies the bus width (in bits) of `CryptoCore`'s PDI data and can be 8, 16, or 32. 
+- `CCSW`: Specifies the bus width (in bits) of `CryptoCore`'s SDI data and is expected to be equal to `CCW`.
 - `CCWdiv8`: Needs to be set equal to `CCW / 8`.
 - `TAG_SIZE`: specifies the tag size in bits.
 - `HASH_VALUE_SIZE`: specifies the hash size in bits. Only used in hash mode.
  
 #### `NIST_LWAPI_pkg.vhd` configurable constants
 - `W` (integer **default=32**): Controls the width of the external bus for PDI data bits. The width of SDI data (`SW`) is set equal to this value. Valid values are 8, 16, 32.
-  Supported combinations of (`G_W`, `CCW`) are (32, 32), (32, 16), (32, 8), (16, 16), or (8, 8).
+  Supported combinations of (`W`, `CCW`) are (32, 32), (32, 16), (32, 8), (16, 16), or (8, 8).
 - `ASYNC_RSTN` (boolean **default=false**): When `True` an asynchronous active-low reset is used instead of a synchronous active-high reset throughout the LWC package and the testbench. `ASYNC_RSTN` can be set to `true` _only if_ the `CryptoCore` provides support for switching to active-low asyncronous resets for all of its resettable registers. Please see the provided `dummy_core` as an example.
 
 ### Testbench Parameters
