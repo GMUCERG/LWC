@@ -1,4 +1,4 @@
-# CryptoTVgen
+# cryptotvgen
 Automatic test-vector generation for hardware implementations of NIST Light-Weight Cryptography (LWC) candidates using GMU LWC Hardware API package.
 
 ## Requirements
