@@ -7,7 +7,6 @@ All notable changes to this project will be documented in this file.
 - Fixes to LWC package and testbench:
   - Enhanced compatibility with VHDL Standards IEEE 1076-1993, IEEE 1076-2002, and IEEE 1076-2008.
   - Enhanced compatibility with multiple simulation and synthesis tools including: Xilinx Vivado, Intel Quartus Prime, Lattice Diamond, Synplify Pro, Synopsys VCS, Synopsys Design Compiler, and GHDL.
-  - `LWC_TB`: Fixed issue where waiting on `success` starts the same time success is present (#35, #27)
 - Reorganization of `dummy_core` source code
 - Compatibility fixes for `dummy_core`
 - Fixes and enhancements to `cryptotvgen`:
