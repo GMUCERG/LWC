@@ -27,7 +27,15 @@ To uninstall:
 $ python3 -m pip uninstall cryptotvgen
 ```
 
-## Running the Executable
+## Running `cryptotvgen` Executable
+If Python script installation directory is included in the user's `$PATH`, the executable should be accessible right after installation:
+```
+$ cryptotvgen -h
+```
+Otherwise, either add the installed script to `$PATH` or run cryptotvgen as a module:
+```
+$ python3 -m cryptotvgen.cli -h
+```
 
 ### Run Modes
 One of the following run modes must be selected:
@@ -42,14 +50,17 @@ One of the following run modes must be selected:
 Run `cryptotvgen -h` for help and further details on available options.
 
 
+To use arbitrary user-provided C reference implementation for testvector generation, use `--candidates_dir=<PATH TO REF CODE>` during `--prepare_libs` step. `<PATH TO REF CODE>` is the path to the directory containing the reference implementation, organized according to `SUPERCOP` package structure with the `C` reference code residing inside the `ref` subfolder of `crypto_aead` and `crypto_hash` directories. The reference code will be built into a dynamically linked library in `<PATH TO REF CODE>/lib` subfolder.
+To use the prepared reference library for testvector generation, add `--lib_path=<PATH TO REF CODE>/lib` to the testvector generation command options.
+
+### Examples:
+
 - To build the libraries for the reference C implementation of `dummy_lwc` available in [software/dummy_lwc_ref](../dummy_lwc_ref/) run:
 ```
 $ cryptotvgen --prepare_libs --candidates_dir=software/dummy_lwc_ref
 ```
 Replace `software/dummy_lwc_ref` with the relative/absolute path to the subfolder containing `crypto_aead` and `crypto_hash` folders containing the reference implementation of an algorithm. 
 This could also be the root to an already extracted SUPERCOP distribution. The built libraries will be in then available in `software/dummy_lwc_ref/lib` folder.
-
-
 
 - To generate a random AEAD test-vector for `dummy_lwc` using the reference C libraries already built in in `software/dummy_lwc_ref/lib` run:
 ```
@@ -110,7 +121,7 @@ $ cryptotvgen -h
 ```
 
 
-## Using the Library
+## Using as Python Library
 See the example scripts in the [examples](./examples) sub-folder as well as [hardware/dummy_lwc/test_all.py](../../hardware/dummy_lwc/test_all.py).
 
 1. [examples/dummy_lwc.py](examples/dummy_lwc.py): generate AEAD and hash test-vectors for `dummy_lwc` core.
