@@ -53,7 +53,7 @@ Note: Commercial and open-source simulators provide mechanisms for overriding th
 ## Software
 The software include `cryptotvgen` test-vector generation utility as well as C reference implementation for the provided `dummy_lwc` example core.
 * [`cryptotvgen`](software/cryptotvgen): Python utility and library for the cryptographic hardware test-vector generation.
-  `cryptotvgen` can prepare and build software implementations of LWC candidates from user-provided `C` reference code or a [SUPERCOP](https://bench.cr.yp.to/supercop.html) release and generate testvectors for various testing scenarios. The reference software implementation need to be organized according to `SUPERCOP` package structure with the `C` reference code residing inside the `ref` subfolder of `crypto_aead` and `crypto_hash` directories. Please see [cryptotvgen's documentation](software/cryptotvgen/README.md) for updated installation and usage instructions.
+  `cryptotvgen` can prepare and build software implementations of LWC candidates from user-provided `C` reference code or a [SUPERCOP](https://bench.cr.yp.to/supercop.html) release and generate testvectors for various testing scenarios. The reference software implementation needs to be organized according to `SUPERCOP` package structure with the `C` reference code residing inside the `ref` subfolder of `crypto_aead` and `crypto_hash` directories. Please see [cryptotvgen's documentation](software/cryptotvgen/README.md) for updated installation and usage instructions.
 
 * [dummy_lwc_ref](software/dummy_lwc_ref): `dummy_lwc` AEAD and hash C reference implementation. Folder follows SUPERCOP package structure.
 
