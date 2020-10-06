@@ -2,7 +2,7 @@
 Automatic test-vector generation for hardware implementations of NIST Light-Weight Cryptography (LWC) candidates using GMU LWC Hardware API package.
 
 ## Requirements
-OS: Linux, macOS, Windows (WSL, MSYS2, Cygwin)
+OS: Tested on Linux and macOS
 
 Dependencies:
 - Python 3.6.5+
@@ -12,26 +12,20 @@ Dependencies:
 ## Installation
 To install as symlinks (recommended):
 ```
-$ pip install -e .
+$ python3 -m pip install -e .
 ```
 This requires the the LWC source directory to be kept in it's current location, but all updates to this directory it will be immediately accessible. 
 
-
 Alternatively, to install as a copy:
 ```
-$ pip install .
+$ python3 -m pip install .
 ```
 If using the latter command, remember to run it again following any git pulls or updates to the source distribution.
 
 To uninstall:
 ```
-$ pip uninstall cryptotvgen
+$ python3 -m pip uninstall cryptotvgen
 ```
-
-Note: 
-- In some systems the Python 3 version of `pip` is named `pip3`
-- You can replace `pip` with `python3 -m pip` in case the Python 3 `pip` executable is not available.
-
 
 ## Running the Executable
 
@@ -45,8 +39,7 @@ One of the following run modes must be selected:
 - `--gen_test_routine`: Generates AEAD test-vectors for the common sizes of AD and PT.
 - `--gen_test_combined`: Generate interleaved combined AEAD and hash test vectors.
 
-See help for details and available options.
-
+Run `cryptotvgen -h` for help and further details on available options.
 
 
 - To build the libraries for the reference C implementation of `dummy_lwc` available in [software/dummy_lwc_ref](../dummy_lwc_ref/) run:
