@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0]
+### Changed
+- Fixes to LWC package and testbench:
+  - Enhanced compatibility with VHDL Standards IEEE 1076-1993, IEEE 1076-2002, and IEEE 1076-2008.
+  - Enhanced compatibility with multiple simulation and synthesis tools including: Xilinx Vivado, Intel Quartus Prime, Lattice Diamond, Synplify Pro, Synopsys VCS, Synopsys Design Compiler, and GHDL/Yosys.
+  - `LWC_TB`: Fixed issue where waiting on `success` starts the same time success is present (#35, #27)
+- Reorganization of `dummy_core` source code
+- Compatibility fixes for `dummy_core`
+- Fixes and enhancements to `cryptotvgen`:
+  - Add simpler and more robust library preparation functionality within `cryptotvgen` (deprecating `prepare_src` scripts).
+  - Fix installation issues and adopt a simpler interface (Please see the [documentation](software/cryptotvgen/README.md))
+  - Fixed incorrect EOI flag when a hash message is empty ([#32](https://github.com/GMUCERG/LWC/pull/33))
+- Updated sample Vivado simulation script
+### Added
+- Support for configurable asynchronous active-low reset (`ASYNC_RSTN`) in the LWC package and testbench.
+- Latency measurement mode in LWC_TB testbench
+
 ## [1.0.3]
 ### Notes
 This release adds templates for designers of implementations and basic documentation for the dummy_lwc implementation.
