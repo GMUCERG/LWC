@@ -22,7 +22,7 @@ use ieee.numeric_std.all;
 
 use std.textio.all;
 
-use work.lwc_std_logic_1164_additions.all;
+use work.LWC_TB_compatibility_pkg.all;
 use work.NIST_LWAPI_pkg.all;
 
 
@@ -72,8 +72,7 @@ architecture behavior of LWC_TB is
     signal rst                  : std_logic := '0';
 
     --! pdi
-    signal fpdi_din             : std_logic_vector(G_PWIDTH-1 downto 0)
-        := (others=>'0');
+    signal fpdi_din             : std_logic_vector(G_PWIDTH-1 downto 0) := (others => '0');
     signal fpdi_din_valid       : std_logic := '0';
     signal fpdi_din_ready       : std_logic;
     signal fpdi_dout            : std_logic_vector(G_PWIDTH-1 downto 0);
@@ -138,19 +137,9 @@ architecture behavior of LWC_TB is
     constant cons_eof           : string(1 to 6) := "###EOF";
     ----------- end of string constant -------------
 
-    ------------- debug constant ------------------
---    constant debug_input        : boolean := False;
---    constant debug_output       : boolean := False;
-    ----------- end of clock constant -------------
-
-    -------custom addon- need to be removed---
     signal tv_count:integer:=0;
 
-    -- ================= --
-    -- FILES DECLARATION --
-    -- ================= --
-
-    --------------- input / output files -------------------
+    ------------------- input / output files ----------------------
     file pdi_file       : text open read_mode  is G_FNAME_PDI;
     file sdi_file       : text open read_mode  is G_FNAME_SDI;
     file do_file        : text open read_mode  is G_FNAME_DO;
@@ -160,7 +149,7 @@ architecture behavior of LWC_TB is
     file timing_csv     : text open write_mode is G_FNAME_TIMING_CSV;
     file result_file    : text open write_mode is G_FNAME_RESULT;
     file failures_file  : text open write_mode is G_FNAME_FAILED_TVS;
-    ------------- end of input files --------------------
+    ----------------- end of input / output files -----------------
 	
 	----------------- component decrations ------------------
 	-- LWC is instantiated as component to make mixed-language simulation possible
@@ -207,9 +196,6 @@ begin
         end if;
     end process genIOclk;
 
-    --! ============ --
-    --! PORT MAPPING --
-    --! ============ --
     genPDIfifo: entity work.fwft_fifo(structure)
 	    generic map (
 	        G_W          => G_PWIDTH,
@@ -286,10 +272,6 @@ begin
 	        do_last      => do_last
 		);
 
-    --! =================== --
-    --! END OF PORT MAPPING --
-    --! =================== --
-
 
     --! =======================================================================
     --! ==================== DATA POPULATION FOR PUBLIC DATA ==================
@@ -303,7 +285,7 @@ begin
         variable valid_line     : boolean     := True;
     begin
     	if ASYNC_RSTN then
-	        rst <= '0';               wait for 5*clk_period;
+	        rst <= '0';               wait for 5*clk_period; -- @suppress "Dead code"
 	        rst <= '1';               wait for clk_period;
     	else
 	        rst <= '1';               wait for 5*clk_period;
@@ -443,7 +425,7 @@ begin
         variable instr_encoding : boolean := False;
         variable force_exit     : boolean := False;
         variable msgid          : integer;
-        variable keyid          : integer;
+--        variable keyid          : integer;
         variable isEncrypt      : boolean := False;
         variable opcode         : std_logic_vector(3 downto 0);
         variable num_fails      : integer := 0;
@@ -486,7 +468,7 @@ begin
                     instr_encoding := False;
                     read_result    := False;
                     opcode := tb_block(19 downto 16);
-                    keyid  := to_integer(to_01(unsigned(tb_block(15 downto 8))));
+--                    keyid  := to_integer(to_01(unsigned(tb_block(15 downto 8))));
                     msgid  := to_integer(to_01(unsigned(tb_block(7  downto 0))));
                     isEncrypt := False;
                     if ((opcode = INST_DEC or opcode = INST_ENC or opcode = INST_HASH)
@@ -732,12 +714,12 @@ begin
                     seg_eot := pdi_delayed(G_PWIDTH-7);
                     seg_last := pdi_delayed(G_PWIDTH-8);
                     if G_PWIDTH = 8 then
-                       wait until falling_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
+                       wait until falling_edge(clk) and pdi_ready = '1' and pdi_valid = '1'; -- @suppress "Dead code"
                        wait until falling_edge(clk) and pdi_ready = '1' and pdi_valid = '1'; --wait segment length top
                        seg_cnt := to_integer(unsigned(pdi_delayed & "00000000"));
                        wait until falling_edge(clk) and pdi_ready = '1' and pdi_valid = '1';
                        seg_cnt := seg_cnt + to_integer(unsigned(pdi_delayed));
-                    elsif G_PWIDTH = 16 then
+                    elsif G_PWIDTH = 16 then -- @suppress "Dead code"
                        wait until falling_edge(clk) and pdi_ready = '1' and pdi_valid = '1'; --wait segment length top
                        seg_cnt := to_integer(unsigned(pdi_delayed));
                     else --G_PWIDTH 32
@@ -782,7 +764,7 @@ begin
                                 end if;
                             end if;
                             start_latency_timer <= '0';
-		            if (do_last /= '1' or (do /= SUCCESS_WORD and do /= FAILURE_WORD)) then
+                            if (do_last /= '1' or (do /= SUCCESS_WORD and do /= FAILURE_WORD)) then
                                 wait until (do_last = '1' and (do = SUCCESS_WORD or do = FAILURE_WORD));
                             end if;
                             stall_msg <= '0';
@@ -819,8 +801,10 @@ begin
                 end if;
                 report "Authenticated Encryption";
                 report "AD size = " & integer'image(ad_size) & " bytes, PT size = " & integer'image(pt_size) & " bytes";
-                report "Na = " & integer'image((ad_size/block_size_ad)) & " Bla = " & integer'image(ad_size mod block_size_ad) & " Ina = " & integer'image(ina);
-                report "Nm = " & integer'image((pt_size/block_size)) & " Blm = " & integer'image(pt_size mod block_size) & " Inm = " & integer'image(inm);
+                report "Na = " & integer'image((ad_size/block_size_ad)) & " Bla = " & 
+		                		integer'image(ad_size mod block_size_ad) & " Ina = " & integer'image(ina);
+                report "Nm = " & integer'image((pt_size/block_size)) & " Blm = " &
+		                		integer'image(pt_size mod block_size) & " Inm = " & integer'image(inm);
                 report "Execution time = " & integer'image(exec_time) & " cycles";
                 report "Latency = " & integer'image(latency) & " cycles";
                 
@@ -882,9 +866,12 @@ begin
                     inc := 0;
                 end if;
                 report "Authenticated Decryption";
-                report "AD size = " & integer'image(ad_size) & " bytes, CT size = " & integer'image(ct_size) & " bytes";
-                report "Na = " & integer'image((ad_size/block_size_ad)) & " Bla = " & integer'image(ad_size mod block_size_ad) & " Ina = " & integer'image(ina);
-                report "Nc = " & integer'image((ct_size/block_size)) & " Blm = " & integer'image(ct_size mod block_size) & " Inc = " & integer'image(inc);
+                report "AD size = " & integer'image(ad_size) & " bytes, CT size = " & 
+                				integer'image(ct_size) & " bytes";
+                report "Na = " & integer'image((ad_size/block_size_ad)) & " Bla = " & 
+                				integer'image(ad_size mod block_size_ad) & " Ina = " & integer'image(ina);
+                report "Nc = " & integer'image((ct_size/block_size)) & " Blm = " & 
+                				integer'image(ct_size mod block_size) & " Inc = " & integer'image(inc);
                 report "Execution time = " & integer'image(exec_time) & " cycles";
                 report "Latency = " & integer'image(latency) & " cycles";
                 write(timingMsg, string'("Authenticated Decryption"));
@@ -944,7 +931,8 @@ begin
                 end if;
                 report "Hashing";
                 report "Hash msg size = " & integer'image(hash_size) & " bytes";
-                report "Nh = " & integer'image((hash_size/block_size_hash)) & " Blh = " & integer'image(hash_size mod block_size_hash) & " Inc = " & integer'image(inh);
+                report "Nh = " & integer'image((hash_size/block_size_hash)) & " Blh = " &
+                				integer'image(hash_size mod block_size_hash) & " Inc = " & integer'image(inh);
                 report "Execution time = " & integer'image(exec_time) & " cycles";
                 
                 write(timingMsg, string'("Hashing"));

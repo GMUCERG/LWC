@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
---! @file       Design_pkg.vhd
+--! @file       design_pkg.vhd
 --! @brief      Package for the Cipher Core.
 --!
 --! @author     Michael Tempelmeier <michael.tempelmeier@tum.de>

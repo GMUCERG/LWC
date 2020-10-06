@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Fixes to LWC package and testbench:
   - Enhanced compatibility with VHDL Standards IEEE 1076-1993, IEEE 1076-2002, and IEEE 1076-2008.
-  - Enhanced compatibility with multiple simulation and synthesis tools including: Xilinx Vivado, Intel Quartus Prime, Lattice Diamond, Synplify Pro, Synopsys VCS, Synopsys Design Compiler, and GHDL/Yosys.
+  - Enhanced compatibility with multiple simulation and synthesis tools including: Xilinx Vivado, Intel Quartus Prime, Lattice Diamond, Synplify Pro, Synopsys VCS, Synopsys Design Compiler, and GHDL.
   - `LWC_TB`: Fixed issue where waiting on `success` starts the same time success is present (#35, #27)
 - Reorganization of `dummy_core` source code
 - Compatibility fixes for `dummy_core`
@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
   - Add simpler and more robust library preparation functionality within `cryptotvgen` (deprecating `prepare_src` scripts).
   - Fix installation issues and adopt a simpler interface (Please see the [documentation](software/cryptotvgen/README.md))
   - Fixed incorrect EOI flag when a hash message is empty ([#32](https://github.com/GMUCERG/LWC/pull/33))
-- Updated sample Vivado simulation script
+- Updated sample Vivado and Modelsim simulation scripts
 ### Added
 - Support for configurable asynchronous active-low reset (`ASYNC_RSTN`) in the LWC package and testbench.
 - Latency measurement mode in LWC_TB testbench
@@ -26,7 +26,7 @@ This release adds templates for designers of implementations and basic documenta
 ### Added
 - Templates [CryptoCore_template.vhd](hardware/CryptoCore_template.vhd) and [design_pkg_template.vhd](hardware/design_pkg_template.vhd)
 - [assumptions.txt](hardware/dummy_lwc/docs/assumptions.txt) and [variants.txt](hardware/dummy_lwc/docs/variants.txt) for dummy_lwc.
-- [source_list.txt](hardware/dummy_lwc/src_rtl/source_list.txt) that specifies the compile hirachie.
+- [source_list.txt](hardware/dummy_lwc/src_rtl/source_list.txt) that specifies the compile hierarchy.
 
 ### Changed
 - Structure of [design_pkg.vhd](hardware/dummy_lwc/src_rtl/design_pkg.vhd) to match with our [template](hardware/CryptoCore_template.vhd).

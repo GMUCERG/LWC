@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
---! @file       Design_pkg.vhd
---! @brief      Package for the Cipher Core.
+--! @file       design_pkg.vhd
+--! @brief      Template for CryptoCore design package
 --!
 --! @author     Michael Tempelmeier <michael.tempelmeier@tum.de>
 --! @author     Patrick Karl <patrick.karl@tum.de>

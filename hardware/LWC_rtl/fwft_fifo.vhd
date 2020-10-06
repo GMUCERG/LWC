@@ -45,7 +45,7 @@ end entity fwft_fifo;
 architecture structure of fwft_fifo is
 
     -- FIFO depth in words
-    constant DEPTH_C : integer := 2**G_LOG2DEPTH;
+    constant DEPTH_C : integer := 2 ** G_LOG2DEPTH;
 
     -- Memory type and signal definition
     type mem_t is array (0 to DEPTH_C - 1) of std_logic_vector(G_W - 1 downto 0);
@@ -69,7 +69,7 @@ architecture structure of fwft_fifo is
     -- In addition to that, the entries counter can be used for
     -- generating additional full/empty flags and programmable full/empty flags.
     signal entries_s        : integer range 0  to DEPTH_C;
-    signal entries_s_next   : integer range -1 to DEPTH_C+1;
+    signal entries_s_next   : integer range - 1 to DEPTH_C+1;
 
 begin
 
