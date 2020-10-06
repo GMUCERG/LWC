@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: ghdl/setup-ghdl-ci@nightly
       with:
-        backend: llvm
+        backend: gcc
     - run: ghdl --version
     - uses: actions/checkout@v2
 #     - name: Set up Python 3.8
