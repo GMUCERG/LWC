@@ -137,7 +137,7 @@ def test_all():
                 verilog_files.append(file)
     # print(f'VHDL_FILES={vhdl_files}')
 
-    vhdl_files.extend([core_src_path / 'src_tb/LWC_TB_compatibility_pkg.vhd', core_src_path / 'src_tb/LWC_TB.vhd'])
+    vhdl_files.extend([str((core_src_path / s).resolve() ) for s in ['src_tb/LWC_TB_compatibility_pkg.vhd', 'src_tb/LWC_TB.vhd']])
 
     orig_design_pkg = None
     orig_lwapi_pkg = None
