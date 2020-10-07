@@ -3,10 +3,10 @@
 --! @brief      Testbench based on the GMU CAESAR project.
 --! @project    CAESAR Candidate Evaluation
 --! @author     Ekawat (ice) Homsirikamol
---! @copyright  Copyright (c) 2015 Cryptographic Engineering Research Group
+--! @copyright  Copyright (c) 2015, 2020 Cryptographic Engineering Research Group
 --!             ECE Department, George Mason University Fairfax, VA, U.S.A.
 --!             All rights Reserved.
---! @version    1.0b1
+--! @version    1.1.0
 --! @license    This project is released under the GNU Public License.
 --!             The license and distribution terms for this file may be
 --!             found in the file LICENSE in this distribution or at
