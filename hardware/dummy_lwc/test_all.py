@@ -137,8 +137,6 @@ def test_all():
                 verilog_files.append(file)
     # print(f'VHDL_FILES={vhdl_files}')
 
-    vhdl_files.extend([str((core_src_path / s).resolve() ) for s in ['src_tb/LWC_TB_compatibility_pkg.vhd', 'src_tb/LWC_TB.vhd']])
-
     orig_design_pkg = None
     orig_lwapi_pkg = None
 
@@ -176,6 +174,8 @@ def test_all():
 
     generated_sources = (core_src_path / 'generated_srcs')
     generated_sources.mkdir(exist_ok=True)
+
+    tb_files = [ str((core_src_path / 'src_tb' / s).resolve()) for s in ['LWC_TB_compatibility_pkg.vhd', 'LWC_TB.vhd'] ]
 
 
     for vhdl_std in ['93']:
@@ -229,7 +229,7 @@ def test_all():
                     cfg_vhdl_files = [str(replace_file(f)) for f in vhdl_files]
 
                     cmd = [make_cmd, make_goal,
-                           f"VHDL_FILES={' '.join(cfg_vhdl_files)}",
+                           f"VHDL_FILES={' '.join(cfg_vhdl_files + tb_files)}",
                            f"VERILOG_FILES={' '.join(verilog_files)}",
                            f"CONFIG_LOC={generated_config_ini}",
                            "REBUILD=1"
