@@ -4,13 +4,13 @@ This is a development package for GMU's [Hardware API for Lightweight Cryptograp
 
 This package is divided into two primary parts: **Hardware** and **Software**
 ## Hardware
-* VHDL code of a generic PreProcessor, PostProcessor, and Header FIFO, common for all LWC candidates (LWCsrc)
-* Universal testbench common for all the API-compliant designs (LWCsrc/LWC_TB)  [or (LWC_TB) if moved]
-* Reference implementation of a dummy authenticated cipher with a hash functionality (AEAD+Hash) (dummy_lwc)
+* RTL VHDL code of a generic PreProcessor, PostProcessor, and Header FIFO, common for all LWC candidates ([LWC_rtl](hardware/LWC_rtl))
+* Universal testbench common for all the API-compliant designs ([LWC_tb](hardware/LWC_tb))
+* Reference implementation of a dummy authenticated cipher with a hash functionality (AEAD+Hash) ([dummy_lwc](hardware/dummy_lwc))
 * Template of the CryptoCore (CryptoCore_templete.vhd)
 * Template of design_pkg.vhd (design_pkg_templete.vhd)
 * `process_failures.py`: Python script for post-processing testbench-generated log of failed test-vectors ('failed_test_vectors.txt')
-* `makefiles`, `scripts`, `lwc.mk`: simulation and synthesis makefiles.
+* `makefiles`, `scripts`, `lwc.mk`: simulation makefiles and scripts.
 
 The subfolders of dummy_lwc include:
 * `src_rtl`: RTL VHDL code of the dummy core
@@ -46,7 +46,7 @@ Some notable generics include:
 - `G_FNAME_LOG`(string): Path to the testbench-generated log file.
 - `G_FNAME_FAILED_TVS`(string): Path to testbench-generated file containing all failed test-vectors. It will be an empty file if all test vectors passed. (default: "failed_test_vectors.txt")
 
-Please see [LWC_TB.vhd](hardware/LWCsrc/LWC_TB.vhd) for the full list of testbench generics.
+Please see [LWC_TB.vhd](hardware/LWC_tb/LWC_TB.vhd) for the full list of testbench generics.
 
 Note: Commercial and open-source simulators provide mechanisms for overriding the value of top-level testbench generics without the need to manually change the VHDL file.
 
