@@ -403,21 +403,22 @@ def get_parser():
         '--gen_benchmark', default=False, action=ValidateGenBenchmarkRoutine, nargs=0,
         help=textwrap.dedent('''\
             This mode generates several the following sets of test vectors
-            1) basic_aead_sizes_new_key: encryption and decryption of the following sizes
-                using a new key every time.
+            1) generic_aead_sizes_new_key: encryption and decryption of the following sizes
+                using a new key every time. Also generic_aead_sizes_reuse_key.
                 Format: (ad,PT/CT)
                 (5*--block_size_ad//8,0), (4*--block_size_ad//8,0), (1536,0), (64,0), (16,0)
                 (0,5*--block_size//8), (0,4*--block_size//8), (0,1536), (64,0), (0,16)
                 (5*--block_size_ad//8,5*--block_size), (4*--block_size_ad//8,4*--block_size),
                 (1536,1536), (64,64), (16,16)
-            2) basic_aead_sizes_reuse_key: Same sizes at new key but reusing key
-            3) basic_hash_sizes: (0, 16, 64, 1536, 4*--block_size_msg_digest//8,
+            2) basic_hash_sizes: (0, 16, 64, 1536, 4*--block_size_msg_digest//8,
                                  5*--block_size_msg_digest//8)
-            4) blanket_aead_test: for i in range 0 to (2*--block_size_ad//8)-1
-                                    for x in range 0 to 2*--block_size//8)-1
-                                        tests += (i,x)
+            3) kats_for_verification: for i in range 0 to (2*--block_size_ad//8)-1
+                                          for x in range 0 to 2*--block_size//8)-1
+                                              tests += (i,x)
                                 Encryption only
-            5) blanket_hash_test: 0 to (4*--block_size_msg_digest//8) -1
+            4) blanket_hash_test: 0 to (4*--block_size_msg_digest//8) -1
+            5) pow_*: Several sets of test vectors that are only one message for
+                      for each combination of possible values for basic sizes
 
             Additional arguments to provide --aead, --block_size, and --block_size_ad.
 
