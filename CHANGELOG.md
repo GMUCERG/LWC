@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 
 ## [1.1.0]
+### Added
+- Support for configurable asynchronous active-low reset (`ASYNC_RSTN`) in the LWC package and testbench.
+- Measurement Mode in LWC_TB testbench
+
 ### Changed
 - Fixes to LWC package and testbench:
   - Enhanced compatibility with VHDL Standards IEEE 1076-1993, IEEE 1076-2002, and IEEE 1076-2008.
@@ -10,13 +14,12 @@ All notable changes to this project will be documented in this file.
 - Reorganization of `dummy_core` source code
 - Compatibility fixes for `dummy_core`
 - Fixes and enhancements to `cryptotvgen`:
-  - Add simpler and more robust library preparation functionality within `cryptotvgen` (deprecating `prepare_src` scripts).
-  - Fix installation issues and adopt a simpler interface (Please see the [documentation](software/cryptotvgen/README.md))
+  - Added a simpler and more robust binary preparation functionality within `cryptotvgen` (deprecating `prepare_src` scripts).
+  - Fixed installation issues and adopted a simpler interface (Please see the [documentation](software/cryptotvgen/README.md))
   - Fixed incorrect EOI flag when a hash message is empty ([#32](https://github.com/GMUCERG/LWC/pull/33))
 - Updated sample Vivado and Modelsim simulation scripts
-### Added
-- Support for configurable asynchronous active-low reset (`ASYNC_RSTN`) in the LWC package and testbench.
-- Latency measurement mode in LWC_TB testbench
+
+If upgrading from an earlier version of the package, please also see the [upgrade guide](UPGRADE_GUIDE.md)
 
 ## [1.0.3]
 ### Notes
