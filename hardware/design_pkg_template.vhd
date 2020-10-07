@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
---! @file       Design_pkg.vhd
---! @brief      Package for the Cipher Core.
+--! @file       design_pkg.vhd
+--! @brief      Template for CryptoCore design package
 --!
 --! @author     Michael Tempelmeier <michael.tempelmeier@tum.de>
 --! @author     Patrick Karl <patrick.karl@tum.de>
@@ -23,7 +23,7 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 
-package Design_pkg is
+package design_pkg is
 
     --! user specific, algorithm indepent parameters 
     -- place user specific constants like variant selectors here
@@ -44,12 +44,12 @@ package Design_pkg is
 
     --! place declarations of your functions here
 
-end Design_pkg;
+end design_pkg;
 
-package body Design_pkg is
+package body design_pkg is
 
   --! assign values to all constants and aliases here
 
   --! define your functions here
 
-end package body Design_pkg;
+end package body design_pkg;

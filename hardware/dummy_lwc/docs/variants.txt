@@ -5,75 +5,7 @@ Ina, Inm, Inc, Inh : binary variables equal to 1 if the last block of the respec
 Bla, Blm, Blc, and Blh : the number of bytes in the incomplete block of associated data, plaintext, ciphertext, and hash message, respectively
 
 
-V1 with CCW=CCSW=8:
-	
-
-	Reference software:    
-		dummy_lwc
-
-	Architecture description:
-		Dummy_lwc implementation with 128bit Key and 96bit Npub.
-		Simple RAM-based architecture storing npub, tag/hash and key.
-		
-    AD block size = 128
-    Msg/Cph block size = 128
-    Hash block size = 256
-
-	Ramp up:
-		1
-
-	Key setup time:
-		16
-    
-	Execution time of authenticated encryption:
-		12 + 16*Na + Ina*(Bla + 1) + 16*Nm  + Inm*(Blm + 1)  + 32
-	Execution time of authenticated decryption:
-		12 + 16*Na + Ina*(Bla + 1) + 16*Nc  + Inc*(Blc + 1)  + 33
-	Execution time of hashing:
-		32 + 32*Nh + Inh*(Blh + 1) + 32
-
-
-    Authentication Throughput for large Na = 8/T = 8*f
-    Encryption Throughput for large Nm = 8/T = 8*f
-    Decryption Throughput for large Nc = 8/T = 8*f
-    Hashing Throughput for large Nh = 8/T = 8*f
-		
----------------------------------------------------------------------------
-V2 with CCW=CCSW=16:
-	
-
-	Reference software:    
-		dummy_lwc
-
-	Architecture description:
-		Dummy_lwc implementation with 128bit Key and 96bit Npub.
-		Simple RAM-based architecture storing npub, tag/hash and key.
-		
-    AD block size = 128
-    Msg/Cph block size = 128
-    Hash block size = 256
-
-	Ramp up:
-		1
-
-	Key setup time:
-		8
-    
-	Execution time of authenticated encryption:
-		6 + 8*Na + Ina*ceil((Bla+1)/2) + 8*Nm  + Inm*ceil((Blm+1)/2)  + 16
-	Execution time of authenticated decryption:
-		6 + 8*Na + Ina*ceil((Bla+1)/2) + 8*Nc  + Inc*ceil((Blc+1)/2)  + 17
-	Execution time of hashing:
-		16 + 16*Nh + Inh*ceil((Blh+1)/2) + 16
-
-
-    Authentication Throughput for large Na = 16/T = 16*f
-    Encryption Throughput for large Nm = 16/T = 16*f
-    Decryption Throughput for large Nc = 16/T = 16*f
-    Hashing Throughput for large Nh = 16/T = 16*f
-
----------------------------------------------------------------------------
-V3 with CCW=CCSW=32:
+v1 with CCW=CCSW=32:
 	
 
 	Reference software:    
@@ -94,9 +26,9 @@ V3 with CCW=CCSW=32:
 		4
     
 	Execution time of authenticated encryption:
-		3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nm  + Inm*ceil((Blm+1)/4)  + 8
+		3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nm + Inm*ceil((Blm+1)/4) + 8
 	Execution time of authenticated decryption:
-		3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nc  + Inc*ceil((Blc+1)/4)  + 9
+		3 + 4*Na + Ina*ceil((Bla+1)/4) + 4*Nc + Inc*ceil((Blc+1)/4) + 9
 	Execution time of hashing:
 		8 + 8*Nh + Inh*ceil((Blh+1)/4) + 8
 
@@ -105,3 +37,71 @@ V3 with CCW=CCSW=32:
     Encryption Throughput for large Nm = 32/T = 32*f
     Decryption Throughput for large Nc = 32/T = 32*f
     Hashing Throughput for large Nh = 32/T = 32*f
+
+---------------------------------------------------------------------------
+v2 with CCW=CCSW=16:
+	
+
+	Reference software:    
+		dummy_lwc
+
+	Architecture description:
+		Dummy_lwc implementation with 128bit Key and 96bit Npub.
+		Simple RAM-based architecture storing npub, tag/hash and key.
+		
+    AD block size = 128
+    Msg/Cph block size = 128
+    Hash block size = 256
+
+	Ramp up:
+		1
+
+	Key setup time:
+		8
+    
+	Execution time of authenticated encryption:
+		6 + 8*Na + Ina*ceil((Bla+1)/2) + 8*Nm + Inm*ceil((Blm+1)/2) + 16
+	Execution time of authenticated decryption:
+		6 + 8*Na + Ina*ceil((Bla+1)/2) + 8*Nc + Inc*ceil((Blc+1)/2) + 17
+	Execution time of hashing:
+		16 + 16*Nh + Inh*ceil((Blh+1)/2) + 16
+
+
+    Authentication Throughput for large Na = 16/T = 16*f
+    Encryption Throughput for large Nm = 16/T = 16*f
+    Decryption Throughput for large Nc = 16/T = 16*f
+    Hashing Throughput for large Nh = 16/T = 16*f
+
+---------------------------------------------------------------------------
+v3 with CCW=CCSW=8:
+	
+
+	Reference software:    
+		dummy_lwc
+
+	Architecture description:
+		Dummy_lwc implementation with 128bit Key and 96bit Npub.
+		Simple RAM-based architecture storing npub, tag/hash and key.
+		
+    AD block size = 128
+    Msg/Cph block size = 128
+    Hash block size = 256
+
+	Ramp up:
+		1
+
+	Key setup time:
+		16
+    
+	Execution time of authenticated encryption:
+		12 + 16*Na + Ina*(Bla + 1) + 16*Nm + Inm*(Blm + 1) + 32
+	Execution time of authenticated decryption:
+		12 + 16*Na + Ina*(Bla + 1) + 16*Nc + Inc*(Blc + 1) + 33
+	Execution time of hashing:
+		32 + 32*Nh + Inh*(Blh + 1) + 32
+
+
+    Authentication Throughput for large Na = 8/T = 8*f
+    Encryption Throughput for large Nm = 8/T = 8*f
+    Decryption Throughput for large Nc = 8/T = 8*f
+    Hashing Throughput for large Nh = 8/T = 8*f
