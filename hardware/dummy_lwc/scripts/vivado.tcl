@@ -1,52 +1,46 @@
-# This script is based on Kammoh's pull request
-# See https://github.com/GMUCERG/LWC/pull/1 for more information
+# Vivado Simulation Script using project mode
+#
+# To run:
+# 1. create a run directory (e.g. vivado_run) inside hardware/dummy_lwc: 
+#    mkdir vivado_run
+# 2. cd vivado_run
+# 3. vivado -mode batch -source ../scripts/vivado.tcl
+#
 
-set INTERFACE_REPO "../../LWCsrc"
-set CORE_SRC_DIR "../src_rtl"
-set KAT_PATH "../../../../../../dummy_lwc/KAT/KAT_MS_32"
+set RTL_SRC_DIR "../src_rtl/v1"
+set TB_SRC_DIR "../src_tb"
 
+set KAT_PATH "[pwd]/../KAT/v1"
 
 set TOP_LEVEL_NAME LWC_TB
 
-# Set implementation files
-set CORE_VHDL_SRCS [glob -type f [subst "$CORE_SRC_DIR/*.vhd"]]
-
-set INTERFACE_SRCS [subst {
-    "$INTERFACE_REPO/NIST_LWAPI_pkg.vhd"
-    "$INTERFACE_REPO/StepDownCountLd.vhd"
-    "$INTERFACE_REPO/data_piso.vhd"
-    "$INTERFACE_REPO/key_piso.vhd"
-    "$INTERFACE_REPO/data_sipo.vhd"
-    "$INTERFACE_REPO/PreProcessor.vhd"
-    "$INTERFACE_REPO/PostProcessor.vhd"
-    "$INTERFACE_REPO/fwft_fifo.vhd"
-    "$INTERFACE_REPO/LWC.vhd"
-}]
-
-set VHDL_SRCS [concat $CORE_VHDL_SRCS $INTERFACE_SRCS]
-
+# ----------------------------------------
+# Set RTL source files
+set RTL_SRCS [glob -type f [subst "$RTL_SRC_DIR/*.vhd"]]
+append RTL_SRCS " [glob -type f [subst "$RTL_SRC_DIR/LWC/*.vhd"]]"
 
 
 # ----------------------------------------
-# Set simulation files
-set VHDL_TB_SRCS [subst {
-    "$INTERFACE_REPO/std_logic_1164_additions.vhd"
-    "$INTERFACE_REPO/$TOP_LEVEL_NAME.vhd"
-}]
+# Set simulation source files
+set TB_SRCS [glob -type f [subst "$TB_SRC_DIR/LWC/*.vhd"]]
 
 create_project -force "prj_$TOP_LEVEL_NAME"
-add_files -fileset sources_1 {*}$VHDL_SRCS
-add_files -fileset sim_1 {*}$VHDL_TB_SRCS
+add_files -fileset sources_1 {*}$RTL_SRCS
+
+
+add_files -fileset sim_1 {*}$TB_SRCS
+set_property top $TOP_LEVEL_NAME [current_fileset]
 
 update_compile_order -fileset sources_1
 update_compile_order -fileset sim_1
+
+set_property top $TOP_LEVEL_NAME [current_fileset]
 
 set_property generic [subst {
    G_FNAME_DO="$KAT_PATH/do.txt"
    G_FNAME_PDI="$KAT_PATH/pdi.txt"
    G_FNAME_SDI="$KAT_PATH/sdi.txt"
 }] [get_filesets sim_1]
-
 
 launch_simulation
 run -all

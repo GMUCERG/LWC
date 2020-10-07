@@ -1,11 +1,10 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 '''
 options extraction.
 '''
 
-# cryptotvgen 1.0.0
+# cryptotvgen
 # Ekawat (Ice) Homsirikimal and William Diehl
 #
 # Based on aeadtvgen 2.0.0 by Ekawat Homsirikamol (GMU CERG)
@@ -15,52 +14,11 @@ import textwrap
 import sys
 import os
 from enum import Enum
+import pathlib
 
 class AlgorithmClass(Enum):
     AEAD = 0
     HASH = 1
-
-# ============================================================================
-# Reference: http://stackoverflow.com/questions/8624034/python-argparse-type-and-choice-restrictions-with-nargs-1
-def make_validate_library_action(algorithm_class):
-    class ValidateLibrary(argparse.Action):
-        ''' Validate whether specified library is valid (compiled) '''
-        def __call__(self, parser, args, value=0, option_string=None):
-            # print('{n} {v} {o}'.format(n=args, v=value, o=option_string))
-            lib_path = args.lib_path
-            if not os.path.exists(lib_path):
-                raise(FileNotFoundError('No library path found {s!r}. Please'
-                                        ' provide the correct path!'
-                                        .format(s=lib_path)))
-    
-            lib_name = value            
-            if (algorithm_class == AlgorithmClass.AEAD):
-                class_path = 'crypto_aead'
-                delattr(args, 'aead')
-            elif (algorithm_class == AlgorithmClass.HASH):
-                class_path = 'crypto_hash'
-                delattr(args, 'hash')
-            else:
-                raise(argparse.ArgumentError('Unsupported algorithm class'))
-            b_windows = True if sys.platform in ['win32', 'win64', 'msys'] else False
-            lib_name += '_dbg' if args.dbg == True else ""
-            lib_name += '.dll' if b_windows else '.so'
-            lib_file = '{}/{}/{}'.format(lib_path, class_path, lib_name)
-            
-            if not os.path.isfile(lib_file):
-                raise(FileNotFoundError('No library {s!r} found. Please compile'
-                                        ' it first!'.format(s=lib_file)))
-
-
-            try:
-                algorithm_class_paths = args.algorithm_class_paths
-            except AttributeError:
-                algorithm_class_paths = ['' for a in AlgorithmClass]            
-            
-            algorithm_class_paths[algorithm_class.value] = lib_file
-                        
-            setattr(args, 'algorithm_class_paths', algorithm_class_paths)
-    return ValidateLibrary
 
 class UseDebugLibrary(argparse.Action):
     ''' Validate block_size_ad '''
@@ -69,16 +27,6 @@ class UseDebugLibrary(argparse.Action):
         for algorithm_class, path in args.algorithm_class_paths:
             new_path = path
             args.algorithm_class_paths[algorithm_class] = new_path
-
-
-class ValidateBlockSizeAd(argparse.Action):
-    ''' Validate block_size_ad '''
-    def __call__(self, parser, args, values, option_string=None):
-        # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
-        if values > args.block_size:
-            raise(argparse.ArgumentError(
-                self, 'block_size_ad cannot be larger than block_size'))
-        setattr(args, self.dest, values)
 
 class ValidateMsgFormat(argparse.Action):
     ''' Validate message format '''
@@ -103,12 +51,14 @@ class ValidateMsgFormat(argparse.Action):
         setattr(args, self.dest, values)
 
 
-routines = ('gen_random', 'gen_custom', 'gen_test_routine', 'gen_single', 'gen_hash', 'gen_test_combined')
+routines = ('gen_random', 'gen_custom', 'gen_test_routine', 'gen_single',
+            'gen_hash', 'gen_test_combined', 'gen_benchmark', 'prepare_libs')
 
 class ValidateGenRandom(argparse.Action):
     ''' Validate gen_random option '''
     def __call__(self, parser, args, values, option_string=None):
-        # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
+        if args.hash is not None:
+            sys.exit('`--gen_random` can only be used in for AEAD test vectors')
 
         if (values < 1 or values > 1000):
             raise argparse.ArgumentError(
@@ -122,6 +72,25 @@ class ValidateGenRandom(argparse.Action):
             routine = [routines.index(self.dest), ]
         setattr(args, 'routines', routine)
         setattr(args, self.dest, values)
+
+
+class ValidatePrepareLibs(argparse.Action):
+    def __init__(self, option_strings, dest, nargs, **kwargs):
+        super(ValidatePrepareLibs, self).__init__(option_strings, dest, nargs, **kwargs)
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, values if values else 'all')
+        
+class ValidateCandidatesDir(argparse.Action):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs:
+            raise ValueError("nargs not allowed")
+        super(ValidateCandidatesDir, self).__init__(option_strings, dest, nargs, **kwargs)
+
+    def __call__(self, parser, namespace, value, option_string=None):
+        value = pathlib.Path(value).resolve()
+        if not (value.exists() and value.is_dir()):
+            sys.exit(f"candidate_dir {value} does not exist or is not a directory!")
+        setattr(namespace, self.dest, value)
 
 class ValidateGenCustom(argparse.Action):
     ''' Validate gen_custom option '''
@@ -289,6 +258,16 @@ class ValidateGenSingle(argparse.Action):
         setattr(args, 'routines', routine)
         setattr(args, self.dest, input)
 
+class ValidateGenBenchmarkRoutine(argparse.Action):
+    ''' Validate gen_benchmark_routine option '''
+    def __call__(self, parser, args, values, option_string=None):
+        try:
+            routine = getattr(args, 'routines')
+            routine.append(routines.index(self.dest))
+        except AttributeError:
+            routine = [routines.index(self.dest), ]
+        setattr(args, 'routines', routine)
+
 class InvalidateArgument(argparse.Action):
     def __call__(self, parser, args, values, option_string=None):
         raise argparse.ArgumentError(
@@ -322,39 +301,50 @@ def get_parser():
         formatter_class=CustomFormatter,
         prog='cryptotvgen',
         description = textwrap.dedent('''\
-            Test vectors generator for NIST Lightweight Cryptography
-            candidates. The script REQUIREs that the C library for the
-            intended algorithm is compiled first.'''))
+            Test vectors generator for NIST Lightweight Cryptography candidates.\n\n'''))
 
     mainop = parser.add_argument_group(
         textwrap.dedent('''\
-            :::::Required Parameters:::'''),
-        'Library path specifier::')
+            :::::Path specifiers:::'''),
+        'Not required if using `--prepare_libs` in automatic mode (see below and README)')
+    
     mainop.add_argument(
-        'lib_path',
+        '--candidates_dir',
+        action=ValidateCandidatesDir,
+        default=None,
+        metavar='<PATH/TO/CANDIDATES/SOURCE/DIRECTORY>',
         help=textwrap.dedent('''\
-            Path to CAESAR shared library, i.e.
-                ../../prepare_src/libs.'''))
-                
+           Relative or absolute path to the top _directory_ where the `crypto_aead `crypto_hash` folders candidates directory,
+           Source directory structure in this folder must follow SUPERCOP directory structure.
+           (default: %(default)s, which will use $HOME/.cryptotvgen)''')
+    )
+    mainop.add_argument(
+        '--lib_path',
+        default=None,
+        metavar='<PATH/TO/LIBRARY/DIRECTORY>',
+        help=textwrap.dedent('''\
+            Relative or absolute path to the top _directory_ where `crypto_aead` and `crypto_hash` folders with the dynamic shared libraries (*.so or *.dll) reside.
+            e.g. `../software/dummy_lwc_ref/lib` 
+            (default: %(default)s, which means if candidates_dir option is specified will use `candidates_dir`/lib 
+                    and if neither candidates_dir nor lib_path are specified will use  $HOME/.cryptotvgen/lib)''')
+    )
     secondaryop = parser.add_argument_group(
         textwrap.dedent('''\
             :::::At least one of these parameters are required:::'''),
         'Library name specifier::')
     secondaryop.add_argument(
-        '--aead', action=make_validate_library_action(AlgorithmClass.AEAD),
-        metavar='<ALGORITHM_NAME--IMPLEMENTATION_NAME>',
+        '--aead',
+        metavar='<ALGORITHM_VARIANT_NAME>',
         help=textwrap.dedent('''\
-            Shared library's for AEAD algorithm, i.e. gimli24v1--ref
-            Note: The library should be generated prior to the start
-            of the program.'''))
+            Name of a the variant of an AEAD algorithm for which to generate test-vectors, e.g. gimli24v1
+            Note: The library should have been be generated previously by running in `--prepare_libs`.'''))
 
     secondaryop.add_argument(
-        '--hash', action=make_validate_library_action(AlgorithmClass.HASH),
-        metavar='<ALGORITHM_NAME--IMPLEMENTATION_NAME>',
+        '--hash',
+        metavar='<ALGORITHM_VARIANT_NAME>',
         help=textwrap.dedent('''\
-            Shared library's for HASH algorithm, i.e. gimli24v1--ref
-            Note: The library should be generated prior to the start
-            of the program.'''))
+            Name of a the variant of a hash algorithm for which to generate test-vectors, e.g. asconxofv12
+            Note: The library should have been be generated previously by running in `--prepare_libs`.'''))
 
     test = parser.add_argument_group(':::::Test Generation Parameters:::',
             textwrap.dedent('''\
@@ -382,11 +372,63 @@ def get_parser():
         '--gen_random', type=int, default=0, metavar='N',
         action=ValidateGenRandom,
         help=textwrap.dedent('''\
-            Randomly generates multiple test vectors with
+            Randomly generates N test vectors with
             varying AD_LEN, PT_LEN, and operation (For use only with AEAD)'''))
     test.add_argument(
+        '--prepare_libs', default=None, metavar='<variant_prefix>', nargs='*', action=ValidatePrepareLibs,
+        help=textwrap.dedent('''\
+            Build dynamically shared libraries required for testvector generation.
+            If one or more <variant_prefix> arguments are given, only build variants
+            whose name starts with either of these prefixes, otherwise will build
+            all libraries.
+            e.g. `--prepare_libs ascon` will only build all AEAD and hash variants
+            of "ascon*"
+
+            Automatic mode: If no `--candidates_dir` option is present it will
+                            download and extract reference implementations from SUPERCOP.
+            Subfolder mode: If `--candidates_dir` is specified, only build
+                            libraries found in sources directories of `candidates_dir`
+                            (uses SUPERCOP directory structure)
+            (default: %(default)s)\
+            See also `--supercop_version`''')
+    )
+    test.add_argument(
+        '--supercop_version', default='latest',
+        help=textwrap.dedent('''\
+            'SUPERCOP version to download and use. 
+            Either use specific version with `YYYYMMDD` format or use `latest`
+            to automatically determine the latest available version from the SUPERCOP website.''')
+    )
+    test.add_argument(
+        '--gen_benchmark', default=False, action=ValidateGenBenchmarkRoutine, nargs=0,
+        help=textwrap.dedent('''\
+            This mode generates several the following sets of test vectors
+            1) generic_aead_sizes_new_key: encryption and decryption of the following sizes
+                using a new key every time. Also generic_aead_sizes_reuse_key.
+                Format: (ad,PT/CT)
+                (5*--block_size_ad//8,0), (4*--block_size_ad//8,0), (1536,0), (64,0), (16,0)
+                (0,5*--block_size//8), (0,4*--block_size//8), (0,1536), (64,0), (0,16)
+                (5*--block_size_ad//8,5*--block_size), (4*--block_size_ad//8,4*--block_size),
+                (1536,1536), (64,64), (16,16)
+            2) basic_hash_sizes: (0, 16, 64, 1536, 4*--block_size_msg_digest//8,
+                                 5*--block_size_msg_digest//8)
+            3) kats_for_verification: for i in range 0 to (2*--block_size_ad//8)-1
+                                          for x in range 0 to 2*--block_size//8)-1
+                                              tests += (i,x)
+                                Encryption only
+            4) blanket_hash_test: 0 to (4*--block_size_msg_digest//8) -1
+            5) pow_*: Several sets of test vectors that are only one message for
+                      for each combination of possible values for basic sizes
+
+            Additional arguments to provide --aead, --block_size, and --block_size_ad.
+
+            Optional arguments --hash and --block_size_msg_digest allow for the generation
+            of the hash test vectors
+        '''))
+    test.add_argument(
         '--gen_custom_mode', type=int, default=0, choices=range(3),
-        metavar='MODE', help=textwrap.dedent('''\ The mode of test vector generation used by the --gen_custom option.
+        metavar='MODE', help=textwrap.dedent('''\
+            The mode of test vector generation used by the --gen_custom option.
 
             Meaning of MODE values:
                 0 = All random data
@@ -544,11 +586,11 @@ def get_parser():
 
             Example:
 
-            --gen_test_combine 1 20 0
+            --gen_test_combined 1 20 0
 
             Generates tests 1 to 20 with MODE=0.
 
-            --gen_test_combine 5 5 1
+            --gen_test_combined 5 5 1
 
             Generates test 5 with MODE=1.''')
         )
@@ -641,9 +683,6 @@ def get_parser():
         'Debugging options::')
     optops.add_argument("-h", "--help", action="help",
         help="Show this help message and exit.")
-    optops.add_argument(
-        '--dbg', default=False, nargs=0, action=UseDebugLibrary,
-        help='Run the C code with the DBG preprocessor flag.')
 
     optops.add_argument(
         '--verify_lib', default=False, action='store_true',
@@ -687,9 +726,11 @@ def get_parser():
         help='''Algorithm's data block size''')
     impops.add_argument(
         '--block_size_ad', type=int, metavar='BITS',
-        action=ValidateBlockSizeAd,
         help='''Algorithm's associated data block size.
         This parameter is assumed to be equal to block_size if unspecified.''')
+    impops.add_argument(
+        '--block_size_msg_digest', type=int, default=None,
+        help='''Algorithm's hash data block size''')
     impops.add_argument(
         '--ciph_exp', default=False,
         action='store_true',
@@ -888,6 +929,3 @@ def get_parser():
         '--cc_pad_style', type=int, default=1, metavar='PAD_STYLE',
         help='Padding style')
     return parser
-
-if __name__ == '__main__':
-    parse_options(sys.argv[1:])

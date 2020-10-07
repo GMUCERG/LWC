@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 --! @file       CryptoCore.vhd
---! @brief      Implementation of the dummy_lwc cipher and hash.
+--! @brief      Template for CryptoCore implementations
 --!
 --! @author     Patrick Karl <patrick.karl@tum.de>
 --! @copyright  Copyright (c) 2019 Chair of Security in Information Technology     

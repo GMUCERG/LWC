@@ -1,35 +1,47 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from .generator import *
+from .generator import gen_dataset, gen_hash, gen_random, gen_single, gen_test_combined, \
+         gen_test_routine, print_header, gen_benckmark_routine, gen_tv_and_write_files
 from .options import get_parser
+from .prepare_libs import prepare_libs
 import textwrap
 import os
+import sys
+import errno
+import pathlib
 
-__all__ = ['cryptotvgen']
 
-def cryptotvgen(args):
+
+## validation can only be safely done when all args are parsed and stored!
+
+def run_cryptotvgen(args=sys.argv[1:]):
     # Parse options
-    p = get_parser()
-    opts = p.parse_args(args)
+    parser = get_parser()
+    opts = parser.parse_args(args)
+    
+    if opts.prepare_libs:
+        prepare_libs(sc_version=opts.supercop_version, libs=opts.prepare_libs,
+                     candidates_dir=opts.candidates_dir, lib_path=opts.lib_path)
+        return 0
     try:
         routines = opts.routines
     except AttributeError:
         error_txt = textwrap.dedent('''
 
                     Please specify at least one of the run modes:
-                        gen_test_routine, gen_random,
-                        gen_custom, or gen_single.
+                        --prepare_libs, --gen_test_routine, --gen_random, --gen_custom, or --gen_single.
 
                     ''')
-        raise ValueError(error_txt)
+        sys.exit(error_txt)
+        
     # Additional error checking
     if (opts.offline):
         opts.msg_format = ['len'] + opts.msg_format
     if (opts.ciph_exp_noext and not opts.ciph_exp):
-        p.error('Option --ciph_ext_noext requires --ciph_exp')
+        parser.error('Option --ciph_ext_noext requires --ciph_exp')
     if (opts.add_partial and not opts.ciph_exp):
-        p.error('Option --add_partial requires --ciph_exp')
+        parser.error('Option --add_partial requires --ciph_exp')
 
     if not os.path.exists(opts.dest):
         try:
@@ -43,7 +55,10 @@ def cryptotvgen(args):
     msg_no = 1
     key_no = 1
     gen_single_index = 0
-
+    
+    if opts.candidates_dir:
+        if not lib_path:
+            lib_path = pathlib.Path(opts.candidates_dir) / 'lib'
     for routine in opts.routines:
         if routine == 0:
             data = gen_random(opts, msg_no, key_no)
@@ -56,30 +71,23 @@ def cryptotvgen(args):
             gen_single_index += 1
         elif routine == 4:   # Hash
             data = gen_hash(opts, msg_no)
-        else:                # Combined AEAD and Hash
+        elif routine == 5:   # Combined AEAD and Hash
             data = gen_test_combined(opts, msg_no, key_no)
+        elif routine == 6:
+            gen_benckmark_routine(opts)
+            return 0
 
         dataset += data[0]
         msg_no = data[1]+1
         key_no = data[2]+1
 
-    print_header(opts)
-    for tv in dataset:
-        tv.gen_tv()
-        tv.gen_nist_tv()
-        tv.gen_cc_hls()
-
-    # Add EOF tag
-    for file_name in [opts.pdi_file, opts.do_file, opts.sdi_file]:
-        file_path = os.path.join(opts.dest, file_name)
-        with open(file_path, 'a') as f:
-            f.write('###EOF\n')
-
+    gen_tv_and_write_files(opts, dataset)
     print("Done! Please visit destination folder\n\t"
           "{}\n"
           "for generated files (pdi.txt, sdi.txt, and do.txt)".format(os.path.abspath(opts.dest)))
+    return 0
 
 if __name__ == '__main__':
     import sys
-    cryptotvgen(sys.argv[1:])
+    run_cryptotvgen(sys.argv[1:])
 
