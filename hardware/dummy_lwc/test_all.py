@@ -137,6 +137,8 @@ def test_all():
                 verilog_files.append(file)
     # print(f'VHDL_FILES={vhdl_files}')
 
+    vhdl_files.extend(['src_tb/LWC_TB_compatibility_pkg.vhd', 'src_tb/LWC_TB.vhd'])
+
     orig_design_pkg = None
     orig_lwapi_pkg = None
 

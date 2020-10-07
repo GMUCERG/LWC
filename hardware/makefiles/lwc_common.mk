@@ -69,10 +69,7 @@ WORK_LIB ?= work
 
 SIM_TOP = LWC_TB
 
-LWC_TB = $(LWCSRC_DIR)/LWC_TB.vhd
-VHDL_ADDITIONS = $(LWCSRC_DIR)/lwc_std_logic_1164_additions.vhd
-
-SIM_ONLY_VHDL_FILES := $(VHDL_ADDITIONS) $(LWC_TB) 
+SIM_ONLY_VHDL_FILES ?= src_tb/LWC_TB.vhd srt_tb/LWC_TB_compatibility_pkg.vhd
 SIM_VHDL_FILES = $(VHDL_FILES) $(SIM_ONLY_VHDL_FILES)
 
 # common tool exports
