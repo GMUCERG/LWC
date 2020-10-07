@@ -1,9 +1,7 @@
 #! /usr/bin/env python3
-from pathlib import Path, PurePath, PurePosixPath
-import json
+from pathlib import Path
 import re
 import subprocess
-import shutil
 import sys
 
 script_dir = Path(__file__).parent.resolve()
@@ -94,29 +92,6 @@ def get_lang(file: str):
         return 'verilog'
     if file.endswith('.sv'):
         return 'system-verilog'
-
-# TODO
-
-
-def gen_hdl_prj():
-    with open(sources_list, 'r') as f:
-        prj = {}
-        prj['files'] = []
-        data = f.read()
-        for var, subst in variables.items():
-            data = re.sub(r'\$\(' + var + r'\)', subst, data)
-        for file in data.splitlines():
-            if not Path(file).is_absolute():
-                file = str(Path(variant_src_rtl) / file)
-            prj['files'].append({'file': file, 'language': get_lang(file)})
-        prj["options"] = {
-            "ghdl_analysis": [
-                "--workdir=work",
-                "-fexplicit"
-            ]}
-        with open('hdl-prj.json', 'w') as prj_file:
-            json.dump(prj, prj_file, indent=2)
-
 
 def test_all():
     vhdl_files = []

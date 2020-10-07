@@ -17,7 +17,7 @@ ifeq ($(strip $(USE_DOCKER)),1)
 # $(MAKECMDGOALS): config-vars $(TOOL_RUN_DIR)/docker.env ;
 
 # docker pull ghdl/synth:beta
-$(info Using docker for Python3, GHDL, Yosys, Verilator, and Vivado)
+$(info Using docker for Python3, GHDL, Yosys, Verilator)
 WINPTY := $(shell command -v winpty)
 
 DOCKER_CMD = $(WINPTY) docker run --rm -it -v /$(CORE_ROOT):/$(CORE_ROOT) -v /$(LWC_ROOT):/$(LWC_ROOT) -w $(TOOL_RUN_DIR) --security-opt label=disable
@@ -26,7 +26,6 @@ PYTHON3_BIN = $(DOCKER_CMD) ghdl/synth:beta python3
 GHDL_BIN = $(DOCKER_CMD) ghdl/synth:beta ghdl
 YOSYS_BIN = $(DOCKER_CMD) ghdl/synth:beta yosys
 VERILATOR_BIN = $(DOCKER_CMD) verilator/verilator:4.036
-VIVADO_BIN = $(DOCKER_CMD) -e PATH="/opt/Xilinx/Vivado/2019.2/bin:/usr/bin:/bin" --env-file=$(TOOL_RUN_DIR)/docker.env kammoh/vivado vivado
 endif
 
 TOP ?= LWC
