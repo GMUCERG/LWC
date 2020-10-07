@@ -2,6 +2,8 @@
 # LWC Hardware API Development Package
 This is a development package for GMU's [Hardware API for Lightweight Cryptography](https://cryptography.gmu.edu/athena/index.php?id=LWC). Please refer to the latest [LWC Hardware API](https://cryptography.gmu.edu/athena/LWC/LWC_HW_API.pdf) and [LWC Hardware API Implementer’s Guide](https://cryptography.gmu.edu/athena/LWC/LWC_HW_Implementers_Guide.pdf) for further details.
 
+Note: if upgrading from an earlier version of the LWC package, please see our [upgrade guid](UPGRADE_GUIDE.md)
+
 This package is divided into two primary parts: **Hardware** and **Software**
 ## Hardware
 * RTL VHDL code of a generic PreProcessor, PostProcessor, and Header FIFO, common for all LWC candidates ([LWC_rtl](hardware/LWC_rtl))
