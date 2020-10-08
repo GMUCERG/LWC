@@ -148,16 +148,16 @@ begin
     --! Segment Length Counter
     SegLen: entity work.StepDownCountLd(StepDownCountLd)
         generic map(
-                N       =>  16,
-                step    =>  (G_W/8)
-                    )
+                N       => 16,
+                step    => (G_W/8)
+            )
         port map
                 (
-                clk     =>  clk ,
-                len     =>  len_SegLenCnt,
-                load    =>  load_SegLenCnt,
-                ena     =>  en_SegLenCnt,
-                count   =>  dout_SegLenCnt
+                clk     => clk ,
+                len     => len_SegLenCnt,
+                ena     => en_SegLenCnt,
+                load    => load_SegLenCnt,
+                count   => dout_SegLenCnt
             );
 
     -- if there are (G_W/8) or less bytes left, we processthe last flit
@@ -222,7 +222,7 @@ FSM_32BIT: if (G_W=32) generate
 
 
     --! Multiplexer
-    load_SegLenCnt <= sdi_seg_length when (sel_sdi_length = True) else pdi_seg_length;
+    load_SegLenCnt <= sdi_seg_length when sel_sdi_length else pdi_seg_length;
 
     --set size: internally we deal with 32 bits only
     bdi_size_p <= dout_SegLenCnt(2 downto 0) when last_flit_of_segment='1' else "100";
@@ -502,18 +502,18 @@ FSM_32BIT: if (G_W=32) generate
     begin
             -- DEFAULT Values
             -- external interface
-            sdi_ready           <='0';
-            pdi_ready           <='0';
+            sdi_ready           <= '0';
+            pdi_ready           <= '0';
             -- LWC core
-            key_valid_p         <='0';
-            key_update          <='0';
-            bdi_valid_p         <='0';
-            bdi_type            <="0000";
+            key_valid_p         <= '0';
+            key_update          <= '0';
+            bdi_valid_p         <= '0';
+            bdi_type            <= "0000";
             -- header-FIFO
-            cmd_valid           <='0';
+            cmd_valid           <= '0';
             -- counter
-            len_SegLenCnt       <='0';
-            en_SegLenCnt        <='0';
+            len_SegLenCnt       <= '0';
+            en_SegLenCnt        <= '0';
             -- register
             nx_eoi_flag         <= eoi_flag;
             nx_eot_flag         <= eot_flag;
@@ -678,9 +678,9 @@ FSM_16BIT: if (G_W=16) generate
                          "001" when 1,
                          "000" when others;
 
-    bdi_pad_loc    ((G_W/8) -1 downto 0) <= bdi_pad_loc_p(3 downto 4-(G_W/8));
-    bdi_valid_bytes((G_W/8) -1 downto 0) <= bdi_valid_bytes_p(3 downto 4-(G_W/8));
-    data_seg_length   <= sdi_data when sel_sdi_length=true else pdi_data;
+    bdi_pad_loc       <= bdi_pad_loc_p(3 downto 4-CCWdiv8);
+    bdi_valid_bytes   <= bdi_valid_bytes_p(3 downto 4-CCWdiv8);
+    data_seg_length   <= sdi_data when sel_sdi_length else pdi_data;
     load_SegLenCnt    <= data_seg_length(G_W-1 downto G_W-8*(G_W/8));
 
     bdi_eoi_internal  <= eoi_flag and last_flit_of_segment;
@@ -689,8 +689,8 @@ FSM_16BIT: if (G_W=16) generate
     bdi_eot           <= bdi_eot_internal;
 
     --! Assigning Data to buses
-    bdi <= pdi_data;
-    key <= sdi_data;
+    bdi <= pdi_data(CCW - 1 downto 0);
+    key <= sdi_data(CCSW - 1 downto 0);
     
      --! State register
     GEN_proc_SYNC_RST: if (not G_ASYNC_RSTN) generate
@@ -720,8 +720,7 @@ FSM_16BIT: if (G_W=16) generate
     --!next state function
     process (pr_state, sdi_valid,pdi_valid, sdi_data, pdi_data,
             last_flit_of_segment, decrypt_internal, key_ready, bdi_ready,
-            cmd_ready, bdi_eot_internal,
-            bdi_eoi_internal, eot_flag, eoi_flag)
+            cmd_ready, bdi_eoi_internal, eot_flag)
 
     begin
         case pr_state is

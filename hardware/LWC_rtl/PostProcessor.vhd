@@ -670,9 +670,7 @@ FSM_16BIT: if (G_W=16) generate
     end process;
 
     --! Output state function
-    process(pr_state, bdo_valid, end_of_block, msg_auth_valid, msg_auth,
-            decrypt, cmd, cmd_valid, do_ready, eot, tag_size_bytes, HDR_TAG_internal,
-            bdo_cleared)
+    process(pr_state, bdo_valid, decrypt, cmd, cmd_valid, do_ready, eot, tag_size_bytes, HDR_TAG_internal, bdo_cleared)
     begin
         -- DEFAULT Values
         -- external interface
@@ -716,7 +714,7 @@ FSM_16BIT: if (G_W=16) generate
             when S_OUT_HASH =>
                 bdo_ready         <= do_ready;
                 do_valid_internal <= bdo_valid;
-                do_data_internal  <= bdo_cleared;
+                do_data_internal  <= std_logic_vector(resize(unsigned(bdo_cleared), G_W));
 
             --MSG
             when S_HDR_MSG =>
@@ -750,7 +748,7 @@ FSM_16BIT: if (G_W=16) generate
                 bdo_ready          <= do_ready;
                 do_valid_internal  <= bdo_valid;
                 en_SegLenCnt       <= bdo_valid and do_ready;
-                do_data_internal   <= bdo_cleared;
+                do_data_internal   <= std_logic_vector(resize(unsigned(bdo_cleared), G_W));
 
             --TAG
             when S_HDR_TAG =>
@@ -764,7 +762,7 @@ FSM_16BIT: if (G_W=16) generate
             when S_OUT_TAG =>
                 bdo_ready         <= do_ready;
                 do_valid_internal <= bdo_valid;
-                do_data_internal  <= bdo_cleared;
+                do_data_internal  <= std_logic_vector(resize(unsigned(bdo_cleared), G_W));
 
             when S_VER_TAG_IN =>
                 msg_auth_ready <= '1';
@@ -1021,7 +1019,7 @@ FSM_8BIT: if (G_W=8) generate
     end process;
 
     --! Output state function
-    process(pr_state,bdo_valid, end_of_block,msg_auth_valid,msg_auth,
+    process(pr_state,bdo_valid,
             decrypt, cmd,cmd_valid,do_ready, eot, dout_LenReg, bdo_cleared,
             do_data_t16, HDR_TAG_internal, tag_size_bytes, data_seg_length)
     begin

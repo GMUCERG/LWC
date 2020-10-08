@@ -46,35 +46,35 @@ package NIST_LWAPI_pkg is
     constant SWdiv8  : integer := SW/8;
     
     --! INSTRUCTIONS (OPCODES)
-    constant INST_HASH      : std_logic_vector(4    -1 downto 0):="1000";
-    constant INST_ENC       : std_logic_vector(4    -1 downto 0):="0010";
-    constant INST_DEC       : std_logic_vector(4    -1 downto 0):="0011";
-    constant INST_LDKEY     : std_logic_vector(4    -1 downto 0):="0100";
-    constant INST_ACTKEY    : std_logic_vector(4    -1 downto 0):="0111";
-    constant INST_SUCCESS   : std_logic_vector(4    -1 downto 0):="1110";
-    constant INST_FAILURE   : std_logic_vector(4    -1 downto 0):="1111";
+    constant INST_HASH      : std_logic_vector(3 downto 0) := "1000";
+    constant INST_ENC       : std_logic_vector(3 downto 0) := "0010";
+    constant INST_DEC       : std_logic_vector(3 downto 0) := "0011";
+    constant INST_LDKEY     : std_logic_vector(3 downto 0) := "0100";
+    constant INST_ACTKEY    : std_logic_vector(3 downto 0) := "0111";
+    constant INST_SUCCESS   : std_logic_vector(3 downto 0) := "1110";
+    constant INST_FAILURE   : std_logic_vector(3 downto 0) := "1111";
     --! SEGMENT TYPE ENCODING
-    --! Reserved                                                :="0000";
-    constant HDR_AD         : std_logic_vector(4    -1 downto 0):="0001";
-    constant HDR_NPUB_AD    : std_logic_vector(4    -1 downto 0):="0010";
-    constant HDR_AD_NPUB    : std_logic_vector(4    -1 downto 0):="0011";
-    constant HDR_PT         : std_logic_vector(4    -1 downto 0):="0100";
-        --deprecated! use HDR_PT instead!
-    alias HDR_MSG is                                           HDR_PT;
-    constant HDR_CT         : std_logic_vector(4    -1 downto 0):="0101";
-    constant HDR_CT_TAG     : std_logic_vector(4    -1 downto 0):="0110";
-    constant HDR_HASH_MSG   : std_logic_vector(4    -1 downto 0):="0111";
-    constant HDR_TAG        : std_logic_vector(4    -1 downto 0):="1000";
-    constant HDR_HASH_VALUE : std_logic_vector(4    -1 downto 0):="1001";
+    --! Reserved := "0000";
+    constant HDR_AD         : std_logic_vector(3 downto 0) := "0001";
+    constant HDR_NPUB_AD    : std_logic_vector(3 downto 0) := "0010";
+    constant HDR_AD_NPUB    : std_logic_vector(3 downto 0) := "0011";
+    constant HDR_PT         : std_logic_vector(3 downto 0) := "0100";
+    --deprecated! use HDR_PT instead!
+    alias HDR_MSG is HDR_PT;
+    constant HDR_CT         : std_logic_vector(3 downto 0) := "0101";
+    constant HDR_CT_TAG     : std_logic_vector(3 downto 0) := "0110";
+    constant HDR_HASH_MSG   : std_logic_vector(3 downto 0) := "0111";
+    constant HDR_TAG        : std_logic_vector(3 downto 0) := "1000";
+    constant HDR_HASH_VALUE : std_logic_vector(3 downto 0) := "1001";
     --NOT USED in this support package
-    constant HDR_LENGTH     : std_logic_vector(4    -1 downto 0):="1010";
-    --! Reserved                                                :="1011";
-    constant HDR_KEY        : std_logic_vector(4    -1 downto 0):="1100";
-    constant HDR_NPUB       : std_logic_vector(4    -1 downto 0):="1101";
+    constant HDR_LENGTH     : std_logic_vector(3 downto 0) := "1010";
+    --! Reserved := "1011";
+    constant HDR_KEY        : std_logic_vector(3 downto 0) := "1100";
+    constant HDR_NPUB       : std_logic_vector(3 downto 0) := "1101";
     --NOT USED in NIST LWC
-    constant HDR_NSEC       : std_logic_vector(4    -1 downto 0):="1110";
+    constant HDR_NSEC       : std_logic_vector(3 downto 0) := "1110";
      --NOT USED in NIST LWC
-    constant HDR_ENSEC      : std_logic_vector(4    -1 downto 0):="1111";
+    constant HDR_ENSEC      : std_logic_vector(3 downto 0) := "1111";
     --! Maximum supported length
     --! Length of segment header
     constant SINGLE_PASS_MAX: integer := 16;
