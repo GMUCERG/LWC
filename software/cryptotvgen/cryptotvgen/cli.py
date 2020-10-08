@@ -36,6 +36,7 @@ def run_cryptotvgen(args=sys.argv[1:]):
         sys.exit(error_txt)
         
     # Additional error checking
+    opts.msg_format = list(opts.msg_format)
     if (opts.offline):
         opts.msg_format = ['len'] + opts.msg_format
     if (opts.ciph_exp_noext and not opts.ciph_exp):
@@ -57,8 +58,8 @@ def run_cryptotvgen(args=sys.argv[1:]):
     gen_single_index = 0
     
     if opts.candidates_dir:
-        if not lib_path:
-            lib_path = pathlib.Path(opts.candidates_dir) / 'lib'
+        if not opts.lib_path:
+            opts.lib_path = pathlib.Path(opts.candidates_dir) / 'lib'
     for routine in opts.routines:
         if routine == 0:
             data = gen_random(opts, msg_no, key_no)
