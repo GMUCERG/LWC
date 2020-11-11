@@ -307,14 +307,10 @@ begin
             end if;
         end loop;
 
-        --! do operations in the falling edge of the io_clk
-        wait for io_clk_period/2;
-
         while not endfile ( pdi_file ) loop
             --! if the fifo is full, wait ...
             if ( fpdi_din_ready = '0' ) then
-                wait until fpdi_din_ready <= '1';
-                wait until rising_edge(clk); --! write in the rising edge
+                wait until fpdi_din_ready = '1';
             end if;
 
             LWC_HREAD( line_data, word_block, read_result );
@@ -332,12 +328,12 @@ begin
                     fpdi_din <= (others => '0');
                 end if;
             end loop;
-            wait for io_clk_period;
+            wait until rising_edge(clk);
         end loop;
         tv_count <= tv_count + 1;
         fpdi_din_valid <= '0';
         fpdi_din <= (others => '0');
-        wait;
+        wait; -- forever
     end process;
     --! =======================================================================
     --! ==================== DATA POPULATION FOR SECRET DATA ==================
