@@ -315,15 +315,12 @@ begin
             fpdi_din_valid <= '1';
             if ( fpdi_din_ready = '0' ) then
                 fpdi_din_valid <= '0';
-                wait until  fpdi_din_ready <= '1';
-                wait for    io_clk_period/2; --! write in the rising edge
-                fpdi_din_valid <= '1';
+                wait until fpdi_din_ready <= '1';
+                wait until rising_edge(clk); --! write in the rising edge
             end if;
 
             LWC_HREAD( line_data, word_block, read_result );
-            while (((read_result = False) or (valid_line = False))
-                and (not endfile( pdi_file )))
-            loop
+            while (((read_result = False) or (valid_line = False)) and (not endfile( pdi_file ))) loop
                 readline(pdi_file, line_data);
                 read(line_data, temp_read, read_result);    --! read line header
                 if ( temp_read = cons_ins or temp_read = cons_hdr or temp_read = cons_dat) then
@@ -380,9 +377,8 @@ begin
             fsdi_din_valid <= '1';
             if ( fsdi_din_ready = '0' ) then
                 fsdi_din_valid <= '0';
-                wait until  fsdi_din_ready <= '1';
-                wait for    io_clk_period/2; --! write in the rising edge
-                fsdi_din_valid <= '1';
+                wait until fsdi_din_ready <= '1';
+                wait until rising_edge(clk); --! write in the rising edge
             end if;
 
             LWC_HREAD(line_data, word_block, read_result);
