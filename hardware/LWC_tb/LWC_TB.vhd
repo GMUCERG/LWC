@@ -312,9 +312,7 @@ begin
 
         while not endfile ( pdi_file ) loop
             --! if the fifo is full, wait ...
-            fpdi_din_valid <= '1';
             if ( fpdi_din_ready = '0' ) then
-                fpdi_din_valid <= '0';
                 wait until fpdi_din_ready <= '1';
                 wait until rising_edge(clk); --! write in the rising edge
             end if;
