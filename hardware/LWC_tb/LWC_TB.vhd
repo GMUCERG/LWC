@@ -283,6 +283,9 @@ begin
         variable temp_read      : string(1 to 6);
         variable valid_line     : boolean     := True;
     begin
+    	fpdi_din <= (others => '0');
+    	fpdi_din_valid <= '0';
+    	
     	if ASYNC_RSTN then
 	        rst <= '0';               wait for 5*clk_period; -- @suppress "Dead code"
 	        rst <= '1';               wait for clk_period;
@@ -352,6 +355,7 @@ begin
         variable valid_line     : boolean := True;
     begin
     	fsdi_din <= (others => '0');
+    	fsdi_din_valid <= '0';
         --! Wait until reset is done
         wait for 7*clk_period;
 
