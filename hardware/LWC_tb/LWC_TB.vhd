@@ -323,18 +323,16 @@ begin
             loop
                 readline(pdi_file, line_data);
                 read(line_data, temp_read, read_result);    --! read line header
-                if ( temp_read = cons_ins or temp_read = cons_hdr
-                    or temp_read = cons_dat)
-                then
+                if ( temp_read = cons_ins or temp_read = cons_hdr or temp_read = cons_dat) then
                     valid_line := True;
                     fpdi_din_valid  <= '1';
+                    LWC_HREAD( line_data, word_block, read_result ); --! read data
                     fpdi_din <= word_block;
                 else
                     valid_line := False;
                     fpdi_din_valid  <= '0';
                     fpdi_din <= (others => '0');
                 end if;
-                LWC_HREAD( line_data, word_block, read_result ); --! read data
             end loop;
             wait for io_clk_period;
         end loop;
@@ -342,7 +340,6 @@ begin
         fpdi_din_valid <= '0';
         fpdi_din <= (others => '0');
         wait;
-
     end process;
     --! =======================================================================
     --! ==================== DATA POPULATION FOR SECRET DATA ==================
