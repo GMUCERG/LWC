@@ -72,7 +72,7 @@ architecture behavior of LWC_TB is
     signal rst                  : std_logic := '0';
 
     --! pdi
-    signal fpdi_din             : std_logic_vector(G_PWIDTH-1 downto 0) := (others => '0');
+    signal fpdi_din             : std_logic_vector(G_PWIDTH-1 downto 0);
     signal fpdi_din_valid       : std_logic := '0';
     signal fpdi_din_ready       : std_logic;
     signal fpdi_dout            : std_logic_vector(G_PWIDTH-1 downto 0);
@@ -335,24 +335,24 @@ begin
                 LWC_HREAD( line_data, word_block, read_result ); --! read data
             end loop;
             fpdi_din <= word_block;
-               wait for io_clk_period;
+            wait for io_clk_period;
         end loop;
         tv_count <= tv_count + 1;
         fpdi_din_valid <= '0';
+        fpdi_din <= (others => '0');
         wait;
     end process;
     --! =======================================================================
     --! ==================== DATA POPULATION FOR SECRET DATA ==================
     tb_read_sdi : process
         variable line_data      : line;
-        variable word_block     : std_logic_vector(G_SWIDTH-1 downto 0)
-            := (others=>'0');
+        variable word_block     : std_logic_vector(G_SWIDTH-1 downto 0) := (others=>'0');
         variable read_result    : boolean;
         variable loop_enable    : std_logic := '1';
         variable temp_read      : string(1 to 6);
         variable valid_line     : boolean := True;
     begin
-    	fsdi_din <= word_block;
+    	fsdi_din <= (others=>'0');
         --! Wait until reset is done
         wait for 7*clk_period;
 
@@ -403,7 +403,9 @@ begin
             wait for io_clk_period;
         end loop;
         fsdi_din_valid <= '0';
+        fsdi_din <= (others=>'0');
         wait;
+        fsdi_din <= (others=>'0');
     end process;
     --! =======================================================================
 
