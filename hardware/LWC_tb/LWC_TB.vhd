@@ -84,9 +84,8 @@ architecture behavior of LWC_TB is
     signal pdi_ready            : std_logic;
 
     --! sdi
-    signal fsdi_din             : std_logic_vector(G_SWIDTH-1 downto 0)
-        := (others=>'0');
-    signal fsdi_din_valid       : std_logic := '0';
+    signal fsdi_din             : std_logic_vector(G_SWIDTH-1 downto 0);
+    signal fsdi_din_valid       : std_logic;
     signal fsdi_din_ready       : std_logic;
     signal fsdi_dout            : std_logic_vector(G_SWIDTH-1 downto 0);
     signal fsdi_dout_valid      : std_logic;
@@ -353,6 +352,7 @@ begin
         variable temp_read      : string(1 to 6);
         variable valid_line     : boolean := True;
     begin
+    	fsdi_din <= word_block;
         --! Wait until reset is done
         wait for 7*clk_period;
 
