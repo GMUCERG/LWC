@@ -302,6 +302,9 @@ begin
         while not endfile(pdi_file) loop
             readline(pdi_file, line_data);
             read(line_data, line_head, read_result); --! read line header
+            if read_result and (line_head = cons_ins) then
+    			tv_count <= tv_count + 1;
+    		end if;
             if read_result and (line_head = cons_ins or line_head = cons_hdr or line_head = cons_dat) then
             	while True loop
 	            	LWC_HREAD(line_data, word_block, read_result);
@@ -310,13 +313,11 @@ begin
 	            	end if;
 	            	fpdi_din <= word_block;
 	            	fpdi_din_valid <= '1';
-	            	if fpdi_din_ready /= '1' then
+                    wait until rising_edge(clk);
+                    if fpdi_din_ready /= '1' then
 	            		wait until fpdi_din_ready = '1';
+	            		wait until rising_edge(clk);
 	            	end if;
-	             	wait until rising_edge(clk);
-	                if line_head = cons_ins then
-	        			tv_count <= tv_count + 1;
-	        		end if;
 			        fpdi_din_valid <= '0';
 			        fpdi_din <= (others => '0');
 			   end loop;
@@ -348,10 +349,11 @@ begin
 	            	end if;
 	            	fsdi_din <= word_block;
 	            	fsdi_din_valid <= '1';
-	                if fsdi_din_ready /= '1' then
+                    wait until rising_edge(clk);
+	            	if fsdi_din_ready /= '1' then
 	            		wait until fsdi_din_ready = '1';
+	            		wait until rising_edge(clk);
 	            	end if;
-	             	wait until rising_edge(clk);
 			        fsdi_din_valid <= '0';
 			        fsdi_din <= (others => '0');
 			    end loop;
