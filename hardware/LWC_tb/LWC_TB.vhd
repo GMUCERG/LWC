@@ -395,13 +395,13 @@ begin
                 then
                     valid_line := True;
                     fsdi_din_valid  <= '1';
+                    LWC_HREAD( line_data, word_block, read_result );    --! read data
             		fsdi_din <= word_block;
                 else
                     valid_line := False;
                     fsdi_din_valid  <= '0';
                     fsdi_din <= (others => '0');
                 end if;
-                LWC_HREAD( line_data, word_block, read_result );    --! read data
             end loop;
             wait for io_clk_period;
         end loop;
