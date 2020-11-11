@@ -328,19 +328,21 @@ begin
                 then
                     valid_line := True;
                     fpdi_din_valid  <= '1';
+                    fpdi_din <= word_block;
                 else
                     valid_line := False;
                     fpdi_din_valid  <= '0';
+                    fpdi_din <= (others => '0');
                 end if;
                 LWC_HREAD( line_data, word_block, read_result ); --! read data
             end loop;
-            fpdi_din <= word_block;
             wait for io_clk_period;
         end loop;
         tv_count <= tv_count + 1;
         fpdi_din_valid <= '0';
         fpdi_din <= (others => '0');
         wait;
+
     end process;
     --! =======================================================================
     --! ==================== DATA POPULATION FOR SECRET DATA ==================
@@ -352,7 +354,7 @@ begin
         variable temp_read      : string(1 to 6);
         variable valid_line     : boolean := True;
     begin
-    	fsdi_din <= (others=>'0');
+    	fsdi_din <= (others => '0');
         --! Wait until reset is done
         wait for 7*clk_period;
 
@@ -393,19 +395,19 @@ begin
                 then
                     valid_line := True;
                     fsdi_din_valid  <= '1';
+            		fsdi_din <= word_block;
                 else
                     valid_line := False;
                     fsdi_din_valid  <= '0';
+                    fsdi_din <= (others => '0');
                 end if;
                 LWC_HREAD( line_data, word_block, read_result );    --! read data
             end loop;
-            fsdi_din <= word_block;
             wait for io_clk_period;
         end loop;
         fsdi_din_valid <= '0';
-        fsdi_din <= (others=>'0');
+        fsdi_din <= (others => '0');
         wait;
-        fsdi_din <= (others=>'0');
     end process;
     --! =======================================================================
 
