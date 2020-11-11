@@ -287,15 +287,15 @@ begin
     	fpdi_din_valid <= '0';
     	
     	if ASYNC_RSTN then
-	        rst <= '0';
-	        wait for 5*clk_period; -- @suppress "Dead code"
+	        rst <= '0'; -- @suppress "Dead code"
+	        wait for 3*clk_period;
 	        rst <= '1';
     	else
 	        rst <= '1';
-	        wait for 5*clk_period;
+	        wait for 3*clk_period;
 	        rst <= '0';
 	    end if;
-	    wait for clk_period; -- optional
+--	    wait for clk_period; -- optional
 	    wait until rising_edge(clk);
 	    reset_done <= True;
 
