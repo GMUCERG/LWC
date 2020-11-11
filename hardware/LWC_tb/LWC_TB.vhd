@@ -372,9 +372,7 @@ begin
 
         while not endfile ( sdi_file ) loop
             --! if the fifo is full, wait ...
-            fsdi_din_valid <= '1';
             if ( fsdi_din_ready = '0' ) then
-                fsdi_din_valid <= '0';
                 wait until fsdi_din_ready <= '1';
                 wait until rising_edge(clk); --! write in the rising edge
             end if;
