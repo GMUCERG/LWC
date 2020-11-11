@@ -62,6 +62,9 @@ architecture behavior of LWC_TB is
     --! simulation signals (used by ATHENa script, ignore if not used)
     signal simulation_fails     : std_logic := '0';
     signal stop_clock           : boolean   := False;
+    
+    -- reset completed
+    signal reset_done           : boolean   := False;
 
     --! error check signal
     signal global_stop          : std_logic := '1';
@@ -276,63 +279,49 @@ begin
     --! ==================== DATA POPULATION FOR PUBLIC DATA ==================
     tb_read_pdi : process
         variable line_data      : line;
-        variable word_block     : std_logic_vector(G_PWIDTH-1 downto 0)
-            := (others=>'0');
+        variable word_block     : std_logic_vector(G_PWIDTH-1 downto 0) := (others=>'0');
         variable read_result    : boolean;
-        variable loop_enable    : std_logic   := '1';
-        variable temp_read      : string(1 to 6);
-        variable valid_line     : boolean     := True;
+        variable line_head      : string(1 to 6);
     begin
     	fpdi_din <= (others => '0');
     	fpdi_din_valid <= '0';
     	
     	if ASYNC_RSTN then
-	        rst <= '0';               wait for 5*clk_period; -- @suppress "Dead code"
-	        rst <= '1';               wait for clk_period;
+	        rst <= '0';
+	        wait for 5*clk_period; -- @suppress "Dead code"
+	        rst <= '1';
     	else
-	        rst <= '1';               wait for 5*clk_period;
-	        rst <= '0';               wait for clk_period;
-        end if;
+	        rst <= '1';
+	        wait for 5*clk_period;
+	        rst <= '0';
+	    end if;
+	    wait for clk_period; -- optional
+	    wait until rising_edge(clk);
+	    reset_done <= True;
 
-        --! read header
-        while ( not endfile (pdi_file)) and ( loop_enable = '1' ) loop
-            if endfile (pdi_file) then
-                loop_enable := '0';
-            end if;
-
+        while not endfile(pdi_file) loop
             readline(pdi_file, line_data);
-            read(line_data, temp_read, read_result);
-            if (temp_read = cons_ins) then
-                loop_enable := '0';
+            read(line_data, line_head, read_result); --! read line header
+            if read_result and (line_head = cons_ins or line_head = cons_hdr or line_head = cons_dat) then
+            	while True loop
+	            	LWC_HREAD(line_data, word_block, read_result);
+	            	if not read_result then
+	            		exit;
+	            	end if;
+	            	fpdi_din <= word_block;
+	            	fpdi_din_valid <= '1';
+	            	if fpdi_din_ready /= '1' then
+	            		wait until fpdi_din_ready = '1';
+	            	end if;
+	             	wait until rising_edge(clk);
+	                if line_head = cons_ins then
+	        			tv_count <= tv_count + 1;
+	        		end if;
+			        fpdi_din_valid <= '0';
+			        fpdi_din <= (others => '0');
+			   end loop;
             end if;
         end loop;
-
-        while not endfile ( pdi_file ) loop
-            --! if the fifo is full, wait ...
-            if ( fpdi_din_ready = '0' ) then
-                wait until fpdi_din_ready = '1';
-            end if;
-
-            LWC_HREAD( line_data, word_block, read_result );
-            while (((read_result = False) or (valid_line = False)) and (not endfile( pdi_file ))) loop
-                readline(pdi_file, line_data);
-                read(line_data, temp_read, read_result);    --! read line header
-                if ( temp_read = cons_ins or temp_read = cons_hdr or temp_read = cons_dat) then
-                    valid_line := True;
-                    fpdi_din_valid  <= '1';
-                    LWC_HREAD( line_data, word_block, read_result ); --! read data
-                    fpdi_din <= word_block;
-                else
-                    valid_line := False;
-                    fpdi_din_valid  <= '0';
-                    fpdi_din <= (others => '0');
-                end if;
-            end loop;
-            wait until rising_edge(clk);
-        end loop;
-        tv_count <= tv_count + 1;
-        fpdi_din_valid <= '0';
-        fpdi_din <= (others => '0');
         wait; -- forever
     end process;
     --! =======================================================================
@@ -341,65 +330,35 @@ begin
         variable line_data      : line;
         variable word_block     : std_logic_vector(G_SWIDTH-1 downto 0) := (others=>'0');
         variable read_result    : boolean;
-        variable loop_enable    : std_logic := '1';
-        variable temp_read      : string(1 to 6);
-        variable valid_line     : boolean := True;
+        variable line_head      : string(1 to 6);
     begin
     	fsdi_din <= (others => '0');
     	fsdi_din_valid <= '0';
         --! Wait until reset is done
-        wait for 7*clk_period;
+        wait until reset_done;
 
-        --! read header
-        while (not endfile (sdi_file)) and (loop_enable = '1') loop
-            if endfile (sdi_file) then
-                loop_enable := '0';
-            end if;
-
+		while not endfile(sdi_file) loop
             readline(sdi_file, line_data);
-            read(line_data, temp_read, read_result);
-            if (temp_read = cons_ins) then
-                loop_enable := '0';
+            read(line_data, line_head, read_result); --! read line header
+            if read_result and (line_head = cons_ins or line_head = cons_hdr or line_head = cons_dat) then
+            	while True loop
+	            	LWC_HREAD(line_data, word_block, read_result);
+	            	if not read_result then
+	            		exit;
+	            	end if;
+	            	fsdi_din <= word_block;
+	            	fsdi_din_valid <= '1';
+	                if fsdi_din_ready /= '1' then
+	            		wait until fsdi_din_ready = '1';
+	            	end if;
+	             	wait until rising_edge(clk);
+			        fsdi_din_valid <= '0';
+			        fsdi_din <= (others => '0');
+			    end loop;
             end if;
         end loop;
-
-        --! do operations in the falling edge of the io_clk
-        wait for io_clk_period/2;
-
-        while not endfile ( sdi_file ) loop
-            --! if the fifo is full, wait ...
-            if ( fsdi_din_ready = '0' ) then
-                wait until fsdi_din_ready <= '1';
-                wait until rising_edge(clk); --! write in the rising edge
-            end if;
-
-            LWC_HREAD(line_data, word_block, read_result);
-            while (((read_result = False) or (valid_line = False))
-                and (not endfile(sdi_file)))
-            loop
-                readline(sdi_file, line_data);
-                read(line_data, temp_read, read_result);   --! read line header
-                if (temp_read = cons_ins or temp_read = cons_hdr
-                    or temp_read = cons_dat)
-                then
-                    valid_line := True;
-                    fsdi_din_valid  <= '1';
-                    LWC_HREAD( line_data, word_block, read_result );    --! read data
-            		fsdi_din <= word_block;
-                else
-                    valid_line := False;
-                    fsdi_din_valid  <= '0';
-                    fsdi_din <= (others => '0');
-                end if;
-            end loop;
-            wait for io_clk_period;
-        end loop;
-        fsdi_din_valid <= '0';
-        fsdi_din <= (others => '0');
-        wait;
+        wait; -- forever
     end process;
-    --! =======================================================================
-
 
     --! =======================================================================
     --! =================== DATA VERIFICATION =================================

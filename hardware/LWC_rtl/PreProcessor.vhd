@@ -321,6 +321,7 @@ FSM_32BIT: if (G_W=32) generate
 
         -- for simulation only
         received_wrong_header <= false;
+        nx_state <= pr_state;
 
         case pr_state is
 
@@ -336,8 +337,6 @@ FSM_32BIT: if (G_W=32) generate
                     else
                         nx_state <= S_INT_MODE;
                     end if;
-                else
-                    nx_state <= S_INT_MODE;
                 end if;
 
             -- KEY
@@ -345,23 +344,17 @@ FSM_32BIT: if (G_W=32) generate
                 if (sdi_valid = '1') then
                     received_wrong_header <= sdi_opcode /= INST_LDKEY;
                     nx_state <= S_HDR_KEY;
-                else
-                    nx_state <= S_INT_KEY;
                 end if;
 
             when S_HDR_KEY=>
                 if (sdi_valid = '1') then
                     received_wrong_header <= sdi_opcode /= HDR_KEY;
                     nx_state <= S_LD_KEY;
-                else
-                    nx_state <= S_HDR_KEY;
                 end if;
 
             when S_LD_KEY=>  --We don't allow for parallel key loading in a lightweight enviroment
                 if (sdi_valid = '1' and key_ready_p = '1' and last_flit_of_segment = '1') then
                     nx_state <= S_INT_MODE;
-                else
-                    nx_state <= S_LD_KEY;
                 end if;
 
             -- NPUB
@@ -369,15 +362,11 @@ FSM_32BIT: if (G_W=32) generate
                 if (pdi_valid = '1') then
                     received_wrong_header <= pdi_opcode /= HDR_NPUB;
                     nx_state <= S_LD_NPUB;
-                else
-                    nx_state <= S_HDR_NPUB;
                 end if;
 
             when S_LD_NPUB =>
                 if (pdi_valid = '1' and bdi_ready_p ='1' and last_flit_of_segment = '1') then
                     nx_state <= S_HDR_AD;
-                else
-                    nx_state <= S_LD_NPUB;
                 end if;
 
             -- AD
@@ -389,8 +378,6 @@ FSM_32BIT: if (G_W=32) generate
                     else
                         nx_state <= S_LD_AD;
                     end if;
-                else
-                    nx_state <= S_HDR_AD;
                 end if;
 
             when S_LD_AD =>
@@ -400,8 +387,6 @@ FSM_32BIT: if (G_W=32) generate
                     else
                         nx_state <= S_HDR_AD;
                     end if;
-                else
-                    nx_state <= S_LD_AD;
                 end if;
 
             -- Plaintext or Ciphertext
@@ -417,8 +402,6 @@ FSM_32BIT: if (G_W=32) generate
                     else
                         nx_state <= S_LD_MSG;
                     end if;
-                else
-                    nx_state <= S_HDR_MSG;
                 end if;
 
             when S_LD_MSG =>
@@ -432,8 +415,6 @@ FSM_32BIT: if (G_W=32) generate
                     else
                         nx_state <= S_HDR_MSG;
                     end if;
-                else
-                    nx_state <= S_LD_MSG;
                 end if;
 
             -- TAG for AEAD
@@ -441,19 +422,13 @@ FSM_32BIT: if (G_W=32) generate
                 if (pdi_valid = '1') then
                     received_wrong_header <= pdi_opcode /= HDR_TAG;
                     nx_state <= S_LD_TAG;
-                else
-                    nx_state <= S_HDR_TAG;
                 end if;
 
             when S_LD_TAG =>
                 if (pdi_valid = '1' and last_flit_of_segment = '1') then
                     if (bdi_ready_p = '1') then
                         nx_state <= S_INT_MODE;
-                    else
-                        nx_state <= S_LD_TAG;
                     end if;
-                else
-                    nx_state <= S_LD_TAG;
                 end if;
 
             --HASH
@@ -465,15 +440,11 @@ FSM_32BIT: if (G_W=32) generate
                     else
                         nx_state  <= S_LD_HASH;
                     end if;
-                else
-                    nx_state <= S_HDR_HASH;
                 end if;
 
             when S_EMPTY_HASH=>
                 if (bdi_ready_p = '1') then
                     nx_state <= S_INT_MODE;
-                else
-                    nx_state <= S_EMPTY_HASH;
                 end if;
 
             when S_LD_HASH =>
@@ -483,12 +454,7 @@ FSM_32BIT: if (G_W=32) generate
                     else
                         nx_state <= S_HDR_HASH;
                     end if;
-                else
-                    nx_state <= S_LD_HASH;
                 end if;
-
-            when others =>
-                nx_state <= S_INT_MODE;
 
         end case;
     end process;
@@ -723,6 +689,7 @@ FSM_16BIT: if (G_W=16) generate
             cmd_ready, bdi_eoi_internal, eot_flag)
 
     begin
+        nx_state <= pr_state;
         case pr_state is
 
             ---MODE SET-
@@ -734,70 +701,50 @@ FSM_16BIT: if (G_W=16) generate
                         nx_state <= S_HDR_NPUB;
                     elsif (pdi_data(G_W-1 downto G_W-4) = INST_HASH and cmd_ready = '1') then
                         nx_state <= S_HDR_HASH;
-                    else
-                        nx_state <=S_INT_MODE;
                     end if;
-                else
-                    nx_state <= S_INT_MODE;
                 end if;
 
             ---load key
             when S_INT_KEY=>
                 if (sdi_valid = '1' and sdi_data(G_W-1 downto G_W-4) = INST_LDKEY) then
                     nx_state <= S_HDR_KEY;
-                else
-                    nx_state <= S_INT_KEY;
                 end if;
 
             when S_HDR_KEY=>
                 if (sdi_valid = '1' and sdi_data(G_W-1 downto G_W-4) = HDR_KEY) then
                     nx_state <= S_HDR_KEYLEN;
-                else
-                    nx_state <= S_HDR_KEY;
                 end if;
 
             when S_HDR_KEYLEN=>
                 if (sdi_valid = '1') then
                     nx_state <= S_LD_KEY;
-                else
-                    nx_state <= S_HDR_KEYLEN;
                 end if;
 
             when S_LD_KEY=>
                 if (sdi_valid = '1' and key_ready = '1' and last_flit_of_segment ='1') then
                     nx_state <= S_INT_MODE;
-                else
-                    nx_state <= S_LD_KEY;
                 end if;
 
             ---NPUB
             when S_HDR_NPUB=>
                 if(pdi_valid='1' and pdi_data(G_W-1 downto G_W-4) = HDR_NPUB) then
                     nx_state <= S_HDR_NPUBLEN;
-                else
-                    nx_state <= S_HDR_NPUB;
                 end if;
 
             when S_HDR_NPUBLEN=>
                 if (pdi_valid = '1') then
                     nx_state <= S_LD_NPUB;
-                else
-                    nx_state <= S_HDR_NPUBLEN;
                 end if;
 
             when S_LD_NPUB =>
                 if (pdi_valid = '1' and bdi_ready = '1' and last_flit_of_segment = '1') then
                     nx_state <= S_HDR_AD;
-                else
-                    nx_state <= S_LD_NPUB;
                 end if;
 
             --AD
             when S_HDR_AD=>
                 if (pdi_valid = '1' and pdi_data(G_W-1 downto G_W-4) = HDR_AD) then
                     nx_state <= S_HDR_ADLEN;
-                else
-                    nx_state <= S_HDR_AD;
                 end if;
 
             when S_HDR_ADLEN=>
@@ -815,8 +762,6 @@ FSM_16BIT: if (G_W=16) generate
                     else
                         nx_state <= S_LD_AD;
                     end if;
-                else
-                    nx_state <= S_HDR_ADLEN;
                 end if;
 
             when S_LD_AD =>
@@ -826,8 +771,6 @@ FSM_16BIT: if (G_W=16) generate
                     else
                         nx_state <= S_HDR_AD;
                     end if;
-                else
-                    nx_state <= S_LD_AD;
                 end if;
 
             --MSG OR CIPHER TEXT
@@ -835,8 +778,6 @@ FSM_16BIT: if (G_W=16) generate
             if (pdi_valid = '1' and cmd_ready = '1' and (pdi_data(G_W-1 downto G_W-4) = HDR_PT
                                  or  pdi_data(G_W-1 downto G_W-4) = HDR_CT)) then
                 nx_state <= S_HDR_MSGLEN;
-            else
-                nx_state <= S_HDR_MSG;
             end if;
 
             when S_HDR_MSGLEN=>
@@ -850,8 +791,6 @@ FSM_16BIT: if (G_W=16) generate
                     else
                         nx_state <= S_LD_MSG;
                     end if;
-                else
-                    nx_state <= S_HDR_MSGLEN;
                 end if;
 
             when S_LD_MSG =>
@@ -865,23 +804,17 @@ FSM_16BIT: if (G_W=16) generate
                     else
                         nx_state <= S_HDR_MSG;
                     end if;
-                else
-                    nx_state <= S_LD_MSG;
                 end if;
 
             --TAG
             when S_HDR_TAG=>
                 if(pdi_valid='1' and pdi_data(G_W-1 downto G_W-4) = HDR_TAG) then
                     nx_state <= S_HDR_TAGLEN;
-                else
-                    nx_state <= S_HDR_TAG;
                 end if;
 
             when S_HDR_TAGLEN=>
                 if (pdi_valid = '1') then
                     nx_state <= S_LD_TAG;
-                else
-                    nx_state <= S_HDR_TAGLEN;
                 end if;
 
             when S_LD_TAG =>
@@ -891,16 +824,12 @@ FSM_16BIT: if (G_W=16) generate
                     else
                         nx_state <= S_LD_TAG;
                     end if;
-                else
-                    nx_state <= S_LD_TAG;
                 end if;
 
             --HASH
             when S_HDR_HASH =>
                 if (pdi_valid = '1' and pdi_data(G_W-1 downto G_W-3) = HDR_HASH_MSG(3 downto 1)) then
                     nx_state <= S_HDR_HASHLEN;
-                else
-                    nx_state <= S_HDR_HASH;
                 end if;
 
             when S_HDR_HASHLEN=>
@@ -910,15 +839,11 @@ FSM_16BIT: if (G_W=16) generate
                     else
                         nx_state <= S_LD_HASH;
                     end if;
-                else
-                    nx_state <= S_HDR_HASHLEN;
                 end if;
 
             when S_EMPTY_HASH=>
                 if (bdi_ready = '1') then
                     nx_state <= S_INT_MODE;
-                else
-                    nx_state <= S_EMPTY_HASH;
                 end if;
 
             when S_LD_HASH =>
@@ -928,12 +853,7 @@ FSM_16BIT: if (G_W=16) generate
                     else
                         nx_state <= S_HDR_HASH;
                     end if;
-                else
-                    nx_state <= S_LD_HASH;
                 end if;
-
-            when others=>
-                nx_state <= S_INT_MODE;
 
         end case;
     end process;
