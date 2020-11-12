@@ -311,6 +311,7 @@ begin
 	            	if not read_result then
 	            		exit;
 	            	end if;
+	            	wait until falling_edge(clk);
 	            	fpdi_din <= word_block;
 	            	fpdi_din_valid <= '1';
                     wait until rising_edge(clk);
@@ -318,10 +319,11 @@ begin
 	            		wait until fpdi_din_ready = '1';
 	            		wait until rising_edge(clk);
 	            	end if;
-			        fpdi_din_valid <= '0';
-			        fpdi_din <= (others => '0');
 			   end loop;
-            end if;
+			end if;
+			wait until falling_edge(clk);
+	        fpdi_din_valid <= '0';
+	        fpdi_din <= (others => '0');
         end loop;
         wait; -- forever
     end process;
@@ -347,6 +349,8 @@ begin
 	            	if not read_result then
 	            		exit;
 	            	end if;
+	            	
+					wait until falling_edge(clk);
 	            	fsdi_din <= word_block;
 	            	fsdi_din_valid <= '1';
                     wait until rising_edge(clk);
@@ -354,10 +358,11 @@ begin
 	            		wait until fsdi_din_ready = '1';
 	            		wait until rising_edge(clk);
 	            	end if;
-			        fsdi_din_valid <= '0';
-			        fsdi_din <= (others => '0');
 			    end loop;
-            end if;
+			end if;
+			wait until falling_edge(clk);
+	        fsdi_din_valid <= '0';
+	        fsdi_din <= (others => '0');
         end loop;
         wait; -- forever
     end process;
