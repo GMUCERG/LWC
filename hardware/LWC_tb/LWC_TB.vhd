@@ -306,14 +306,14 @@ begin
     			tv_count <= tv_count + 1;
     		end if;
             if read_result and (line_head = cons_ins or line_head = cons_hdr or line_head = cons_dat) then
+            	fpdi_din_valid <= '1';
             	while True loop
 	            	LWC_HREAD(line_data, word_block, read_result);
 	            	if not read_result then
 	            		exit;
 	            	end if;
-	            	wait until falling_edge(clk);
+--	            	wait until falling_edge(clk);
 	            	fpdi_din <= word_block;
-	            	fpdi_din_valid <= '1';
                     wait until rising_edge(clk);
                     if fpdi_din_ready /= '1' then
 	            		wait until fpdi_din_ready = '1';
@@ -321,7 +321,7 @@ begin
 	            	end if;
 			   end loop;
 			end if;
-			wait until falling_edge(clk);
+--			wait until falling_edge(clk);
 	        fpdi_din_valid <= '0';
 	        fpdi_din <= (others => '0');
         end loop;
