@@ -316,7 +316,6 @@ FSM_32BIT: if (G_W=32) generate
     process (pr_state, sdi_valid, last_flit_of_segment, decrypt_internal,
             pdi_valid, key_ready_p, bdi_ready_p, eot_flag, pdi_seg_length,
             pdi_opcode, sdi_opcode, cmd_ready)
-
     begin
 
         -- for simulation only
@@ -334,8 +333,6 @@ FSM_32BIT: if (G_W=32) generate
                         nx_state <= S_HDR_NPUB;
                     elsif (pdi_opcode = INST_HASH and cmd_ready = '1') then
                         nx_state <= S_HDR_HASH;
-                    else
-                        nx_state <= S_INT_MODE;
                     end if;
                 end if;
 
@@ -463,30 +460,28 @@ FSM_32BIT: if (G_W=32) generate
     --! output state function
     process(pr_state, sdi_valid, pdi_valid, eoi_flag, eot_flag, hash_internal,
             key_ready_p, bdi_ready_p, cmd_ready, decrypt_internal, pdi_data)
-
-
     begin
-            -- DEFAULT Values
-            -- external interface
-            sdi_ready           <= '0';
-            pdi_ready           <= '0';
-            -- LWC core
-            key_valid_p         <= '0';
-            key_update          <= '0';
-            bdi_valid_p         <= '0';
-            bdi_type            <= "0000";
-            -- header-FIFO
-            cmd_valid           <= '0';
-            -- counter
-            len_SegLenCnt       <= '0';
-            en_SegLenCnt        <= '0';
-            -- register
-            nx_eoi_flag         <= eoi_flag;
-            nx_eot_flag         <= eot_flag;
-            nx_hash_internal    <= hash_internal;
-            nx_decrypt_internal <= decrypt_internal;
-            -- multiplexer
-            sel_sdi_length       <= false;
+        -- DEFAULT Values
+        -- external interface
+        sdi_ready           <= '0';
+        pdi_ready           <= '0';
+        -- LWC core
+        key_valid_p         <= '0';
+        key_update          <= '0';
+        bdi_valid_p         <= '0';
+        bdi_type            <= "0000";
+        -- header-FIFO
+        cmd_valid           <= '0';
+        -- counter
+        len_SegLenCnt       <= '0';
+        en_SegLenCnt        <= '0';
+        -- register
+        nx_eoi_flag         <= eoi_flag;
+        nx_eot_flag         <= eot_flag;
+        nx_hash_internal    <= hash_internal;
+        nx_decrypt_internal <= decrypt_internal;
+        -- multiplexer
+        sel_sdi_length       <= false;
 
         case pr_state is
 
@@ -611,8 +606,6 @@ FSM_32BIT: if (G_W=32) generate
                 bdi_valid_p     <= '1';
                 bdi_type        <= HDR_HASH_MSG;
 
-            when others =>
-                null;
         end case;
     end process;
 

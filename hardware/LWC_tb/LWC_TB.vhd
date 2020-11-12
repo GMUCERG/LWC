@@ -198,7 +198,7 @@ begin
         end if;
     end process genIOclk;
 
-    genPDIfifo: entity work.fwft_fifo(structure)
+    genPDIfifo: entity work.fwft_fifo_tb(tb_use_only)
 	    generic map (
 	        G_W          => G_PWIDTH,
 	        G_LOG2DEPTH  => G_LOG2_FIFODEPTH)
@@ -218,7 +218,7 @@ begin
     pdi_valid           <= pdi_valid_selected after 1/4*clk_period;
     pdi_delayed         <= fpdi_dout after 1/4*clk_period;
 
-    genSDIfifo: entity work.fwft_fifo(structure)
+    genSDIfifo: entity work.fwft_fifo_tb(tb_use_only)
 	    generic map (
 	        G_W          => G_SWIDTH,
 	        G_LOG2DEPTH  => G_LOG2_FIFODEPTH)
@@ -238,7 +238,7 @@ begin
     sdi_valid           <= sdi_valid_selected after 1/4*clk_period;
     sdi_delayed         <= fsdi_dout after 1/4*clk_period;
 
-    genDOfifo: entity work.fwft_fifo(structure)
+    genDOfifo: entity work.fwft_fifo_tb(tb_use_only)
 	    generic map (
 	        G_W          => G_PWIDTH,
 	        G_LOG2DEPTH  => G_LOG2_FIFODEPTH)
