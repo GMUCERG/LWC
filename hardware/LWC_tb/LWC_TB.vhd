@@ -299,7 +299,7 @@ begin
 	    wait until rising_edge(clk);
 	    reset_done <= True;
 
---    	wait until falling_edge(clk);
+    	wait until falling_edge(clk);
     	fpdi_din_valid <= '1';
         while not endfile(pdi_file) loop
             readline(pdi_file, line_data);
@@ -319,10 +319,10 @@ begin
 	            		wait until fpdi_din_ready = '1';
 	            		wait until rising_edge(clk);
 	            	end if;
+	            	wait until falling_edge(clk);
 			   end loop;
 			end if;
         end loop;
---			wait until falling_edge(clk);
         fpdi_din_valid <= '0';
         fpdi_din <= (others => '0');
         wait; -- forever
