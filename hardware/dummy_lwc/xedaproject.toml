@@ -29,8 +29,8 @@ tb.sources = [
     "src_tb/LWC_TB.vhd",
 ]
 
-# language.vhdl.standard = "02"
-# language.vhdl.synopsys = false
+language.vhdl.standard = "02"
+language.vhdl.synopsys = false
 
 [design.tb.generics]
 G_FNAME_PDI.file = "KAT/v1/pdi.txt"

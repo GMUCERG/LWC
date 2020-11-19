@@ -31,8 +31,8 @@ use work.NIST_LWAPI_pkg.all;
 
 entity KEY_PISO is 
 	generic (
-        G_SW         : integer;
-        G_ASYNC_RSTN : boolean
+        G_ASYNC_RSTN : boolean;
+        G_SW         : integer
 	);
     port(
 

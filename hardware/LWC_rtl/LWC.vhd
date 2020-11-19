@@ -100,6 +100,16 @@ architecture structure of LWC is
     signal cmd_FIFO_out             : std_logic_vector(W-1 downto 0);
     signal cmd_valid_FIFO_out       : std_logic;
     signal cmd_ready_FIFO_out       : std_logic;
+    
+        
+    signal do_data_i    : std_logic_vector(W-1 downto 0);
+    signal do_valid_i   : std_logic;
+    signal do_last_i    : std_logic;
+    signal do_ready_i   : std_logic;
+    
+    signal do_data_reg  : std_logic_vector(W-1 downto 0);
+    signal do_valid_reg : std_logic;
+    signal do_last_reg  : std_logic;
     --==========================================================================
     
     component CryptoCore
@@ -132,6 +142,7 @@ architecture structure of LWC is
     		msg_auth        : out STD_LOGIC
     	);
     end component CryptoCore;
+
 begin
 
 	-- Width parameters sanity checks
@@ -193,57 +204,55 @@ begin
             );
     Inst_Cipher: CryptoCore
         port map(
-                clk             => clk                                     ,
-                rst             => rst                                     ,
-                key             => key_cipher_in                           ,
-                key_valid       => key_valid_cipher_in                     ,
-                key_ready       => key_ready_cipher_in                     ,
-                bdi             => bdi_cipher_in                           ,
-                bdi_valid       => bdi_valid_cipher_in                     ,
-                bdi_ready       => bdi_ready_cipher_in                     ,
-                bdi_pad_loc     => bdi_pad_loc_cipher_in                   ,
-                bdi_valid_bytes => bdi_valid_bytes_cipher_in               ,
-                bdi_size        => bdi_size_cipher_in                      ,
-                bdi_eot         => bdi_eot_cipher_in                       ,
-                bdi_eoi         => bdi_eoi_cipher_in                       ,
-                bdi_type        => bdi_type_cipher_in                      ,
-                decrypt_in      => decrypt_cipher_in                       ,
-                hash_in         => hash_cipher_in                          ,
-                key_update      => key_update_cipher_in                    ,
-                bdo             => bdo_cipher_out                          ,
-                bdo_valid       => bdo_valid_cipher_out                    ,
-                bdo_ready       => bdo_ready_cipher_out                    ,
---                bdo_type        => bdo_type_cipher_out                     ,
-                bdo_valid_bytes => bdo_valid_bytes_cipher_out              ,
-                end_of_block    => end_of_block_cipher_out                 ,
-                msg_auth_valid  => msg_auth_valid                          ,
-                msg_auth_ready  => msg_auth_ready                          ,
+                clk             => clk,
+                rst             => rst,
+                key             => key_cipher_in,
+                key_valid       => key_valid_cipher_in,
+                key_ready       => key_ready_cipher_in,
+                bdi             => bdi_cipher_in,
+                bdi_valid       => bdi_valid_cipher_in,
+                bdi_ready       => bdi_ready_cipher_in,
+                bdi_pad_loc     => bdi_pad_loc_cipher_in,
+                bdi_valid_bytes => bdi_valid_bytes_cipher_in,
+                bdi_size        => bdi_size_cipher_in,
+                bdi_eot         => bdi_eot_cipher_in,
+                bdi_eoi         => bdi_eoi_cipher_in,
+                bdi_type        => bdi_type_cipher_in,
+                decrypt_in      => decrypt_cipher_in,
+                key_update      => key_update_cipher_in,
+                hash_in         => hash_cipher_in,
+                bdo             => bdo_cipher_out,
+                bdo_valid       => bdo_valid_cipher_out,
+                bdo_ready       => bdo_ready_cipher_out,
+                bdo_valid_bytes => bdo_valid_bytes_cipher_out,
+                end_of_block    => end_of_block_cipher_out,
+                msg_auth_valid  => msg_auth_valid,
+                msg_auth_ready  => msg_auth_ready,
                 msg_auth        => msg_auth
             );
-    Inst_PostProcessor: entity work.PostProcessor(PostProcessor)
+    Inst_PostProcessor: entity work.PostProcessor
     	generic map(
-        		G_W            => W,
-        		G_ASYNC_RSTN   => ASYNC_RSTN
+        		G_W             => W,
+        		G_ASYNC_RSTN    => ASYNC_RSTN
         	)
         port map(
-                clk             => clk                                     ,
-                rst             => rst                                     ,
-                bdo             => bdo_cipher_out                          ,
-                bdo_valid       => bdo_valid_cipher_out                    ,
-                bdo_ready       => bdo_ready_cipher_out                    ,
-                end_of_block    => end_of_block_cipher_out                 ,
---                bdo_type        => bdo_type_cipher_out                     ,
-                bdo_valid_bytes => bdo_valid_bytes_cipher_out              ,
-                cmd             => cmd_FIFO_out                            ,
-                cmd_valid       => cmd_valid_FIFO_out                      ,
-                cmd_ready       => cmd_ready_FIFO_out                      ,
-                do_data         => do_data                                 ,
-                do_valid        => do_valid                                ,
-                do_last         => do_last                                 ,
-                do_ready        => do_ready                                ,
-                msg_auth_valid  => msg_auth_valid                          ,
-                msg_auth_ready  => msg_auth_ready                          ,
-                msg_auth        => msg_auth
+                clk             => clk,
+                rst             => rst,
+                bdo             => bdo_cipher_out,
+                bdo_valid       => bdo_valid_cipher_out,
+                bdo_ready       => bdo_ready_cipher_out,
+                end_of_block    => end_of_block_cipher_out,
+                bdo_valid_bytes => bdo_valid_bytes_cipher_out,
+                msg_auth        => msg_auth,
+                msg_auth_ready  => msg_auth_ready,
+                msg_auth_valid  => msg_auth_valid,
+                cmd             => cmd_FIFO_out,
+                cmd_valid       => cmd_valid_FIFO_out,
+                cmd_ready       => cmd_ready_FIFO_out,
+                do_data         => do_data_i,
+                do_valid        => do_valid_i,
+                do_last         => do_last_i,
+                do_ready        => do_ready_i
             );
     Inst_Header_Fifo: entity work.fwft_fifo(structure)
         generic map (
@@ -260,7 +269,31 @@ begin
                 dout_valid      => cmd_valid_FIFO_out,
                 dout_ready      => cmd_ready_FIFO_out
             );
-
-
+    
+    -- TODO for ASYNC_RSTN
+    name : process (clk) is
+    begin
+        if rising_edge(clk) then
+            if rst = '1' then
+                do_valid_reg <= '0';
+            else
+                if do_valid_i = '1' and do_ready_i = '1' then
+                    do_data_reg  <= do_data_i;
+                    do_valid_reg <= '1';
+                    do_last_reg  <= do_last_i;
+                elsif do_ready = '1' then
+                    do_valid_reg <= '0';
+                end if;
+                
+            end if;
+        end if;
+    end process name;
+    
+    do_data  <= do_data_reg;
+    do_valid <= do_valid_reg;
+    do_last  <= do_last_reg;
+    
+    do_ready_i <= do_ready or not do_valid_reg;
+    
 
 end structure;
