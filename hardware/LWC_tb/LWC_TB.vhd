@@ -97,7 +97,7 @@ architecture behavior of LWC_TB is
     signal do_data              : std_logic_vector(G_PWIDTH-1 downto 0);
     signal do_valid             : std_logic;
     signal do_last              : std_logic;
-    signal do_ready             : std_logic;
+    signal do_ready             : std_logic := '0';
 
     --! Verification signals
 --    signal stall_pdi_valid      : std_logic := '0';
