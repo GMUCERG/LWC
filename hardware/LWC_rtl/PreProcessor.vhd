@@ -102,9 +102,13 @@ architecture PreProcessor of PreProcessor is
 
 
     --Controller
-    signal bdi_eoi_internal  : std_logic;
-    signal bdi_eot_internal  : std_logic;
-    constant zero_data       : std_logic_vector(G_W-1 downto 0):=(others=>'0');
+    signal bdi_eoi_internal   : std_logic;
+    signal bdi_eot_internal   : std_logic;
+    
+    signal pdi_ready_internal : std_logic;
+    signal sdi_ready_internal : std_logic;
+    
+    constant zero_data       : std_logic_vector(G_W-1 downto 0) := (others=>'0');
 
 
     ---STATES
@@ -129,6 +133,9 @@ architecture PreProcessor of PreProcessor is
                        S_HDR_RESMSG, S_HDR_MSGLEN_MSB, S_HDR_MSGLEN_LSB,
                        S_HDR_RESTAG, S_HDR_TAGLEN_MSB, S_HDR_TAGLEN_LSB,
                        S_HDR_RESHASH, S_HDR_HASHLEN_MSB, S_HDR_HASHLEN_LSB);
+                       
+    signal pdi_fire : boolean;
+    signal sdi_fire : boolean;
 
                      
 begin
@@ -138,8 +145,7 @@ begin
     -- pragma translate_off
     process(clk) begin
         if (rising_edge(clk)) then
-            assert not (received_wrong_header = true)
-               report "Received unexpected header" severity failure;
+            assert not received_wrong_header report "Received unexpected header" severity failure;
         end if;
     end process;
     -- pragma translate_on
@@ -148,16 +154,17 @@ begin
     --! Segment Length Counter
     SegLen: entity work.StepDownCountLd(StepDownCountLd)
         generic map(
-                N       =>  16,
-                step    =>  (G_W/8)
-                    )
+                N       => 16,
+                step    => (G_W/8)
+            )
         port map
                 (
-                clk     =>  clk ,
-                len     =>  len_SegLenCnt,
-                load    =>  load_SegLenCnt,
-                ena     =>  en_SegLenCnt,
-                count   =>  dout_SegLenCnt
+                clk     => clk,
+                -- rst     => rst,
+                len     => len_SegLenCnt,
+                ena     => en_SegLenCnt,
+                load    => load_SegLenCnt,
+                count   => dout_SegLenCnt
             );
 
     -- if there are (G_W/8) or less bytes left, we processthe last flit
@@ -180,22 +187,49 @@ begin
                          "1000" when 0,
                          "0000" when others;
 
-    --! Registers
-    process (clk)
-    begin
-        if rising_edge(clk) then
-            hash_internal    <= nx_hash_internal;
-            decrypt_internal <= nx_decrypt_internal;
-            eoi_flag         <= nx_eoi_flag;
-            eot_flag         <= nx_eot_flag;
-        end if;
-    end process;
 
+    --! Registers
+    GEN_regs_SYNC_RST: if (not G_ASYNC_RSTN) generate
+        process (clk)
+        begin
+            if rising_edge(clk) then
+                if(rst='1')  then
+                    hash_internal    <= '0';
+		            decrypt_internal <= '0';
+		            eoi_flag         <= '0';
+		            eot_flag         <= '0';
+                else
+                    hash_internal    <= nx_hash_internal;
+            		decrypt_internal <= nx_decrypt_internal;
+            		eoi_flag         <= nx_eoi_flag;
+            		eot_flag         <= nx_eot_flag;
+                end if;
+            end if;
+        end process;
+    end generate GEN_regs_SYNC_RST;
+    GEN_regs_ASYNC_RSTN: if (G_ASYNC_RSTN) generate
+        process (clk, rst)
+        begin
+            if(rst='0')  then
+                hash_internal    <= '0';
+	            decrypt_internal <= '0';
+	            eoi_flag         <= '0';
+	            eot_flag         <= '0';
+            elsif rising_edge(clk) then
+                hash_internal    <= nx_hash_internal;
+        		decrypt_internal <= nx_decrypt_internal;
+        		eoi_flag         <= nx_eoi_flag;
+        		eot_flag         <= nx_eot_flag;
+            end if;
+        end process;
+    end generate GEN_regs_ASYNC_RSTN;
 
     --! output assignment
-    hash    <= hash_internal;
-    decrypt <= decrypt_internal;
-    cmd     <= pdi_data;
+    hash      <= hash_internal;
+    decrypt   <= decrypt_internal;
+    cmd       <= pdi_data;
+    pdi_ready <= pdi_ready_internal;
+    sdi_ready <= sdi_ready_internal;
 
 
    -- ====================================================================================================
@@ -222,7 +256,7 @@ FSM_32BIT: if (G_W=32) generate
 
 
     --! Multiplexer
-    load_SegLenCnt <= sdi_seg_length when (sel_sdi_length = True) else pdi_seg_length;
+    load_SegLenCnt <= sdi_seg_length when sel_sdi_length else pdi_seg_length;
 
     --set size: internally we deal with 32 bits only
     bdi_size_p <= dout_SegLenCnt(2 downto 0) when last_flit_of_segment='1' else "100";
@@ -235,10 +269,6 @@ FSM_32BIT: if (G_W=32) generate
     --! KEY PISO
     -- for ccsw > SW: a piso is used for width conversion
     keyPISO: entity work.KEY_PISO(behavioral)
-	    generic map(
-    		G_SW         => G_SW,
-    		G_ASYNC_RSTN => G_ASYNC_RSTN
-    	)
 	    port map(
             clk          => clk,
             rst          => rst,
@@ -254,37 +284,26 @@ FSM_32BIT: if (G_W=32) generate
 
     --! DATA PISO
     -- for ccw > W: a piso is used for width conversion
-    bdiPISO: entity work.DATA_PISO(behavioral) 	generic map(
-    		G_W => G_W,
-    		G_ASYNC_RSTN => G_ASYNC_RSTN
-    	)
-    port map
-        (
-            clk=> clk,
-            rst=> rst,
-
-            data_size_p  => bdi_size_p,
-            data_size_s  => bdi_size,
-
-            data_s       => bdi,
-            data_valid_s => bdi_valid,
-            data_ready_s => bdi_ready,
-
-            data_p       => pdi_data,
-            data_valid_p => bdi_valid_p,
-            data_ready_p => bdi_ready_p,
-
-            valid_bytes_s => bdi_valid_bytes,
+    bdiPISO: entity work.DATA_PISO(behavioral)
+        port map(
+            clk => clk,
+            rst => rst,
+            data_size_p   => bdi_size_p,
+            data_size_s   => bdi_size,
+            data_s        => bdi,
+            data_valid_s  => bdi_valid,
+            data_ready_s  => bdi_ready,
+            data_p        => pdi_data,
+            data_valid_p  => bdi_valid_p,
+            data_ready_p  => bdi_ready_p,
             valid_bytes_p => bdi_valid_bytes_p,
-
-            pad_loc_s     => bdi_pad_loc,
+            valid_bytes_s => bdi_valid_bytes,
             pad_loc_p     => bdi_pad_loc_p,
-
-            eoi_s         => bdi_eoi,
+            pad_loc_s     => bdi_pad_loc,
             eoi_p         => bdi_eoi_internal,
-
-            eot_s         => bdi_eot,
-            eot_p         => bdi_eot_internal
+            eoi_s         => bdi_eoi,
+            eot_p         => bdi_eot_internal,
+            eot_s         => bdi_eot
         );
 
 
@@ -293,7 +312,7 @@ FSM_32BIT: if (G_W=32) generate
         process (clk)
         begin
             if rising_edge(clk) then
-                if(rst='1')  then
+                if(rst = '1')  then
                     pr_state <= S_INT_MODE;
                 else
                     pr_state <= nx_state;
@@ -304,109 +323,94 @@ FSM_32BIT: if (G_W=32) generate
     GEN_proc_ASYNC_RSTN: if (G_ASYNC_RSTN) generate
         process (clk, rst)
         begin
-            if(rst='0')  then
+            if(rst = '0')  then
                 pr_state <= S_INT_MODE;
             elsif rising_edge(clk) then
                 pr_state <= nx_state;
             end if;
         end process;
     end generate GEN_proc_ASYNC_RSTN;
+    
+    pdi_fire <= pdi_valid = '1' and pdi_ready_internal = '1';
+    sdi_fire <= sdi_valid = '1' and sdi_ready_internal = '1';
  
     --! next state function
-    process (pr_state, sdi_valid, last_flit_of_segment, decrypt_internal,
-            pdi_valid, key_ready_p, bdi_ready_p, eot_flag, pdi_seg_length,
-            pdi_opcode, sdi_opcode, cmd_ready)
-
+    process (pr_state, last_flit_of_segment, decrypt_internal,
+            key_ready_p, bdi_ready_p, eot_flag, pdi_seg_length,
+            pdi_opcode, sdi_opcode, cmd_ready, pdi_fire, sdi_fire)
     begin
 
         -- for simulation only
         received_wrong_header <= false;
+        nx_state <= pr_state;
 
         case pr_state is
 
             -- Set mode
             when S_INT_MODE=>
-                if (pdi_valid = '1') then
+                if pdi_fire then
                     if (pdi_opcode = INST_ACTKEY) then
                         nx_state <= S_INT_KEY;
                     elsif ((pdi_opcode = INST_ENC or pdi_opcode = INST_DEC) and cmd_ready = '1') then
                         nx_state <= S_HDR_NPUB;
                     elsif (pdi_opcode = INST_HASH and cmd_ready = '1') then
                         nx_state <= S_HDR_HASH;
-                    else
-                        nx_state <= S_INT_MODE;
                     end if;
-                else
-                    nx_state <= S_INT_MODE;
                 end if;
 
             -- KEY
             when S_INT_KEY=>
-                if (sdi_valid = '1') then
+                if sdi_fire then
                     received_wrong_header <= sdi_opcode /= INST_LDKEY;
                     nx_state <= S_HDR_KEY;
-                else
-                    nx_state <= S_INT_KEY;
                 end if;
 
             when S_HDR_KEY=>
-                if (sdi_valid = '1') then
+                if sdi_fire then
                     received_wrong_header <= sdi_opcode /= HDR_KEY;
                     nx_state <= S_LD_KEY;
-                else
-                    nx_state <= S_HDR_KEY;
                 end if;
 
             when S_LD_KEY=>  --We don't allow for parallel key loading in a lightweight enviroment
-                if (sdi_valid = '1' and key_ready_p = '1' and last_flit_of_segment = '1') then
+                if (sdi_fire and key_ready_p = '1' and last_flit_of_segment = '1') then
                     nx_state <= S_INT_MODE;
-                else
-                    nx_state <= S_LD_KEY;
                 end if;
 
             -- NPUB
             when S_HDR_NPUB=>
-                if (pdi_valid = '1') then
+                if pdi_fire then
                     received_wrong_header <= pdi_opcode /= HDR_NPUB;
                     nx_state <= S_LD_NPUB;
-                else
-                    nx_state <= S_HDR_NPUB;
                 end if;
 
             when S_LD_NPUB =>
-                if (pdi_valid = '1' and bdi_ready_p ='1' and last_flit_of_segment = '1') then
+                if (pdi_fire and bdi_ready_p ='1' and last_flit_of_segment = '1') then
                     nx_state <= S_HDR_AD;
-                else
-                    nx_state <= S_LD_NPUB;
                 end if;
 
             -- AD
             when S_HDR_AD=>
-                if (pdi_valid = '1') then
+                if pdi_fire then
                     received_wrong_header <= pdi_opcode /= HDR_AD;
                     if (pdi_seg_length = x"0000" and eot_flag = '1') then
                         nx_state <= S_HDR_MSG;
                     else
                         nx_state <= S_LD_AD;
                     end if;
-                else
-                    nx_state <= S_HDR_AD;
                 end if;
 
             when S_LD_AD =>
-                if (pdi_valid = '1' and bdi_ready_p = '1' and last_flit_of_segment = '1') then
+                if (pdi_fire and bdi_ready_p = '1' and last_flit_of_segment = '1') then
                     if (eot_flag = '1') then
                         nx_state <= S_HDR_MSG;
                     else
                         nx_state <= S_HDR_AD;
                     end if;
-                else
-                    nx_state <= S_LD_AD;
                 end if;
 
             -- Plaintext or Ciphertext
             when S_HDR_MSG=>
-                if (pdi_valid = '1' and cmd_ready = '1') then
+                if pdi_fire and cmd_ready = '1' then
                     received_wrong_header <= (pdi_opcode /= HDR_PT and pdi_opcode /= HDR_CT);
                     if (pdi_seg_length = x"0000" and eot_flag = '1') then
                         if (decrypt_internal = '1') then
@@ -417,12 +421,10 @@ FSM_32BIT: if (G_W=32) generate
                     else
                         nx_state <= S_LD_MSG;
                     end if;
-                else
-                    nx_state <= S_HDR_MSG;
                 end if;
 
             when S_LD_MSG =>
-                if (pdi_valid = '1' and bdi_ready_p = '1' and last_flit_of_segment = '1') then
+                if (pdi_fire and bdi_ready_p = '1' and last_flit_of_segment = '1') then
                     if (eot_flag = '1') then
                         if (decrypt_internal = '1') then
                             nx_state <= S_HDR_TAG;
@@ -432,63 +434,46 @@ FSM_32BIT: if (G_W=32) generate
                     else
                         nx_state <= S_HDR_MSG;
                     end if;
-                else
-                    nx_state <= S_LD_MSG;
                 end if;
 
             -- TAG for AEAD
             when S_HDR_TAG=>
-                if (pdi_valid = '1') then
+                if pdi_fire then
                     received_wrong_header <= pdi_opcode /= HDR_TAG;
                     nx_state <= S_LD_TAG;
-                else
-                    nx_state <= S_HDR_TAG;
                 end if;
 
             when S_LD_TAG =>
-                if (pdi_valid = '1' and last_flit_of_segment = '1') then
+                if (pdi_fire and last_flit_of_segment = '1') then
                     if (bdi_ready_p = '1') then
                         nx_state <= S_INT_MODE;
-                    else
-                        nx_state <= S_LD_TAG;
                     end if;
-                else
-                    nx_state <= S_LD_TAG;
                 end if;
 
             --HASH
             when S_HDR_HASH=>
-                if (pdi_valid = '1') then
+                if pdi_fire then
                     received_wrong_header <= pdi_opcode /= HDR_HASH_MSG;
-                    if (pdi_seg_length = x"0000") then
+                    if pdi_seg_length = x"0000" then
                         nx_state <= S_EMPTY_HASH;
                     else
                         nx_state  <= S_LD_HASH;
                     end if;
-                else
-                    nx_state <= S_HDR_HASH;
                 end if;
 
             when S_EMPTY_HASH=>
                 if (bdi_ready_p = '1') then
                     nx_state <= S_INT_MODE;
-                else
-                    nx_state <= S_EMPTY_HASH;
                 end if;
 
             when S_LD_HASH =>
-                if (pdi_valid = '1' and bdi_ready_p = '1' and last_flit_of_segment = '1') then
+                if (pdi_fire and bdi_ready_p = '1' and last_flit_of_segment = '1') then
                     if (eot_flag = '1') then
                         nx_state <= S_INT_MODE;
                     else
                         nx_state <= S_HDR_HASH;
                     end if;
-                else
-                    nx_state <= S_LD_HASH;
                 end if;
-
-            when others =>
-                nx_state <= S_INT_MODE;
 
         end case;
     end process;
@@ -497,74 +482,72 @@ FSM_32BIT: if (G_W=32) generate
     --! output state function
     process(pr_state, sdi_valid, pdi_valid, eoi_flag, eot_flag, hash_internal,
             key_ready_p, bdi_ready_p, cmd_ready, decrypt_internal, pdi_data)
-
-
     begin
-            -- DEFAULT Values
-            -- external interface
-            sdi_ready           <='0';
-            pdi_ready           <='0';
-            -- LWC core
-            key_valid_p         <='0';
-            key_update          <='0';
-            bdi_valid_p         <='0';
-            bdi_type            <="0000";
-            -- header-FIFO
-            cmd_valid           <='0';
-            -- counter
-            len_SegLenCnt       <='0';
-            en_SegLenCnt        <='0';
-            -- register
-            nx_eoi_flag         <= eoi_flag;
-            nx_eot_flag         <= eot_flag;
-            nx_hash_internal    <= hash_internal;
-            nx_decrypt_internal <= decrypt_internal;
-            -- multiplexer
-            sel_sdi_length       <= false;
+        -- DEFAULT Values
+        -- external interface
+        sdi_ready_internal           <= '0';
+        pdi_ready_internal           <= '0';
+        -- LWC core
+        key_valid_p         <= '0';
+        key_update          <= '0';
+        bdi_valid_p         <= '0';
+        bdi_type            <= "0000";
+        -- header-FIFO
+        cmd_valid           <= '0';
+        -- counter
+        len_SegLenCnt       <= '0';
+        en_SegLenCnt        <= '0';
+        -- register
+        nx_eoi_flag         <= eoi_flag;
+        nx_eot_flag         <= eot_flag;
+        nx_hash_internal    <= hash_internal;
+        nx_decrypt_internal <= decrypt_internal;
+        -- multiplexer
+        sel_sdi_length       <= false;
 
         case pr_state is
 
             -- Set MODE
             when S_INT_MODE =>
-                pdi_ready        <= '1';
-                nx_hash_internal <= '0';
+                pdi_ready_internal <= '1';
+                nx_hash_internal   <= '0';
 
                 if (pdi_opcode = INST_ENC or pdi_opcode = INST_DEC) then
                     if (pdi_valid = '1') then
                         -- pdi_data(28) is 1 if INST_DEC, else it is '0' if INST_ENC
                         nx_decrypt_internal <= pdi_data(28);
                         cmd_valid           <= '1'; --Forward instruction
-                        pdi_ready           <= cmd_ready;
+                        pdi_ready_internal           <= cmd_ready;
                     end if;
 
                 elsif (pdi_opcode = INST_HASH) then
                     if (pdi_valid = '1') then
                         nx_hash_internal <= '1';
                         cmd_valid        <= '1'; --Forward instruction
-                        pdi_ready        <= cmd_ready;
+                        pdi_ready_internal        <= cmd_ready;
                     end if;
                 end if;
 
 
             -- KEY
             when S_INT_KEY =>
-                sdi_ready       <= '1';
+                sdi_ready_internal       <= '1';
                 key_update      <= '0';
 
             when S_HDR_KEY =>
-                sdi_ready       <= '1';
+                sdi_ready_internal       <= '1';
                 len_SegLenCnt   <= sdi_valid;
                 sel_sdi_length  <= true;
 
             when S_LD_KEY =>
-                sdi_ready       <= key_ready_p;
+                sdi_ready_internal       <= key_ready_p;
                 key_valid_p     <= sdi_valid;
                 key_update      <= '1';
                 en_SegLenCnt    <= sdi_valid and key_ready_p;
 
             -- NPUB
             when S_HDR_NPUB =>
-                pdi_ready       <= '1';
+                pdi_ready_internal       <= '1';
                 len_SegLenCnt   <= pdi_valid;
                 if (pdi_valid = '1') then
                     nx_eoi_flag <= pdi_data(26);
@@ -572,14 +555,14 @@ FSM_32BIT: if (G_W=32) generate
                 end if;
 
             when S_LD_NPUB =>
-                pdi_ready       <= bdi_ready_p;
+                pdi_ready_internal       <= bdi_ready_p;
                 bdi_valid_p     <= pdi_valid;
                 bdi_type        <= HDR_NPUB;
                 en_SegLenCnt    <= pdi_valid and bdi_ready_p;
 
             -- AD
             when S_HDR_AD =>
-                pdi_ready       <='1';
+                pdi_ready_internal       <='1';
                 len_SegLenCnt   <= pdi_valid;
                 if (pdi_valid = '1') then
                     nx_eoi_flag <= pdi_data(26);
@@ -587,7 +570,7 @@ FSM_32BIT: if (G_W=32) generate
                 end if;
 
             when S_LD_AD =>
-                pdi_ready       <= bdi_ready_p;
+                pdi_ready_internal       <= bdi_ready_p;
                 bdi_valid_p     <= pdi_valid;
                 bdi_type        <= HDR_AD;
                 en_SegLenCnt    <= pdi_valid and bdi_ready_p;
@@ -595,7 +578,7 @@ FSM_32BIT: if (G_W=32) generate
             -- Plaintext or Ciphertext
             when S_HDR_MSG =>
                 cmd_valid       <= pdi_valid;
-                pdi_ready       <= cmd_ready;
+                pdi_ready_internal       <= cmd_ready;
                 len_SegLenCnt   <= pdi_valid and cmd_ready;
                 if (pdi_valid = '1' and cmd_ready = '1') then
                     nx_eoi_flag <= pdi_data(26);
@@ -603,7 +586,7 @@ FSM_32BIT: if (G_W=32) generate
                 end if;
 
             when S_LD_MSG =>
-                pdi_ready       <= bdi_ready_p;
+                pdi_ready_internal       <= bdi_ready_p;
                 bdi_valid_p     <= pdi_valid;
                 if (decrypt_internal = '1') then
                     bdi_type    <= HDR_CT;
@@ -614,7 +597,7 @@ FSM_32BIT: if (G_W=32) generate
 
             -- TAG for AEAD
             when S_HDR_TAG =>
-                pdi_ready       <= '1';
+                pdi_ready_internal       <= '1';
                 len_SegLenCnt   <= pdi_valid;
 
             when S_LD_TAG =>
@@ -622,13 +605,13 @@ FSM_32BIT: if (G_W=32) generate
 
                 if (decrypt_internal = '1') then
                     bdi_valid_p  <= pdi_valid;
-                    pdi_ready    <= bdi_ready_p ;
+                    pdi_ready_internal    <= bdi_ready_p ;
                     en_SegLenCnt <= pdi_valid and bdi_ready_p;
                 end if;
 
             -- HASH
             when S_HDR_HASH =>
-                pdi_ready       <= '1';
+                pdi_ready_internal       <= '1';
                 len_SegLenCnt   <= pdi_valid;
                 if (pdi_valid = '1') then
                     nx_eoi_flag <= pdi_data(26);
@@ -636,7 +619,7 @@ FSM_32BIT: if (G_W=32) generate
                 end if;
 
             when S_LD_HASH =>
-                pdi_ready       <= bdi_ready_p;
+                pdi_ready_internal       <= bdi_ready_p;
                 bdi_valid_p     <= pdi_valid;
                 bdi_type        <= HDR_HASH_MSG;
                 en_SegLenCnt    <= pdi_valid and bdi_ready_p;
@@ -645,8 +628,6 @@ FSM_32BIT: if (G_W=32) generate
                 bdi_valid_p     <= '1';
                 bdi_type        <= HDR_HASH_MSG;
 
-            when others =>
-                null;
         end case;
     end process;
 
@@ -678,9 +659,9 @@ FSM_16BIT: if (G_W=16) generate
                          "001" when 1,
                          "000" when others;
 
-    bdi_pad_loc    ((G_W/8) -1 downto 0) <= bdi_pad_loc_p(3 downto 4-(G_W/8));
-    bdi_valid_bytes((G_W/8) -1 downto 0) <= bdi_valid_bytes_p(3 downto 4-(G_W/8));
-    data_seg_length   <= sdi_data when sel_sdi_length=true else pdi_data;
+    bdi_pad_loc       <= bdi_pad_loc_p(3 downto 4-CCWdiv8);
+    bdi_valid_bytes   <= bdi_valid_bytes_p(3 downto 4-CCWdiv8);
+    data_seg_length   <= sdi_data when sel_sdi_length else pdi_data;
     load_SegLenCnt    <= data_seg_length(G_W-1 downto G_W-8*(G_W/8));
 
     bdi_eoi_internal  <= eoi_flag and last_flit_of_segment;
@@ -689,8 +670,8 @@ FSM_16BIT: if (G_W=16) generate
     bdi_eot           <= bdi_eot_internal;
 
     --! Assigning Data to buses
-    bdi <= pdi_data;
-    key <= sdi_data;
+    bdi <= pdi_data(CCW - 1 downto 0);
+    key <= sdi_data(CCSW - 1 downto 0);
     
      --! State register
     GEN_proc_SYNC_RST: if (not G_ASYNC_RSTN) generate
@@ -720,10 +701,10 @@ FSM_16BIT: if (G_W=16) generate
     --!next state function
     process (pr_state, sdi_valid,pdi_valid, sdi_data, pdi_data,
             last_flit_of_segment, decrypt_internal, key_ready, bdi_ready,
-            cmd_ready, bdi_eot_internal,
-            bdi_eoi_internal, eot_flag, eoi_flag)
+            cmd_ready, bdi_eoi_internal, eot_flag)
 
     begin
+        nx_state <= pr_state;
         case pr_state is
 
             ---MODE SET-
@@ -735,70 +716,50 @@ FSM_16BIT: if (G_W=16) generate
                         nx_state <= S_HDR_NPUB;
                     elsif (pdi_data(G_W-1 downto G_W-4) = INST_HASH and cmd_ready = '1') then
                         nx_state <= S_HDR_HASH;
-                    else
-                        nx_state <=S_INT_MODE;
                     end if;
-                else
-                    nx_state <= S_INT_MODE;
                 end if;
 
             ---load key
             when S_INT_KEY=>
                 if (sdi_valid = '1' and sdi_data(G_W-1 downto G_W-4) = INST_LDKEY) then
                     nx_state <= S_HDR_KEY;
-                else
-                    nx_state <= S_INT_KEY;
                 end if;
 
             when S_HDR_KEY=>
                 if (sdi_valid = '1' and sdi_data(G_W-1 downto G_W-4) = HDR_KEY) then
                     nx_state <= S_HDR_KEYLEN;
-                else
-                    nx_state <= S_HDR_KEY;
                 end if;
 
             when S_HDR_KEYLEN=>
                 if (sdi_valid = '1') then
                     nx_state <= S_LD_KEY;
-                else
-                    nx_state <= S_HDR_KEYLEN;
                 end if;
 
             when S_LD_KEY=>
                 if (sdi_valid = '1' and key_ready = '1' and last_flit_of_segment ='1') then
                     nx_state <= S_INT_MODE;
-                else
-                    nx_state <= S_LD_KEY;
                 end if;
 
             ---NPUB
             when S_HDR_NPUB=>
                 if(pdi_valid='1' and pdi_data(G_W-1 downto G_W-4) = HDR_NPUB) then
                     nx_state <= S_HDR_NPUBLEN;
-                else
-                    nx_state <= S_HDR_NPUB;
                 end if;
 
             when S_HDR_NPUBLEN=>
                 if (pdi_valid = '1') then
                     nx_state <= S_LD_NPUB;
-                else
-                    nx_state <= S_HDR_NPUBLEN;
                 end if;
 
             when S_LD_NPUB =>
                 if (pdi_valid = '1' and bdi_ready = '1' and last_flit_of_segment = '1') then
                     nx_state <= S_HDR_AD;
-                else
-                    nx_state <= S_LD_NPUB;
                 end if;
 
             --AD
             when S_HDR_AD=>
                 if (pdi_valid = '1' and pdi_data(G_W-1 downto G_W-4) = HDR_AD) then
                     nx_state <= S_HDR_ADLEN;
-                else
-                    nx_state <= S_HDR_AD;
                 end if;
 
             when S_HDR_ADLEN=>
@@ -816,8 +777,6 @@ FSM_16BIT: if (G_W=16) generate
                     else
                         nx_state <= S_LD_AD;
                     end if;
-                else
-                    nx_state <= S_HDR_ADLEN;
                 end if;
 
             when S_LD_AD =>
@@ -827,8 +786,6 @@ FSM_16BIT: if (G_W=16) generate
                     else
                         nx_state <= S_HDR_AD;
                     end if;
-                else
-                    nx_state <= S_LD_AD;
                 end if;
 
             --MSG OR CIPHER TEXT
@@ -836,8 +793,6 @@ FSM_16BIT: if (G_W=16) generate
             if (pdi_valid = '1' and cmd_ready = '1' and (pdi_data(G_W-1 downto G_W-4) = HDR_PT
                                  or  pdi_data(G_W-1 downto G_W-4) = HDR_CT)) then
                 nx_state <= S_HDR_MSGLEN;
-            else
-                nx_state <= S_HDR_MSG;
             end if;
 
             when S_HDR_MSGLEN=>
@@ -851,8 +806,6 @@ FSM_16BIT: if (G_W=16) generate
                     else
                         nx_state <= S_LD_MSG;
                     end if;
-                else
-                    nx_state <= S_HDR_MSGLEN;
                 end if;
 
             when S_LD_MSG =>
@@ -866,23 +819,17 @@ FSM_16BIT: if (G_W=16) generate
                     else
                         nx_state <= S_HDR_MSG;
                     end if;
-                else
-                    nx_state <= S_LD_MSG;
                 end if;
 
             --TAG
             when S_HDR_TAG=>
                 if(pdi_valid='1' and pdi_data(G_W-1 downto G_W-4) = HDR_TAG) then
                     nx_state <= S_HDR_TAGLEN;
-                else
-                    nx_state <= S_HDR_TAG;
                 end if;
 
             when S_HDR_TAGLEN=>
                 if (pdi_valid = '1') then
                     nx_state <= S_LD_TAG;
-                else
-                    nx_state <= S_HDR_TAGLEN;
                 end if;
 
             when S_LD_TAG =>
@@ -892,16 +839,12 @@ FSM_16BIT: if (G_W=16) generate
                     else
                         nx_state <= S_LD_TAG;
                     end if;
-                else
-                    nx_state <= S_LD_TAG;
                 end if;
 
             --HASH
             when S_HDR_HASH =>
                 if (pdi_valid = '1' and pdi_data(G_W-1 downto G_W-3) = HDR_HASH_MSG(3 downto 1)) then
                     nx_state <= S_HDR_HASHLEN;
-                else
-                    nx_state <= S_HDR_HASH;
                 end if;
 
             when S_HDR_HASHLEN=>
@@ -911,15 +854,11 @@ FSM_16BIT: if (G_W=16) generate
                     else
                         nx_state <= S_LD_HASH;
                     end if;
-                else
-                    nx_state <= S_HDR_HASHLEN;
                 end if;
 
             when S_EMPTY_HASH=>
                 if (bdi_ready = '1') then
                     nx_state <= S_INT_MODE;
-                else
-                    nx_state <= S_EMPTY_HASH;
                 end if;
 
             when S_LD_HASH =>
@@ -929,12 +868,7 @@ FSM_16BIT: if (G_W=16) generate
                     else
                         nx_state <= S_HDR_HASH;
                     end if;
-                else
-                    nx_state <= S_LD_HASH;
                 end if;
-
-            when others=>
-                nx_state <= S_INT_MODE;
 
         end case;
     end process;
@@ -946,8 +880,8 @@ FSM_16BIT: if (G_W=16) generate
     begin
         --DEFAULT Values
         --external interface
-        sdi_ready           <='0';
-        pdi_ready           <='0';
+        sdi_ready_internal           <='0';
+        pdi_ready_internal           <='0';
         -- CryptoCore
         key_valid           <='0';
         bdi_valid           <='0';
@@ -976,10 +910,10 @@ FSM_16BIT: if (G_W=16) generate
                         nx_decrypt_internal <= pdi_data(G_W-4);
                     end if;
                     cmd_valid        <= pdi_valid;
-                    pdi_ready        <= cmd_ready;
+                    pdi_ready_internal        <= cmd_ready;
                     nx_hash_internal <= '0';
                 elsif (pdi_data(G_W-1 downto G_W-4)=INST_ACTKEY)then
-                    pdi_ready        <= '1';
+                    pdi_ready_internal        <= '1';
                     nx_hash_internal <= '0';
 
                 elsif (pdi_data(G_W-1 downto G_W-4)=INST_HASH) then
@@ -988,15 +922,15 @@ FSM_16BIT: if (G_W=16) generate
                         nx_decrypt_internal <= pdi_data(G_W-4);
                     end if;
                     cmd_valid    <= pdi_valid;
-                    pdi_ready    <= cmd_ready;
+                    pdi_ready_internal    <= cmd_ready;
                 end if;
 
             when S_INT_KEY        =>
-                sdi_ready       <='1';
+                sdi_ready_internal       <='1';
                 key_update      <='0';
 
             when S_HDR_KEY        =>
-                sdi_ready       <='1';
+                sdi_ready_internal       <='1';
                 len_SegLenCnt   <= sdi_valid;
                 sel_sdi_length  <= true;
                 if (sdi_valid = '1') then
@@ -1005,19 +939,19 @@ FSM_16BIT: if (G_W=16) generate
                 end if;
 
             when S_HDR_KEYLEN     =>
-                sdi_ready       <='1';
+                sdi_ready_internal       <='1';
                 len_SegLenCnt   <= sdi_valid;
                 sel_sdi_length  <= true;
 
             when S_LD_KEY         =>
-                sdi_ready       <= key_ready;
+                sdi_ready_internal       <= key_ready;
                 key_valid       <= sdi_valid;
                 key_update      <= '1';
                 en_SegLenCnt    <= sdi_valid and key_ready;
 
             ---NPUB
             when S_HDR_NPUB       =>
-                pdi_ready       <='1';
+                pdi_ready_internal       <='1';
                 len_SegLenCnt   <= pdi_valid;
                 if (pdi_valid = '1') then
                     nx_eoi_flag <= pdi_data(G_W-6);
@@ -1025,18 +959,18 @@ FSM_16BIT: if (G_W=16) generate
                 end if;
 
             when S_HDR_NPUBLEN    =>
-                pdi_ready       <='1';
+                pdi_ready_internal       <='1';
                 len_SegLenCnt   <= pdi_valid;
 
             when S_LD_NPUB        =>
-                pdi_ready       <= bdi_ready;
+                pdi_ready_internal       <= bdi_ready;
                 bdi_valid       <= pdi_valid;
                 bdi_type        <= HDR_NPUB;
                 en_SegLenCnt    <= pdi_valid and bdi_ready;
 
             ---AD
             when S_HDR_AD         =>
-                pdi_ready      <='1';
+                pdi_ready_internal      <='1';
                 len_SegLenCnt  <= pdi_valid;
                 if (pdi_valid = '1') then
                     nx_eoi_flag <= pdi_data(G_W-6);
@@ -1044,11 +978,11 @@ FSM_16BIT: if (G_W=16) generate
                 end if;
 
             when S_HDR_ADLEN      =>
-                pdi_ready       <='1';
+                pdi_ready_internal       <='1';
                 len_SegLenCnt   <= pdi_valid;
 
             when S_LD_AD =>
-                pdi_ready       <= bdi_ready;
+                pdi_ready_internal       <= bdi_ready;
                 bdi_valid       <= pdi_valid;
                 bdi_type        <= HDR_AD;
                 en_SegLenCnt    <= pdi_valid and bdi_ready;
@@ -1058,7 +992,7 @@ FSM_16BIT: if (G_W=16) generate
                 if (pdi_data(G_W-1 downto G_W-4) = HDR_PT or pdi_data(G_W-1 downto G_W-4) = HDR_CT) then
                     cmd_valid   <=pdi_valid;
                 end if;
-                pdi_ready       <= cmd_ready;
+                pdi_ready_internal       <= cmd_ready;
                 len_SegLenCnt   <= pdi_valid and cmd_ready;
                 if ((pdi_valid = '1') and (cmd_ready = '1')) then
                     nx_eoi_flag <= pdi_data(G_W-6);
@@ -1066,12 +1000,12 @@ FSM_16BIT: if (G_W=16) generate
                 end if;
 
             when S_HDR_MSGLEN =>
-                pdi_ready       <= cmd_ready;
+                pdi_ready_internal       <= cmd_ready;
                 cmd_valid       <= pdi_valid;
                 len_SegLenCnt   <= pdi_valid and cmd_ready;
 
             when S_LD_MSG =>
-                pdi_ready       <= bdi_ready;
+                pdi_ready_internal       <= bdi_ready;
                 bdi_valid       <= pdi_valid;
                 if (decrypt_internal = '1') then
                     bdi_type    <= HDR_CT;
@@ -1082,7 +1016,7 @@ FSM_16BIT: if (G_W=16) generate
 
             --HASH
             when S_HDR_HASH =>
-                pdi_ready       <= '1';
+                pdi_ready_internal       <= '1';
                 len_SegLenCnt   <= pdi_valid;
                 if (pdi_valid = '1') then
                     nx_eoi_flag <= pdi_data(G_W-6);
@@ -1090,7 +1024,7 @@ FSM_16BIT: if (G_W=16) generate
                 end if;
 
             when S_HDR_HASHLEN =>
-                pdi_ready       <= '1';
+                pdi_ready_internal       <= '1';
                 len_SegLenCnt   <= pdi_valid;
 
             when S_EMPTY_HASH =>
@@ -1098,30 +1032,27 @@ FSM_16BIT: if (G_W=16) generate
                 bdi_type        <= HDR_HASH_MSG;
 
             when S_LD_HASH =>
-                pdi_ready       <= bdi_ready;
+                pdi_ready_internal       <= bdi_ready;
                 bdi_valid       <= pdi_valid;
                 bdi_type        <= HDR_HASH_MSG;
                 en_SegLenCnt    <= pdi_valid and bdi_ready;
 
             --TAG
             when S_HDR_TAG =>
-                pdi_ready       <= '1';
+                pdi_ready_internal       <= '1';
                 len_SegLenCnt   <= pdi_valid;
 
             when S_HDR_TAGLEN =>
-                pdi_ready       <='1';
+                pdi_ready_internal       <='1';
                 len_SegLenCnt   <= pdi_valid;
 
             when S_LD_TAG =>
                 bdi_type        <= HDR_TAG;
                 if (decrypt_internal = '1') then
                     bdi_valid   <= pdi_valid;
-                    pdi_ready   <= bdi_ready ;
+                    pdi_ready_internal   <= bdi_ready ;
                     en_SegLenCnt<= pdi_valid and bdi_ready;
                 end if;
-
-            when others =>
-                null;
 
         end case;
     end process;
@@ -1159,7 +1090,7 @@ FSM_8BIT: if (G_W=8) generate
 
     bdi_valid_bytes((G_W/8) -1 downto 0) <= bdi_valid_bytes_p(3 downto 4-(G_W/8));
 
-    data_seg_length   <= sdi_data when sel_sdi_length = true else pdi_data;
+    data_seg_length   <= sdi_data when sel_sdi_length else pdi_data;
     bdi_eoi_internal  <= eoi_flag and last_flit_of_segment;
     bdi_eot_internal  <= eot_flag and last_flit_of_segment;
     bdi_eoi           <= bdi_eoi_internal;
@@ -1210,6 +1141,9 @@ FSM_8BIT: if (G_W=8) generate
             bdi_eoi_internal, eot_flag)
 
     begin
+    	
+    	nx_state <= pr_state;
+    	
         case pr_state is
 
             ---MODE SET
@@ -1224,109 +1158,79 @@ FSM_8BIT: if (G_W=8) generate
                     else
                         nx_state <= S_INT_MODE;
                     end if;
-                else
-                    nx_state <= S_INT_MODE;
                 end if;
 
             ---load key
             when S_INT_KEY=>
                 if (sdi_valid='1' and sdi_data(G_W-1 downto G_W-4) = INST_LDKEY) then
                     nx_state <= S_HDR_KEY;
-                else
-                    nx_state <= S_INT_KEY;
                 end if;
 
             when S_HDR_KEY=>
                 if (sdi_valid = '1' and sdi_data(G_W-1 downto G_W-4) = HDR_KEY) then
                     nx_state <= S_HDR_RESKEY;
-                else
-                    nx_state <= S_HDR_KEY;
                 end if;
 
             when S_HDR_RESKEY=>
                 if (sdi_valid = '1') then
                     nx_state <= S_HDR_KEYLEN_MSB;
-                else
-                    nx_state <= S_HDR_RESKEY;
                 end if;
 
             when S_HDR_KEYLEN_MSB=>
                 if (sdi_valid = '1') then
                     nx_state <= S_HDR_KEYLEN_LSB;
-                else
-                    nx_state <= S_HDR_KEYLEN_MSB;
                 end if;
 
             when S_HDR_KEYLEN_LSB=>
                 if(sdi_valid='1') then
                     nx_state <= S_LD_KEY;
-                else
-                    nx_state <= S_HDR_KEYLEN_LSB;
                 end if;
 
             when S_LD_KEY=>
                 if (sdi_valid = '1' and key_ready = '1' and last_flit_of_segment = '1') then
                     nx_state <= S_INT_MODE;
-                else
-                    nx_state <= S_LD_KEY;
                 end if;
 
             ---NPUB
             when S_HDR_NPUB=>
                 if (pdi_valid = '1' and pdi_data(G_W-1 downto G_W-4) = HDR_NPUB) then
                     nx_state <= S_HDR_RESNPUB;
-                else
-                    nx_state <= S_HDR_NPUB;
                 end if;
 
             when S_HDR_RESNPUB=>
                 if (pdi_valid = '1') then
                     nx_state <= S_HDR_NPUBLEN_MSB;
-                else
-                    nx_state <= S_HDR_RESNPUB;
                 end if;
 
             when S_HDR_NPUBLEN_MSB=>
                 if (pdi_valid = '1') then
                     nx_state <= S_HDR_NPUBLEN_LSB;
-                else
-                    nx_state <= S_HDR_NPUBLEN_MSB;
                 end if;
 
             when S_HDR_NPUBLEN_LSB=>
                 if (pdi_valid = '1') then
                     nx_state <= S_LD_NPUB;
-                else
-                    nx_state <= S_HDR_NPUBLEN_LSB;
                 end if;
 
             when S_LD_NPUB =>
                 if (pdi_valid = '1' and bdi_ready = '1' and last_flit_of_segment = '1') then
                     nx_state <= S_HDR_AD;
-                else
-                    nx_state <= S_LD_NPUB;
                 end if;
 
             --AD
             when S_HDR_AD=>
                 if (pdi_valid = '1' and pdi_data(G_W-1 downto G_W-4) = HDR_AD) then
                     nx_state <= S_HDR_RESAD;
-                else
-                    nx_state <= S_HDR_AD;
                 end if;
 
             when S_HDR_RESAD=>
                 if (pdi_valid = '1') then
                     nx_state <= S_HDR_ADLEN_MSB;
-                else
-                    nx_state <= S_HDR_RESAD;
                 end if;
 
             when S_HDR_ADLEN_MSB=>
                 if (pdi_valid = '1') then
                     nx_state <= S_HDR_ADLEN_LSB;
-                else
-                    nx_state <= S_HDR_ADLEN_MSB;
                 end if;
 
             when S_HDR_ADLEN_LSB=>
@@ -1344,8 +1248,6 @@ FSM_8BIT: if (G_W=8) generate
                     else
                         nx_state <= S_LD_AD;
                     end if;
-                else
-                    nx_state <= S_HDR_ADLEN_LSB;
                 end if;
 
             when S_LD_AD =>
@@ -1355,8 +1257,6 @@ FSM_8BIT: if (G_W=8) generate
                     else
                         nx_state <= S_HDR_AD;
                     end if;
-                else
-                    nx_state <= S_LD_AD;
                 end if;
 
             --MSG OR CIPHER TEXT
@@ -1364,22 +1264,16 @@ FSM_8BIT: if (G_W=8) generate
                 if (pdi_valid = '1' and cmd_ready = '1' and (pdi_data(G_W-1 downto G_W-4) = HDR_PT
                                      or  pdi_data(G_W-1 downto G_W-4) = HDR_CT)) then
                     nx_state <= S_HDR_RESMSG;
-                else
-                    nx_state <= S_HDR_MSG;
                 end if;
 
             when S_HDR_RESMSG=>
                 if (pdi_valid = '1' and cmd_ready = '1') then
                     nx_state <= S_HDR_MSGLEN_MSB;
-                else
-                    nx_state <= S_HDR_RESMSG;
                 end if;
 
             when S_HDR_MSGLEN_MSB=>
                 if (pdi_valid = '1'and cmd_ready = '1') then
                     nx_state <= S_HDR_MSGLEN_LSB;
-                else
-                    nx_state <= S_HDR_MSGLEN_MSB;
                 end if;
 
             when S_HDR_MSGLEN_LSB=>
@@ -1393,8 +1287,6 @@ FSM_8BIT: if (G_W=8) generate
                     else
                         nx_state <= S_LD_MSG;
                     end if;
-                else
-                    nx_state <= S_HDR_MSGLEN_LSB;
                 end if;
 
             when S_LD_MSG =>
@@ -1408,37 +1300,27 @@ FSM_8BIT: if (G_W=8) generate
                     else
                         nx_state <= S_HDR_MSG;
                     end if;
-                else
-                    nx_state <= S_LD_MSG;
                 end if;
 
             --TAG
             when S_HDR_TAG=>
                 if (pdi_valid = '1' and pdi_data(G_W-1 downto G_W-4) = HDR_TAG) then
                     nx_state <= S_HDR_RESTAG;
-                else
-                    nx_state <= S_HDR_TAG;
                 end if;
 
             when S_HDR_RESTAG=>
                 if (pdi_valid = '1') then
                     nx_state <= S_HDR_TAGLEN_MSB;
-                else
-                    nx_state <= S_HDR_RESTAG;
                 end if;
 
             when S_HDR_TAGLEN_MSB=>
                 if (pdi_valid = '1') then
                     nx_state <= S_HDR_TAGLEN_LSB;
-                else
-                    nx_state <= S_HDR_TAGLEN_MSB;
                 end if;
 
             when S_HDR_TAGLEN_LSB=>
                 if (pdi_valid = '1') then
                     nx_state <= S_LD_TAG;
-                else
-                    nx_state <= S_HDR_TAGLEN_LSB;
                 end if;
 
             when S_LD_TAG =>
@@ -1448,30 +1330,22 @@ FSM_8BIT: if (G_W=8) generate
                     else
                         nx_state <= S_LD_TAG;
                     end if;
-                else
-                    nx_state <= S_LD_TAG;
                 end if;
 
             --HASH
             when S_HDR_HASH =>
                 if (pdi_valid = '1' and pdi_data(G_W-1 downto G_W-3) = HDR_HASH_MSG(3 downto 1)) then
                     nx_state <= S_HDR_RESHASH;
-                else
-                    nx_state <= S_HDR_HASH;
                 end if;
 
             when S_HDR_RESHASH =>
                 if (pdi_valid = '1') then
                     nx_state <= S_HDR_HASHLEN_MSB;
-                else
-                    nx_state <= S_HDR_RESHASH;
                 end if;
 
             when S_HDR_HASHLEN_MSB =>
                 if (pdi_valid = '1') then
                     nx_state <= S_HDR_HASHLEN_LSB;
-                else
-                    nx_state <= S_HDR_HASHLEN_MSB;
                 end if;
 
             when S_HDR_HASHLEN_LSB=>
@@ -1481,15 +1355,11 @@ FSM_8BIT: if (G_W=8) generate
                     else
                         nx_state <= S_LD_HASH;
                     end if;
-                else
-                    nx_state <= S_HDR_HASHLEN_LSB;
                 end if;
 
             when S_EMPTY_HASH=>
                 if (bdi_ready = '1') then
                     nx_state <= S_INT_MODE;
-                else
-                    nx_state <= S_EMPTY_HASH;
                 end if;
 
             when S_LD_HASH =>
@@ -1499,12 +1369,7 @@ FSM_8BIT: if (G_W=8) generate
                     else
                         nx_state <= S_HDR_HASH;
                     end if;
-                else
-                    nx_state <= S_LD_HASH;
                 end if;
-
-            when others=>
-                nx_state <= S_INT_MODE;
 
         end case;
     end process;
@@ -1518,8 +1383,8 @@ FSM_8BIT: if (G_W=8) generate
     begin
         -- DEFAULT Values
         -- external interface
-        sdi_ready        <='0';
-        pdi_ready        <='0';
+        sdi_ready_internal        <='0';
+        pdi_ready_internal        <='0';
         -- CryptoCore
         key_valid        <='0';
         key_update       <='0';
@@ -1549,10 +1414,10 @@ FSM_8BIT: if (G_W=8) generate
                         nx_decrypt_internal <= pdi_data(G_W-4);
                     end if;
                     cmd_valid        <= pdi_valid;
-                    pdi_ready        <= cmd_ready;
+                    pdi_ready_internal        <= cmd_ready;
                     nx_hash_internal <= '0';
                 elsif (pdi_data(G_W-1 downto G_W-4) = INST_ACTKEY) then
-                    pdi_ready        <= '1';
+                    pdi_ready_internal        <= '1';
                     nx_hash_internal <= '0';
                 elsif (pdi_data(G_W-1 downto G_W-4) = INST_HASH) then
                     nx_hash_internal<= '1';
@@ -1560,15 +1425,15 @@ FSM_8BIT: if (G_W=8) generate
                         nx_decrypt_internal <= pdi_data(G_W-4);
                     end if;
                     cmd_valid    <= pdi_valid;
-                    pdi_ready    <= cmd_ready;
+                    pdi_ready_internal    <= cmd_ready;
                 end if;
 
             when S_INT_KEY        =>
-                sdi_ready       <='1';
+                sdi_ready_internal       <='1';
                 key_update      <='0';
 
             when S_HDR_KEY        =>
-                sdi_ready       <='1';
+                sdi_ready_internal       <='1';
                 len_SegLenCnt   <= sdi_valid;
                 sel_sdi_length  <= true;
                 if (sdi_valid = '1') then
@@ -1577,30 +1442,30 @@ FSM_8BIT: if (G_W=8) generate
                 end if;
 
             when S_HDR_RESKEY     =>
-                sdi_ready       <='1';
+                sdi_ready_internal       <='1';
                 sel_sdi_length  <= true;
 
             when S_HDR_KEYLEN_MSB =>
-                sdi_ready       <='1';
+                sdi_ready_internal       <='1';
                 sel_sdi_length  <= true;
                 if (sdi_valid = '1') then
                     nx_dout_LenReg <= data_seg_length(G_W-1 downto G_W-8);
                 end if;
 
             when S_HDR_KEYLEN_LSB =>
-                sdi_ready       <='1';
+                sdi_ready_internal       <='1';
                 len_SegLenCnt   <= sdi_valid;
                 sel_sdi_length  <= true;
 
             when S_LD_KEY         =>
-                sdi_ready       <= key_ready;
+                sdi_ready_internal       <= key_ready;
                 key_valid       <= sdi_valid;
                 key_update      <= '1';
                 en_SegLenCnt    <= sdi_valid and key_ready;
 
             ---NPUB
             when S_HDR_NPUB       =>
-                pdi_ready       <='1';
+                pdi_ready_internal       <='1';
                 len_SegLenCnt   <= pdi_valid;
                 if (pdi_valid = '1') then
                     nx_eoi_flag <= pdi_data(G_W-6);
@@ -1608,27 +1473,27 @@ FSM_8BIT: if (G_W=8) generate
                 end if;
 
             when S_HDR_RESNPUB    =>
-                pdi_ready       <='1';
+                pdi_ready_internal       <='1';
 
             when S_HDR_NPUBLEN_MSB=>
-                pdi_ready       <='1';
+                pdi_ready_internal       <='1';
                 if (pdi_valid = '1') then
                     nx_dout_LenReg <= data_seg_length(G_W-1 downto G_W-8);
                 end if;
 
             when S_HDR_NPUBLEN_LSB=>
-                pdi_ready       <='1';
+                pdi_ready_internal       <='1';
                 len_SegLenCnt   <= pdi_valid;
 
             when S_LD_NPUB        =>
-                pdi_ready       <= bdi_ready;
+                pdi_ready_internal       <= bdi_ready;
                 bdi_valid       <= pdi_valid;
                 bdi_type        <= HDR_NPUB;
                 en_SegLenCnt    <= pdi_valid and bdi_ready;
 
             ---AD
             when S_HDR_AD         =>
-                pdi_ready       <='1';
+                pdi_ready_internal       <='1';
                 len_SegLenCnt   <= pdi_valid;
                 if (pdi_valid = '1') then
                     nx_eoi_flag <= pdi_data(G_W-6);
@@ -1636,20 +1501,20 @@ FSM_8BIT: if (G_W=8) generate
                 end if;
 
             when S_HDR_RESAD      =>
-                pdi_ready       <='1';
+                pdi_ready_internal       <='1';
 
             when S_HDR_ADLEN_MSB  =>
-                pdi_ready       <='1';
+                pdi_ready_internal       <='1';
                 if (pdi_valid = '1') then
                     nx_dout_LenReg <= data_seg_length(G_W-1 downto G_W-8);
                 end if;
 
             when S_HDR_ADLEN_LSB  =>
-                pdi_ready       <='1';
+                pdi_ready_internal       <='1';
                 len_SegLenCnt   <= pdi_valid;
 
             when S_LD_AD =>
-                pdi_ready       <= bdi_ready;
+                pdi_ready_internal       <= bdi_ready;
                 bdi_valid       <= pdi_valid;
                 bdi_type        <= HDR_AD;
                 en_SegLenCnt    <= pdi_valid and bdi_ready;
@@ -1660,7 +1525,7 @@ FSM_8BIT: if (G_W=8) generate
                     pdi_data(G_W-1 downto G_W-4) = HDR_CT) then
                     cmd_valid   <= pdi_valid;
                 end if;
-                pdi_ready       <= cmd_ready;
+                pdi_ready_internal       <= cmd_ready;
                 len_SegLenCnt   <= pdi_valid and cmd_ready;
                 if ((pdi_valid = '1') and (cmd_ready = '1')) then
                     nx_eoi_flag <= pdi_data(G_W-6);
@@ -1668,24 +1533,24 @@ FSM_8BIT: if (G_W=8) generate
                 end if;
 
             when S_HDR_RESMSG =>
-                pdi_ready       <= cmd_ready;
+                pdi_ready_internal       <= cmd_ready;
                 cmd_valid       <= pdi_valid;
 
             when S_HDR_MSGLEN_MSB =>
-                pdi_ready       <= cmd_ready;
+                pdi_ready_internal       <= cmd_ready;
                 if ((pdi_valid = '1') and (cmd_ready = '1')) then
                     nx_dout_LenReg <= data_seg_length(G_W-1 downto G_W-8);
                 end if;
                 cmd_valid       <=pdi_valid;
 
             when S_HDR_MSGLEN_LSB =>
-                pdi_ready       <= cmd_ready;
+                pdi_ready_internal       <= cmd_ready;
                 len_SegLenCnt   <= pdi_valid and cmd_ready;
                 cmd_valid       <= pdi_valid;
 
 
             when S_LD_MSG =>
-                pdi_ready       <= bdi_ready;
+                pdi_ready_internal       <= bdi_ready;
                 bdi_valid       <= pdi_valid;
                 if (decrypt_internal = '1') then
                     bdi_type    <= HDR_CT;
@@ -1696,7 +1561,7 @@ FSM_8BIT: if (G_W=8) generate
 
             --HASH
             when S_HDR_HASH =>
-                pdi_ready       <= '1';
+                pdi_ready_internal       <= '1';
                 len_SegLenCnt   <= pdi_valid;
                 if (pdi_valid = '1') then
                     nx_eoi_flag <= pdi_data(G_W-6);
@@ -1704,16 +1569,16 @@ FSM_8BIT: if (G_W=8) generate
                 end if;
 
             when S_HDR_RESHASH  =>
-                pdi_ready       <= '1';
+                pdi_ready_internal       <= '1';
 
             when S_HDR_HASHLEN_MSB =>
-                pdi_ready       <= '1';
+                pdi_ready_internal       <= '1';
                 if (pdi_valid = '1') then
                     nx_dout_LenReg <= data_seg_length(G_W-1 downto G_W-8);
                 end if;
 
             when S_HDR_HASHLEN_LSB =>
-                pdi_ready       <= '1';
+                pdi_ready_internal       <= '1';
                 len_SegLenCnt   <= pdi_valid;
 
             when S_EMPTY_HASH =>
@@ -1721,34 +1586,34 @@ FSM_8BIT: if (G_W=8) generate
                 bdi_type        <= HDR_HASH_MSG;
 
             when S_LD_HASH =>
-                pdi_ready       <= bdi_ready;
+                pdi_ready_internal       <= bdi_ready;
                 bdi_valid       <= pdi_valid;
                 bdi_type        <= HDR_HASH_MSG;
                 en_SegLenCnt    <= pdi_valid and bdi_ready;
 
             --TAG
             when S_HDR_TAG =>
-                pdi_ready       <='1';
+                pdi_ready_internal       <='1';
                 len_SegLenCnt   <= pdi_valid;
 
             when S_HDR_RESTAG =>
-                pdi_ready       <='1';
+                pdi_ready_internal       <='1';
 
             when S_HDR_TAGLEN_MSB =>
-                pdi_ready       <= '1';
+                pdi_ready_internal       <= '1';
                 if (pdi_valid = '1') then
                     nx_dout_LenReg <= data_seg_length(G_W-1 downto G_W-8);
                 end if;
 
             when S_HDR_TAGLEN_LSB =>
-                pdi_ready       <= '1';
+                pdi_ready_internal       <= '1';
                 len_SegLenCnt   <= pdi_valid;
 
             when S_LD_TAG =>
                 bdi_type        <= HDR_TAG;
                 if (decrypt_internal = '1') then
                     bdi_valid    <= pdi_valid;
-                    pdi_ready    <= bdi_ready ;
+                    pdi_ready_internal    <= bdi_ready ;
                     en_SegLenCnt <= pdi_valid and bdi_ready;
                 end if;
 

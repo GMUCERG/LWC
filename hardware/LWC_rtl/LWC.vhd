@@ -106,10 +106,10 @@ architecture structure of LWC is
     signal do_valid_i   : std_logic;
     signal do_last_i    : std_logic;
     signal do_ready_i   : std_logic;
+
+    signal do_datalast_i : std_logic_vector(W downto 0);
+    signal do_datalast_o : std_logic_vector(W downto 0);
     
-    signal do_data_reg  : std_logic_vector(W-1 downto 0);
-    signal do_valid_reg : std_logic;
-    signal do_last_reg  : std_logic;
     --==========================================================================
     
     component CryptoCore
@@ -269,31 +269,57 @@ begin
                 dout_valid      => cmd_valid_FIFO_out,
                 dout_ready      => cmd_ready_FIFO_out
             );
+
+    do_data  <= do_data_i;
+    do_last  <= do_last_i;
+    do_valid <= do_valid_i;
+    do_ready_i <= do_ready;
     
-    -- TODO for ASYNC_RSTN
-    name : process (clk) is
-    begin
-        if rising_edge(clk) then
-            if rst = '1' then
-                do_valid_reg <= '0';
-            else
-                if do_valid_i = '1' and do_ready_i = '1' then
-                    do_data_reg  <= do_data_i;
-                    do_valid_reg <= '1';
-                    do_last_reg  <= do_last_i;
-                elsif do_ready = '1' then
-                    do_valid_reg <= '0';
-                end if;
+    
+    -- do_datalast_i <= do_last_i & do_data_i;
+    
+    -- Inst_Elastic_Reg: entity work.elastic_reg_fifo
+    --     generic map (
+    --         W => W + 1
+    --         )
+    --     port map (
+    --         clk       => clk,
+    --         reset     => rst,
+    --         in_data   => do_datalast_i,
+    --         in_valid  => do_valid_i,
+    --         in_ready  => do_ready_i,
+    --         out_data  => do_datalast_o,
+    --         out_valid => do_valid,
+    --         out_ready => do_ready
+    --     );
+
+    -- do_last <= do_datalast_o(W);
+    -- do_data <= do_datalast_o(W-1 downto 0);
+
+    -- -- TODO for ASYNC_RSTN
+    -- name : process (clk) is
+    -- begin
+    --     if rising_edge(clk) then
+    --         if rst = '1' then
+    --             do_valid_reg <= '0';
+    --         else
+    --             if do_valid_i = '1' and do_ready_i = '1' then
+    --                 do_data_reg  <= do_data_i;
+    --                 do_valid_reg <= '1';
+    --                 do_last_reg  <= do_last_i;
+    --             elsif do_ready = '1' then
+    --                 do_valid_reg <= '0';
+    --             end if;
                 
-            end if;
-        end if;
-    end process name;
+    --         end if;
+    --     end if;
+    -- end process name;
     
-    do_data  <= do_data_reg;
-    do_valid <= do_valid_reg;
-    do_last  <= do_last_reg;
+    -- do_data  <= do_data_reg;
+    -- do_valid <= do_valid_reg;
+    -- do_last  <= do_last_reg;
     
-    do_ready_i <= do_ready or not do_valid_reg;
+    -- do_ready_i <= do_ready or not do_valid_reg;
     
 
 end structure;

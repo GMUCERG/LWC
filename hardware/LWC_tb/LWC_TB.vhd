@@ -126,7 +126,7 @@ architecture behavior of LWC_TB is
     --! Shared constant
     constant cons_eof           : string(1 to 6) := "###EOF";
     
-    constant input_delay        : time := 0.05 ns;
+    constant input_delay        : time := 0 ns; --clk_period / 2;
 
 
     signal tv_count     : integer:=0;
@@ -317,7 +317,8 @@ begin
         if G_TEST_MODE = 4 then
             file_open(do_file, G_FNAME_DO, read_mode); -- reset the file pointer
         end if;
-
+        
+        wait on clk until clk = '1';
         wait for input_delay;
         do_ready <= '1';
 
