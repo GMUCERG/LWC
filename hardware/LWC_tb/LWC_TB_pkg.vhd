@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
---! @file       LWC_TB_compatibility_pkg.vhd
+--! @file       LWC_TB_pkg.vhd
 --! @brief      Minimalistic std_logic_1164 compatibility package for LWC_TB
 --!             Provides implementations for TO_HSTRING TO_HSTRING which are only
 --!                 standardized since on VHDL 2008, while avoiding namespace clashes.
@@ -15,15 +15,20 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.math_real.all;
+
 use std.textio.all;
 
-package LWC_TB_compatibility_pkg is
+package LWC_TB_pkg is
   function LWC_TO_HSTRING (VALUE : STD_LOGIC_VECTOR) return STRING;
   procedure LWC_HREAD (L : inout LINE; VALUE : out STD_LOGIC_VECTOR; GOOD : out BOOLEAN);
-end package LWC_TB_compatibility_pkg;
- 
-package body LWC_TB_compatibility_pkg is
- 
+  procedure seed(s : in positive);
+  procedure seed(s1, s2 : in positive);
+  impure function randint(min, max : integer) return integer;
+end package LWC_TB_pkg;
+
+package body LWC_TB_pkg is
+
   function or_reduce (l : STD_LOGIC_VECTOR) return STD_LOGIC is
     variable result : STD_LOGIC := '0';
   begin
@@ -35,7 +40,7 @@ package body LWC_TB_compatibility_pkg is
 
   constant NBSP : CHARACTER      := CHARACTER'val(160); -- space character
   constant NUS  : STRING(2 to 1) := (others => ' '); -- null STRING -- @suppress "Null range: The left argument is strictly larger than the right"
- 
+
   procedure skip_whitespace (
     L : inout LINE) is
     variable c : CHARACTER;
@@ -53,9 +58,9 @@ package body LWC_TB_compatibility_pkg is
   end procedure skip_whitespace;
 
   procedure Char2QuadBits (C           :     CHARACTER;
-                           RESULT      : out STD_LOGIC_VECTOR(3 downto 0);
-                           GOOD        : out BOOLEAN;
-                           ISSUE_ERROR : in  BOOLEAN) is
+    RESULT      : out STD_LOGIC_VECTOR(3 downto 0);
+    GOOD        : out BOOLEAN;
+    ISSUE_ERROR : in  BOOLEAN) is
   begin
     case C is
       when '0'       => RESULT := x"0"; GOOD := true;
@@ -82,9 +87,9 @@ package body LWC_TB_compatibility_pkg is
         GOOD := false;
     end case;
   end procedure Char2QuadBits;
- 
+
   procedure LWC_HREAD (L    : inout LINE; VALUE : out STD_LOGIC_VECTOR;
-                   GOOD : out   BOOLEAN) is
+    GOOD : out   BOOLEAN) is
     variable ok  : BOOLEAN;
     variable c   : CHARACTER;
     constant ne  : INTEGER := (VALUE'length+3)/4;
@@ -99,7 +104,7 @@ package body LWC_TB_compatibility_pkg is
       read (L, c, ok);
       i := 0;
       while i < ne loop
- 
+
         if not ok then
           GOOD := false;
           return;
@@ -136,7 +141,7 @@ package body LWC_TB_compatibility_pkg is
       GOOD := true;                     -- Null input string, skips whitespace
     end if;
   end procedure LWC_HREAD;
- 
+
   function LWC_to_hstring (value : STD_LOGIC_VECTOR) return STRING is
     constant ne     : INTEGER := (value'length+3)/4;
     variable pad    : STD_LOGIC_VECTOR(0 to (ne*4 - value'length) - 1);
@@ -180,5 +185,35 @@ package body LWC_TB_compatibility_pkg is
     end if;
   end function LWC_to_hstring;
 
-end package body LWC_TB_compatibility_pkg;
- 
+
+  shared variable seed1 : positive;
+  shared variable seed2 : positive;
+  procedure seed(s : in positive) is
+  begin
+    seed1 := s;
+    if s > 1 then
+      seed2 := s - 1;
+    else
+      seed2 := s + 42;
+    end if;
+  end procedure;
+
+  procedure seed(s1, s2 : in positive) is
+  begin
+    seed1 := s1;
+    seed2 := s2;
+  end procedure;
+
+  impure function random return real is
+    variable result : real;
+  begin
+    uniform(seed1, seed2, result);
+    return result;
+  end function;
+
+  impure function randint(min, max : integer) return integer is
+  begin
+    return integer(trunc(real(max - min + 1) * random)) + min;
+  end function;
+
+end package body LWC_TB_pkg;

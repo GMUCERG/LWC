@@ -107,8 +107,8 @@ architecture structure of LWC is
     signal do_last_i    : std_logic;
     signal do_ready_i   : std_logic;
 
-    signal do_datalast_i : std_logic_vector(W downto 0);
-    signal do_datalast_o : std_logic_vector(W downto 0);
+    -- signal do_datalast_i : std_logic_vector(W downto 0);
+    -- signal do_datalast_o : std_logic_vector(W downto 0);
     
     --==========================================================================
     

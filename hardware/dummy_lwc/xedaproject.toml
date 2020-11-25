@@ -17,7 +17,6 @@ rtl.sources = [
     "src_rtl/v1/LWC/fwft_fifo.vhd",
     "src_rtl/v1/LWC/PreProcessor.vhd",
     "src_rtl/v1/LWC/PostProcessor.vhd",
-    "src_rtl/v1/LWC/elastic_reg_fifo.vhd",
     "src_rtl/v1/LWC/LWC.vhd",
 ]
 rtl.top = 'LWC'
@@ -25,7 +24,7 @@ rtl.clock_port = "clk"
 
 tb.top = 'LWC_TB'
 tb.sources = [
-    "src_tb/LWC_TB_compatibility_pkg.vhd",
+    "src_tb/LWC_TB_pkg.vhd",
     "src_tb/LWC_TB.vhd",
 ]
 
@@ -36,10 +35,10 @@ language.vhdl.synopsys = false
 G_FNAME_PDI.file = "KAT/v1/pdi.txt"
 G_FNAME_SDI.file = "KAT/v1/sdi.txt"
 G_FNAME_DO.file = "KAT/v1/do.txt"
-G_TEST_MODE = 0
+G_TEST_MODE = 1
 G_MAX_FAILURES = 3
 
 [flows.ghdl_sim]
 # ghw = 'dump_ghdl.ghw'
 vcd = 'dump_ghdl.ghw'
-# stop_time = '10us'
+# stop_time = '5us'
