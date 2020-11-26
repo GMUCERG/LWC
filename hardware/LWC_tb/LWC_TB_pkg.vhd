@@ -188,6 +188,7 @@ package body LWC_TB_pkg is
 
   shared variable seed1 : positive;
   shared variable seed2 : positive;
+  
   procedure seed(s : in positive) is
   begin
     seed1 := s;

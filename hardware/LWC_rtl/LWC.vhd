@@ -107,8 +107,6 @@ architecture structure of LWC is
     signal do_last_i    : std_logic;
     signal do_ready_i   : std_logic;
 
-    -- signal do_datalast_i : std_logic_vector(W downto 0);
-    -- signal do_datalast_o : std_logic_vector(W downto 0);
     
     --==========================================================================
     
@@ -276,7 +274,6 @@ begin
     do_ready_i <= do_ready;
     
     
-    -- do_datalast_i <= do_last_i & do_data_i;
     
     -- Inst_Elastic_Reg: entity work.elastic_reg_fifo
     --     generic map (
@@ -293,8 +290,6 @@ begin
     --         out_ready => do_ready
     --     );
 
-    -- do_last <= do_datalast_o(W);
-    -- do_data <= do_datalast_o(W-1 downto 0);
 
     -- -- TODO for ASYNC_RSTN
     -- name : process (clk) is

@@ -153,15 +153,17 @@ architecture behavior of LWC_TB is
         );
     end component LWC;
     
+    for all: LWC use entity work.LWC_wrapper;
+    
 begin
 
     genClk: process
     begin
         if not stop_clock then
             clk <= '1';
-            wait for clk_period/2;
+            wait for clk_period / 2;
             clk <= '0';
-            wait for clk_period/2;
+            wait for clk_period / 2;
         else
             wait;
         end if;
