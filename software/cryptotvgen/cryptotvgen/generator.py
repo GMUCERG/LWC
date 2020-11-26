@@ -1218,7 +1218,7 @@ def basic_aead_sizes(new_key, enc_dec, block_size_ad, block_size_message):
     return routine
 
 
-def gen_benckmark_routine(opts):
+def gen_benchmark_routine(opts):
     if (opts.verbose):
         print("gen_benckmark_routine")
     if not opts.aead or not opts.block_size or not opts.block_size_ad:

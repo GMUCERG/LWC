@@ -446,7 +446,7 @@ def get_parser():
         help=textwrap.dedent('''\
             Randomly generate multiple test vectors, with each test vector
             specified using the following fields:
-               NEW_KEY (Boolean), DECRYPT (Boolean), AD_LEN, PT_LEN or
+               NEW_KEY (Boolean), DECRYPT (Boolean), AD_LEN, PT_LEN or CT_LEN or
                HASH_LEN, HASH (Boolean)
                ":" is used as a separator between two consecutive test
                vectors.

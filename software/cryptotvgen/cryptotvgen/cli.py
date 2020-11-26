@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from .generator import gen_dataset, gen_hash, gen_random, gen_single, gen_test_combined, \
-         gen_test_routine, print_header, gen_benckmark_routine, gen_tv_and_write_files
+         gen_test_routine, print_header, gen_benchmark_routine, gen_tv_and_write_files
 from .options import get_parser
 from .prepare_libs import prepare_libs
 import textwrap
@@ -75,7 +75,7 @@ def run_cryptotvgen(args=sys.argv[1:]):
         elif routine == 5:   # Combined AEAD and Hash
             data = gen_test_combined(opts, msg_no, key_no)
         elif routine == 6:
-            gen_benckmark_routine(opts)
+            gen_benchmark_routine(opts)
             return 0
 
         dataset += data[0]

@@ -29,9 +29,10 @@ entity LWC_TB IS
     generic (
         G_MAX_FAILURES      : integer := 100;
         G_TEST_MODE         : integer := 0;
-        G_TEST_IPSTALL      : integer := 5;
-        G_TEST_ISSTALL      : integer := 7;
+        G_TEST_IPSTALL      : integer := 3;
+        G_TEST_ISSTALL      : integer := 3;
         G_TEST_OSTALL       : integer := 3;
+        G_RANDOMIZE_STALLS  : boolean := True;
         G_PERIOD_PS         : integer := 10_000;
         G_FNAME_PDI         : string  := "../KAT/v1/pdi.txt";
         G_FNAME_SDI         : string  := "../KAT/v1/sdi.txt";
@@ -142,7 +143,7 @@ architecture behavior of LWC_TB is
             pdi_data  : in  std_logic_vector(W - 1 downto 0);
             pdi_valid : in  std_logic;
             pdi_ready : out std_logic;
-            sdi_data  : in  std_logic_vector(W - 1 downto 0);
+            sdi_data  : in  std_logic_vector(SW - 1 downto 0);
             sdi_valid : in  std_logic;
             sdi_ready : out std_logic;
             do_data   : out std_logic_vector(W - 1 downto 0);
@@ -183,11 +184,11 @@ begin
             do_last      => do_last
         );
     
-    pdi_data_delayed  <= transport pdi_data after input_delay;
+    pdi_data_delayed  <= transport pdi_data  after input_delay;
     pdi_valid_delayed <= transport pdi_valid after input_delay;
-    sdi_data_delayed  <= transport sdi_data after input_delay;
+    sdi_data_delayed  <= transport sdi_data  after input_delay;
     sdi_valid_delayed <= transport sdi_valid after input_delay;
-    do_ready_delayed  <= transport do_ready after input_delay;
+    do_ready_delayed  <= transport do_ready  after input_delay;
 
     genRst: process
     begin
@@ -216,7 +217,7 @@ begin
         variable word_block     : std_logic_vector(W-1 downto 0) := (others=>'0');
         variable read_result    : boolean;
         variable line_head      : string(1 to 6);
-        variable stall_cycles    : integer;
+        variable stall_cycles   : integer;
     begin
 
         wait until reset_done;
@@ -263,8 +264,8 @@ begin
         variable stall_cycles    : integer;
     begin
         wait until reset_done;
-        
         wait until rising_edge(clk);
+
         while not endfile(sdi_file) loop
             readline(sdi_file, line_data);
             read(line_data, line_head, read_result);
@@ -318,9 +319,7 @@ begin
         if G_TEST_MODE = 4 then
             file_open(do_file, G_FNAME_DO, read_mode); -- reset the file pointer
         end if;
-        
         wait until rising_edge(clk);
-
         while not endfile(do_file) loop
             readline(do_file, line_data);
             line_no := line_no + 1;
@@ -409,25 +408,28 @@ begin
                         end if;
                         writeline(log_file,logMsg);
                     end if;
-
                     report "---------Started verifying MsgID = " & integer'image(testcase) severity note;
                 end if;
             end if;
         end loop;
+        file_close(do_file);
         do_ready <= '0';
-        wait for clk_period;
+        wait until rising_edge(clk);
 
         if (simulation_fails = '1') then
-            report "FAIL (1): SIMULATION FINISHED" severity error;
+            report "FAIL (1): SIMULATION FINISHED at " & time'image(now) severity error;
+            write(logMsg, "FAIL (1): SIMULATION FINISHED at " & time'image(now));
+            writeline(log_file,logMsg);
             write(result_file, "1");
         else
-            report "PASS (0): SIMULATION FINISHED" severity note;
+            report "PASS (0): SIMULATION FINISHED at " & time'image(now) severity note;
             write(result_file, "0");
         end if;
 
         write(logMsg, string'("[Log] Done"));
         writeline(log_file,logMsg);
-        file_close(do_file);
+        file_close(result_file);
+        file_close(log_file);
         stop_clock <= True;
         wait;
     end process;
@@ -596,7 +598,7 @@ begin
                                 wait until (do_last = '1' and (do_data = SUCCESS_WORD or do_data = FAILURE_WORD));
                             end if;
                             stall_msg <= '0';
-                            exec_time := clk_cycle_counter-msg_start_time;
+                            exec_time := clk_cycle_counter - msg_start_time;
                             msg_idx := msg_idx + 1;
                             exit;
                         end if;
@@ -795,8 +797,8 @@ begin
                                 integer'image(latency));
                 writeline(timing_csv, timingMsg);
             end if;
-         else
-             wait;
-         end if;
+        else
+            wait;
+        end if;
     end process;
 end;

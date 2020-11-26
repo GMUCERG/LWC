@@ -39,7 +39,7 @@ entity LWC is
         pdi_ready       : out std_logic;
         --! Secret data ports
         -- NOTE for future dev: this G_W is really SW!
-        sdi_data        : in  std_logic_vector(W-1 downto 0);
+        sdi_data        : in  std_logic_vector(SW-1 downto 0);
         sdi_valid       : in  std_logic;
         sdi_ready       : out std_logic;
         --! Data out ports
