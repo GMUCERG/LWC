@@ -46,7 +46,7 @@ entity LWC_TB IS
 end LWC_TB;
 
 architecture behavior of LWC_TB is
-    ------------- clock constant ------------------
+    ------------- timing constants ------------------
     constant clk_period         : time := G_PERIOD_PS * ps;
     constant input_delay        : time := 0 ns; -- clk_period / 2; --
 
@@ -88,29 +88,24 @@ architecture behavior of LWC_TB is
 
     --! Verification signals
     signal stall_msg            : std_logic := '0';
-
-    constant SUCCESS_WORD       : std_logic_vector(W - 1 downto 0) := INST_SUCCESS & (W - 5 downto 0 => '0');
-    constant FAILURE_WORD       : std_logic_vector(W - 1 downto 0) := INST_FAILURE & (W - 5 downto 0 => '0');
+    
     --! Measurement signals
     signal clk_cycle_counter    : integer := 0;
     signal latency              : integer := 0;
     signal latency_done         : std_logic := '0';
     signal start_latency_timer  : std_logic := '0';
-
-    ------------- string constant ------------------
-    --! constant
+    signal tv_count             : integer := 0;
+    
+    ------------- constants ------------------
     constant cons_tb            : string(1 to 6) := "# TB :";
     constant cons_ins           : string(1 to 6) := "INS = ";
     constant cons_hdr           : string(1 to 6) := "HDR = ";
     constant cons_dat           : string(1 to 6) := "DAT = ";
     constant cons_stt           : string(1 to 6) := "STT = ";
-
-    --! Shared constant
     constant cons_eof           : string(1 to 6) := "###EOF";
+    constant SUCCESS_WORD       : std_logic_vector(W - 1 downto 0) := INST_SUCCESS & (W - 5 downto 0 => '0');
+    constant FAILURE_WORD       : std_logic_vector(W - 1 downto 0) := INST_FAILURE & (W - 5 downto 0 => '0');
 
-
-
-    signal tv_count             : integer := 0;
 
     ------------------- input / output files ----------------------
     file pdi_file       : text open read_mode  is G_FNAME_PDI;
@@ -153,7 +148,7 @@ architecture behavior of LWC_TB is
         );
     end component LWC;
     
-    for all: LWC use entity work.LWC_wrapper;
+    -- for all: LWC use entity work.LWC_wrapper;
     
 begin
 
@@ -195,7 +190,9 @@ begin
     genRst: process
     begin
         seed(123);
-        report "Testvector files: " & G_FNAME_PDI & " " & G_FNAME_SDI & " " & G_FNAME_DO severity note;
+        report LF & " -- Testvectors:  " & G_FNAME_PDI & " " & G_FNAME_SDI & " " & G_FNAME_DO & LF &
+                    " -- Test Mode:    " & integer'image(G_TEST_MODE) & LF &
+                    " -- Clock Period: " & integer'image(G_PERIOD_PS) & " ps" & LF & CR severity note;
         wait for 100 ns; -- Xilinx GSR takes 100ns, required for post-synth simulation
         if ASYNC_RSTN then
             rst <= '0'; -- @suppress "Dead code"
