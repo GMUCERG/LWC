@@ -81,7 +81,7 @@ architecture structure of LWC is
     signal end_of_block_cipher_out  : std_logic;
     -- signal bdo_size_cipher_out      : std_logic_vector(3       -1 downto 0);
     signal bdo_valid_bytes_cipher_out:std_logic_vector(CCWdiv8 -1 downto 0);
---    signal bdo_type_cipher_out      :std_logic_vector(4        -1 downto 0);
+    signal bdo_type_cipher_out      :std_logic_vector(4        -1 downto 0);
     -- signal decrypt_cipher_out       : std_logic;
     signal msg_auth_valid           : std_logic;
     signal msg_auth_ready           : std_logic;
@@ -213,7 +213,7 @@ begin
                 bdo             => bdo_cipher_out                          ,
                 bdo_valid       => bdo_valid_cipher_out                    ,
                 bdo_ready       => bdo_ready_cipher_out                    ,
---                bdo_type        => bdo_type_cipher_out                     ,
+                bdo_type        => bdo_type_cipher_out                     ,
                 bdo_valid_bytes => bdo_valid_bytes_cipher_out              ,
                 end_of_block    => end_of_block_cipher_out                 ,
                 msg_auth_valid  => msg_auth_valid                          ,
@@ -232,7 +232,7 @@ begin
                 bdo_valid       => bdo_valid_cipher_out                    ,
                 bdo_ready       => bdo_ready_cipher_out                    ,
                 end_of_block    => end_of_block_cipher_out                 ,
---                bdo_type        => bdo_type_cipher_out                     ,
+                bdo_type        => bdo_type_cipher_out                     ,
                 bdo_valid_bytes => bdo_valid_bytes_cipher_out              ,
                 cmd             => cmd_FIFO_out                            ,
                 cmd_valid       => cmd_valid_FIFO_out                      ,
