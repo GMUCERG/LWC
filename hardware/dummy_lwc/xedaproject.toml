@@ -1,0 +1,47 @@
+[project]
+description = "Implementation of the dummy_lwc cipher and hash"
+author = "[Patrick Karl](patrick.karl@tum.de)"
+url = "https://github.com/GMUCERG/LWC"
+
+[[design]]
+name = "dummy_lwc_v1"
+rtl.sources = [
+    "src_rtl/v1/design_pkg.vhd",
+    "src_rtl/v1/LWC/NIST_LWAPI_pkg.vhd",
+    "src_rtl/v1/SPDRam.vhd",
+    "src_rtl/v1/CryptoCore.vhd",
+    "src_rtl/v1/LWC/StepDownCountLd.vhd",
+    "src_rtl/v1/LWC/data_sipo.vhd",
+    "src_rtl/v1/LWC/key_piso.vhd",
+    "src_rtl/v1/LWC/data_piso.vhd",
+    "src_rtl/v1/LWC/fwft_fifo.vhd",
+    "src_rtl/v1/LWC/PreProcessor.vhd",
+    "src_rtl/v1/LWC/PostProcessor.vhd",
+    "src_rtl/v1/LWC/LWC.vhd",
+    "src_rtl/v1/LWC/elastic_reg_fifo.vhd",
+    "src_rtl/v1/LWC/LWC_wrapper.vhd",
+]
+rtl.top = 'LWC'
+rtl.clock_port = "clk"
+
+tb.top = 'LWC_TB'
+tb.sources = [
+    "src_rtl/v1/LWC/NIST_LWAPI_pkg.vhd",
+    "src_tb/LWC_TB_pkg.vhd",
+    "src_tb/LWC_TB.vhd",
+]
+
+language.vhdl.standard = "08"
+language.vhdl.synopsys = false
+
+[design.tb.generics]
+G_FNAME_PDI.file = "KAT/v1/pdi.txt"
+G_FNAME_SDI.file = "KAT/v1/sdi.txt"
+G_FNAME_DO.file  = "KAT/v1/do.txt"
+G_TEST_MODE = 0
+G_MAX_FAILURES = 0
+
+[flows.ghdl_sim]
+# ghw = 'dump_ghdl.ghw'
+vcd = 'dump_ghdl.vcd'
+# stop_time = '5us'

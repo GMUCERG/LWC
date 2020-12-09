@@ -2,15 +2,14 @@
 # -*- coding: utf-8 -*-
 
 from .generator import gen_dataset, gen_hash, gen_random, gen_single, gen_test_combined, \
-         gen_test_routine, print_header, gen_benckmark_routine, gen_tv_and_write_files
+         gen_test_routine, print_header, gen_benchmark_routine, gen_tv_and_write_files, determine_params
 from .options import get_parser
-from .prepare_libs import prepare_libs
+from .prepare_libs import prepare_libs, ctgen_get_supercop_dir
 import textwrap
 import os
 import sys
 import errno
 import pathlib
-
 
 
 ## validation can only be safely done when all args are parsed and stored!
@@ -34,6 +33,12 @@ def run_cryptotvgen(args=sys.argv[1:]):
 
                     ''')
         sys.exit(error_txt)
+
+    if not opts.candidates_dir:
+        opts.candidates_dir = ctgen_get_supercop_dir()
+
+    # Update parameters based on api.h
+    determine_params(opts, opts.candidates_dir)
         
     # Additional error checking
     opts.msg_format = list(opts.msg_format)
@@ -57,9 +62,9 @@ def run_cryptotvgen(args=sys.argv[1:]):
     key_no = 1
     gen_single_index = 0
     
-    if opts.candidates_dir:
-        if not opts.lib_path:
-            opts.lib_path = pathlib.Path(opts.candidates_dir) / 'lib'
+    if opts.candidates_dir and not opts.lib_path:
+        opts.lib_path = pathlib.Path(opts.candidates_dir) / 'lib'
+
     for routine in opts.routines:
         if routine == 0:
             data = gen_random(opts, msg_no, key_no)
@@ -75,7 +80,7 @@ def run_cryptotvgen(args=sys.argv[1:]):
         elif routine == 5:   # Combined AEAD and Hash
             data = gen_test_combined(opts, msg_no, key_no)
         elif routine == 6:
-            gen_benckmark_routine(opts)
+            gen_benchmark_routine(opts)
             return 0
 
         dataset += data[0]

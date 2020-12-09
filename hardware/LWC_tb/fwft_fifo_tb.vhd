@@ -1,4 +1,11 @@
 --------------------------------------------------------------------------------
+--! @file       fwft_fifo_tb.vhd
+--! @brief      Simple First-In-First_Out
+--!
+--! @author     Patrick Karl <patrick.karl@tum.de>
+--! @copyright  Copyright (c) 2019 Chair of Security in Information Technology
+--!             ECE Department, Technical University of Munich, GERMANY
+--!--------------------------------------------------------------------------------
 --! @file       fwft_fifo.vhd
 --! @brief      Simple First-In-First_Out
 --!
@@ -18,7 +25,7 @@ use ieee.numeric_std.all;
 
 use work.NIST_LWAPI_pkg.all;
 
-entity fwft_fifo is
+entity fwft_fifo_tb is
 	generic(
         G_W         : integer; --! Width of I/O (bits)
         G_LOG2DEPTH : integer  --! LOG(2) of depth
@@ -36,15 +43,11 @@ entity fwft_fifo is
         dout        : out   std_logic_vector(G_W - 1 downto 0);
         dout_valid  : out   std_logic;
         dout_ready  : in    std_logic
-
-        --prog_full_th    : in    std_logic_vector(G_LOG2DEPTH - 1 downto 0);
-        --prog_full       : out   std_logic
     );
-end entity fwft_fifo;
+end entity fwft_fifo_tb;
 
-architecture structure of fwft_fifo is
-
-    -- FIFO depth in words
+architecture tb_use_only of fwft_fifo_tb is
+ -- FIFO depth in words
     constant DEPTH_C : integer := 2 ** G_LOG2DEPTH;
 
     -- Memory type and signal definition
@@ -165,4 +168,4 @@ begin
         end if;
     end process p_ptr_comb;
 
-end architecture structure;
+end architecture tb_use_only;

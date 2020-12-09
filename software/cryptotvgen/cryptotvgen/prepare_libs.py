@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import sys
 import logging
 import re
@@ -68,40 +69,46 @@ def ctgen_get_supercop_dir():
 
 
 def prepare_libs(sc_version, libs, candidates_dir, lib_path):
+    print(f'candidates_dir={candidates_dir}')
     # default ctgen data dir root, make sure exists or create
     ctgen_candidates_dir = ctgen_get_supercop_dir()
     ctgen_includes_dir = ctgen_get_dir('includes')
     ctgen_mkfile = ctgen_get_dir()
 
     # TODO
-    impl_src_dir = 'ref'
+    ## only one first available subdirectory pattern in the tar will be used, starting from left
+    impl_src_dirs = ['ref', 'aadomn/opt32'] ## aadomn/opt32 for romulusn1plus*
 
     def build_variants(variants, candidates_dir):
         for vname, vtype in variants:
             # print(f'running make CRYPTO_VARIANT={vname} CRYPTO_TYPE={vtype} in {candidates_dir}')
-            cmd = ['make', '-f',  str(ctgen_mkfile / mkfile_name), '-C', str(candidates_dir),
-                   f'CRYPTO_VARIANT={vname}', f'CRYPTO_TYPE={vtype}', f'CANDIDATE_PATH={candidates_dir}',
-                   f'IMPL_SRC_DIR={impl_src_dir}']
-            if lib_path:
-                print(f"binaries will be available in lib_path={lib_path}")
-                cmd.append(f'LIB_PATH={lib_path}')
-            cp = subprocess.run(cmd, cwd=candidates_dir)
-            try:
-                cp.check_returncode()
-            except:
-                print(f'`{" ".join(cmd)}` failed! (exit code: {cp.returncode})')
-                sys.exit(1)
+            for src_dir in impl_src_dirs:
+                src_path = Path(candidates_dir) / ('crypto_' + vtype) / vname / src_dir
+                print(f'building sources in {src_path}')
+                if src_path.exists() and src_path.is_dir():
+                    cmd = ['make', '-f',  str(ctgen_mkfile / mkfile_name),
+                        f'CRYPTO_VARIANT={vname}', f'CRYPTO_TYPE={vtype}', f'CANDIDATE_PATH=.',
+                        f'IMPL_SRC_DIR={src_dir}']
+                    if lib_path:
+                        print(f"binaries will be available in lib_path={lib_path}")
+                        cmd.append(f'LIB_PATH={lib_path}')
+                    cp = subprocess.run(cmd, cwd=candidates_dir)
+                    try:
+                        cp.check_returncode()
+                    except:
+                        print(f'`{" ".join(cmd)}` failed! (exit code: {cp.returncode})')
+                        sys.exit(1)
                 
     def filter_variants(variants):
 
         if libs == 'all' or libs == ['all']:
-            print(f'building all libs in `crypto_aead` and `crypto_hash` subfolders of candidates_dir={candidates_dir}: variants={variants}')
+            print(f'building all libs in `crypto_aead` and `crypto_hash` subfolders of candidates_dir={candidates_dir} \n variants={variants}')
         else:
             variants = [v for v in variants if any(v[0].startswith(l) for l in libs)]
             print(f'building only the following variants: {variants}')
         return variants  # TODO
 
-    def generate_artifacats():
+    def generate_artifacts():
         # TODO add function defs common to cffi
         (ctgen_includes_dir / 'crypto_aead.h').touch()
         (ctgen_includes_dir / 'crypto_hash.h').touch()
@@ -121,14 +128,14 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
             return tarfile.open(tar_path), sc_version
         print(f'Downloading supercop from {sc_url}')
         tar_path = urllib.request.urlretrieve(sc_url, filename=tar_path)[0]
-        print(f'Download successfull!')
+        print(f'Download successfull! Archive saved to {tar_path}')
         return tarfile.open(tar_path), sc_version
     
 
 
 
             
-    generate_artifacats()
+    generate_artifacts()
 
     variants = set()
 
@@ -139,22 +146,23 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
         incl_candidates = set()
         extract_list = []
 
-        crypto_dir_regexps = {crypto_type: re.compile(f'supercop-{sc_version}/crypto_{crypto_type}/([^/]+)/{impl_src_dir}/')
+        crypto_dir_regexps = {crypto_type:[re.compile(f'supercop-{sc_version}/crypto_{crypto_type}/([^/]+)/{d}/') for d in impl_src_dirs]
                               for crypto_type in lwc_candidates.keys()}
 
         # TODO make this more efficient, though unlikely to be a performance bottleneck
 
         def match_tarinfo(tarinfo):
             for crypto_type in lwc_candidates.keys():
-                match = crypto_dir_regexps[crypto_type].match(tarinfo.name)
-                if match:
-                    variant_name = match.group(1)
-                    for cnd in lwc_candidates[crypto_type]:
-                        if variant_name.startswith(cnd):
-                            variants.add((variant_name, crypto_type))
-                            extract_list.append(tarinfo)
-                            incl_candidates.add(cnd)
-                            return
+                for regexp in crypto_dir_regexps[crypto_type]:
+                    match = regexp.match(tarinfo.name)
+                    if match:
+                        variant_name = match.group(1)
+                        for cnd in lwc_candidates[crypto_type]:
+                            if variant_name.startswith(cnd):
+                                variants.add((variant_name, crypto_type))
+                                extract_list.append(tarinfo)
+                                incl_candidates.add(cnd)
+                                return
 
         print('decompressing archive and determining the list of files to extract...')
         for tarinfo in sc_tar:
@@ -180,14 +188,16 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
             try:
                 dir_iter = (candidates_dir / f'crypto_{crypto_type}').iterdir()
                 for sub in dir_iter:
+                    print(f'sub={sub}')
                     if sub.is_dir():
-                        impl = sub / impl_src_dir
-                        vname = sub.name
-                        if impl.exists() and impl.is_dir():
-                            print(f"found variant:{vname} ({crypto_type})")
-                            variants.add((vname, crypto_type))
+                        for impl_dir in impl_src_dirs:
+                            impl = sub / impl_dir
+                            if impl.exists() and impl.is_dir():
+                                vname = sub.name
+                                print(f"found variant:{vname} ({crypto_type})")
+                                variants.add((vname, crypto_type))
             except FileNotFoundError as e:
-                sys.exit(f"{e}\ncandidates_dir={candidates_dir} does not have a crypto_{crypto_type}/{impl_src_dir} sub directory!\n")
+                print(f"{e}\ncandidates_dir={candidates_dir} does not have a crypto_{crypto_type}/{impl_src_dirs} sub directory!\n")
 
     variants = filter_variants(variants)
 
