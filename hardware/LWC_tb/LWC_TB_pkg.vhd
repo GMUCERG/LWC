@@ -182,30 +182,31 @@ package body LWC_TB_pkg is
   end function LWC_to_hstring;
 
 
-  shared variable seed1 : positive;
-  shared variable seed2 : positive;
+  -- shared variable seed1 : positive;
+  -- shared variable seed2 : positive;
   
   procedure seed(s : in positive) is
   begin
-    seed1 := s;
-    if s > 1 then
-      seed2 := s - 1;
-    else
-      seed2 := s + 42;
-    end if;
+  --   seed1 := s;
+  --   if s > 1 then
+  --     seed2 := s - 1;
+  --   else
+  --     seed2 := s + 42;
+    -- end if;
   end procedure;
 
   procedure seed(s1, s2 : in positive) is
   begin
-    seed1 := s1;
-    seed2 := s2;
+  --   seed1 := s1;
+  --   seed2 := s2;
   end procedure;
 
   impure function random return real is
-    variable result : real;
+    -- variable result : real;
   begin
-    uniform(seed1, seed2, result);
-    return result;
+    -- uniform(seed1, seed2, result);
+    -- return result;
+    return 0.0;
   end function;
 
   impure function randint(min, max : integer) return integer is
