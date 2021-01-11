@@ -4,7 +4,7 @@
 --! @project    LWC Hardware API Testbench
 --!                  
 --! @copyright  
---! @version    1.0
+--! @version    1.1.1
 --! @license    
 -------------------------------------------------------------------------------
 
@@ -15,33 +15,43 @@ use ieee.math_real.all;
 use std.textio.all;
 
 package LWC_TB_pkg is
-  function LWC_TO_HSTRING (VALUE : STD_LOGIC_VECTOR) return STRING;
-  procedure LWC_HREAD (L : inout LINE; VALUE : out STD_LOGIC_VECTOR; GOOD : out BOOLEAN);
-  procedure seed(s : in positive);
-  procedure seed(s1, s2 : in positive);
-  impure function randint(min, max : integer) return integer;
-  function log2_ceil (N : NATURAL) RETURN NATURAL;
+    function LWC_TO_HSTRING (VALUE : STD_LOGIC_VECTOR) return STRING;
+    procedure LWC_HREAD (L : inout LINE; VALUE : out STD_LOGIC_VECTOR; GOOD : out BOOLEAN);
+    
+    function log2_ceil (N : NATURAL) RETURN NATURAL;
+
+    type RandGen is protected
+        procedure seed(s : in POSITIVE);
+        procedure seed(s1, s2 : in POSITIVE);
+        impure function randint(min, max : INTEGER) return INTEGER;
+    end protected;
+
+    type LinkedList is protected
+        procedure push(constant d   : in NATURAL);
+        impure function pop return NATURAL;
+        impure function isEmpty return BOOLEAN;
+    end protected;
+
 end package LWC_TB_pkg;
 
 package body LWC_TB_pkg is
 
-  function or_reduce (l : STD_LOGIC_VECTOR) return STD_LOGIC is
+    function or_reduce (l : STD_LOGIC_VECTOR) return STD_LOGIC is
     variable result : STD_LOGIC := '0';
-  begin
+    begin
     for i in l'reverse_range loop
       result := (l(i) or result);
     end loop;
     return result;
-  end function or_reduce;
+    end function or_reduce;
 
-  constant NBSP : CHARACTER      := CHARACTER'val(160); -- space character
-  constant NUS  : STRING(2 to 1) := (others => ' '); -- null STRING -- @suppress "Null range: The left argument is strictly larger than the right"
+    constant NBSP : CHARACTER      := CHARACTER'val(160); -- space character
 
-  procedure skip_whitespace (
+    procedure skip_whitespace (
     L : inout LINE) is
     variable c : CHARACTER;
     variable left : positive;
-  begin
+    begin
     while L /= null and L.all'length /= 0 loop
       left := L.all'left;
       c := L.all(left);
@@ -51,13 +61,13 @@ package body LWC_TB_pkg is
         exit;
       end if;
     end loop;
-  end procedure skip_whitespace;
+    end procedure skip_whitespace;
 
-  procedure Char2QuadBits (C           :     CHARACTER;
+    procedure Char2QuadBits (C           :     CHARACTER;
     RESULT      : out STD_LOGIC_VECTOR(3 downto 0);
     GOOD        : out BOOLEAN;
     ISSUE_ERROR : in  BOOLEAN) is
-  begin
+    begin
     case C is
       when '0'       => RESULT := x"0"; GOOD := true;
       when '1'       => RESULT := x"1"; GOOD := true;
@@ -82,9 +92,9 @@ package body LWC_TB_pkg is
           report "LWC_HREAD Read a '" & C & "', expected a Hex character (0-F)." severity error;
         GOOD := false;
     end case;
-  end procedure Char2QuadBits;
+    end procedure Char2QuadBits;
 
-  procedure LWC_HREAD (L    : inout LINE; VALUE : out STD_LOGIC_VECTOR;
+    procedure LWC_HREAD (L    : inout LINE; VALUE : out STD_LOGIC_VECTOR;
     GOOD : out   BOOLEAN) is
     variable ok  : BOOLEAN;
     variable c   : CHARACTER;
@@ -93,7 +103,7 @@ package body LWC_TB_pkg is
     variable sv  : STD_LOGIC_VECTOR(0 to ne*4 - 1);
     variable i   : INTEGER;
     variable lastu  : BOOLEAN := false;       -- last character was an "_"
-  begin
+    begin
     VALUE := (VALUE'range => 'U'); -- initialize to a "U"
     skip_whitespace (L);
     if VALUE'length > 0 then
@@ -136,17 +146,17 @@ package body LWC_TB_pkg is
     else
       GOOD := true;                     -- Null input string, skips whitespace
     end if;
-  end procedure LWC_HREAD;
+    end procedure LWC_HREAD;
 
-  function LWC_to_hstring (value : STD_LOGIC_VECTOR) return STRING is
+    function LWC_to_hstring (value : STD_LOGIC_VECTOR) return STRING is
     constant ne     : INTEGER := (value'length+3)/4;
     variable pad    : STD_LOGIC_VECTOR(0 to (ne*4 - value'length) - 1);
     variable ivalue : STD_LOGIC_VECTOR(0 to ne*4 - 1);
     variable result : STRING(1 to ne);
     variable quad   : STD_LOGIC_VECTOR(0 to 3);
-  begin
+    begin
     if value'length < 1 then
-      return NUS;
+      return "";
     else
       if value (value'left) = 'Z' then
         pad := (others => 'Z');
@@ -179,54 +189,101 @@ package body LWC_TB_pkg is
       end loop;
       return result;
     end if;
-  end function LWC_to_hstring;
+    end function LWC_to_hstring;
 
+    
+    type RandGen is protected body
 
-  -- shared variable seed1 : positive;
-  -- shared variable seed2 : positive;
+        variable seed1 : positive;
+        variable seed2 : positive;
   
-  procedure seed(s : in positive) is
-  begin
-  --   seed1 := s;
-  --   if s > 1 then
-  --     seed2 := s - 1;
-  --   else
-  --     seed2 := s + 42;
-    -- end if;
-  end procedure;
+        procedure seed(s : in positive) is
+        begin
+            seed1 := s;
+            if s > 1 then
+                seed2 := s - 1;
+            else
+                seed2 := s + 42;
+            end if;
+        end procedure;
 
-  procedure seed(s1, s2 : in positive) is
-  begin
-  --   seed1 := s1;
-  --   seed2 := s2;
-  end procedure;
+        procedure seed(s1, s2 : in positive) is
+        begin
+            seed1 := s1;
+            seed2 := s2;
+        end procedure;
 
-  impure function random return real is
-    -- variable result : real;
-  begin
-    -- uniform(seed1, seed2, result);
-    -- return result;
-    return 0.0;
-  end function;
+        impure function random return real is
+            variable result : real;
+        begin
+            uniform(seed1, seed2, result);
+            return result;
+        end function;
 
-  impure function randint(min, max : integer) return integer is
-  begin
-    return integer(trunc(real(max - min + 1) * random)) + min;
-  end function;
+        impure function randint(min, max : integer) return integer is
+        begin
+            return integer(trunc(real(max - min + 1) * random)) + min;
+        end function;
+    end protected body;
 
-  FUNCTION log2_ceil (N : NATURAL) RETURN NATURAL IS
-  BEGIN
-      IF (N = 0) THEN
-          RETURN 0;
-      ELSIF N <= 2 THEN
-          RETURN 1;
-      ELSE
-          IF (N MOD 2 = 0) THEN
-              RETURN 1 + log2_ceil(N/2);
-          ELSE
-              RETURN 1 + log2_ceil((N + 1)/2);
-          END IF;
-      END IF;
-  END FUNCTION log2_ceil;
+    function log2_ceil (n : natural) return natural is
+    begin
+        if (n = 0) then
+          return 0;
+        elsif n <= 2 then
+            return 1;
+        else
+            if (n mod 2 = 0) then
+                return 1 + log2_ceil(n/2);
+            else
+                return 1 + log2_ceil((n + 1)/2);
+            end if;
+        end if;
+    end function log2_ceil;
+
+    type LinkedList is protected body
+        type Item;
+        type ItemPtr is access Item;
+        type Item is record
+            d   : NATURAL;
+            nxt : ItemPtr;
+        end record;
+ 
+        variable root : ItemPtr;
+ 
+        procedure push(constant d   : in NATURAL) is
+            variable newNode : ItemPtr;
+            variable node    : ItemPtr;
+        begin
+            newNode   := new Item;
+            newNode.d := d;
+            if root = null then
+                root := newNode;
+            else
+                node := root;
+                while node.nxt /= null loop
+                   node := node.nxt;
+                end loop;
+                node.nxt := newNode;
+            end if;
+        end;
+ 
+        impure function pop return NATURAL is
+            variable node : ItemPtr;
+            variable ret : NATURAL;
+        begin
+            node := root;
+            root := root.nxt;
+            ret  := node.d;
+            deallocate(node);
+            return ret;
+        end;
+ 
+        impure function isEmpty return BOOLEAN is
+        begin
+            return root = null;
+        end;
+ 
+    end protected body;
 
 end package body LWC_TB_pkg;
