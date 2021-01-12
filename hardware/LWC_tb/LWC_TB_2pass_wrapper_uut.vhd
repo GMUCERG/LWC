@@ -6,7 +6,7 @@ use work.LWC_TB_pkg.all;
 
 entity LWC_TB_2pass_wrapper_uut is
     generic (
-        MAX_SEGMENT_BYTES: integer := 16 * 1024
+        G_MAX_SEGMENT_BYTES: integer := 16 * 1024
     );
     port (
         clk             : in  std_logic;
@@ -85,7 +85,7 @@ begin
     twoPassfifo : entity work.fwft_fifo_tb
         generic map(
             G_W              => W,
-            G_LOG2DEPTH      => log2_ceil(8*MAX_SEGMENT_BYTES/W)
+            G_LOG2DEPTH      => log2_ceil(8*G_MAX_SEGMENT_BYTES/W)
         )
         port map(
             clk              => clk,
