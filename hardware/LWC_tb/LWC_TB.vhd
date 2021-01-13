@@ -27,20 +27,21 @@ use work.NIST_LWAPI_pkg.all;
 
 entity LWC_TB IS
     generic (
-        G_MAX_FAILURES      : integer := 100;
-        G_TEST_MODE         : integer := 0;
-        G_TEST_IPSTALL      : integer := 3;
-        G_TEST_ISSTALL      : integer := 3;
-        G_TEST_OSTALL       : integer := 3;
-        G_RANDOMIZE_STALLS  : boolean := False;
-        G_PERIOD_PS         : integer := 10_000;
-        G_FNAME_PDI         : string  := "../KAT/v1/pdi.txt";
-        G_FNAME_SDI         : string  := "../KAT/v1/sdi.txt";
-        G_FNAME_DO          : string  := "../KAT/v1/do.txt";
-        G_FNAME_LOG         : string  := "log.txt";
-        G_FNAME_TIMING      : string  := "timing.txt";
-        G_FNAME_FAILED_TVS  : string  := "failed_testvectors.txt";
-        G_FNAME_RESULT      : string  := "result.txt"
+        G_MAX_FAILURES      : integer := 100;                      --! Maximum number of failures before stopping the simulation
+        G_TEST_MODE         : integer := 0;                        --! 0: normal, 1: stall both sdi/pdi_valid and do_ready, 2: stall sdi/pdi_valid, 3: stall do_ready, 4: Timing (cycle) measurement 
+        G_TEST_IPSTALL      : integer := 3;                        --! Number of cycles (or max cycles, if G_RANDOMIZE_STALLS) to stall pdi_valid
+        G_TEST_ISSTALL      : integer := 3;                        --! Number of cycles (or max cycles, if G_RANDOMIZE_STALLS) to stall sdi_valid
+        G_TEST_OSTALL       : integer := 3;                        --! Number of cycles (or max cycles, if G_RANDOMIZE_STALLS) to stall do_ready
+        G_RANDOMIZE_STALLS  : boolean := False;                    --! Randomize number of stalls from range [0, max], where max is any of the above G_TEST_xSTALL values
+        G_PERIOD_PS         : integer := 10_000;                   --! Simulation clock period in picoseconds
+        G_FNAME_PDI         : string  := "../KAT/v1/pdi.txt";      --! Path to the input file containing cryptotvgen PDI testvector data
+        G_FNAME_SDI         : string  := "../KAT/v1/sdi.txt";      --! Path to the input file containing cryptotvgen SDI testvector data
+        G_FNAME_DO          : string  := "../KAT/v1/do.txt";       --! Path to the input file containing cryptotvgen DO testvector data
+        G_FNAME_LOG         : string  := "log.txt";                --! Path to the generated log file
+        G_FNAME_TIMING      : string  := "timing.txt";             --! Path to the generated timing measurements (when G_TEST_MODE=4)
+        G_FNAME_FAILED_TVS  : string  := "failed_testvectors.txt"; --! Path to the generated log of failed testvector words
+        G_FNAME_RESULT      : string  := "result.txt";             --! Path to the generated result file containing 0 or 1  -- REDUNDANT / NOT USED
+        G_PRERESET_WAIT     : time    := 100 ns                    --! Xilinx GSR takes 100ns, required for post-synth simulation
     );
 end LWC_TB;
 
@@ -221,7 +222,7 @@ begin
         " -- Max Failures: " & integer'image(G_MAX_FAILURES) & LF & CR severity note;
 
         rng.seed(123);
-        wait for 100 ns; -- Xilinx GSR takes 100ns, required for post-synth simulation
+        wait for G_PRERESET_WAIT;
         if ASYNC_RSTN then
             rst <= '0';
             wait for 2 * clk_period;
@@ -245,7 +246,7 @@ begin
         variable read_result  : boolean;
         variable line_head    : string(1 to 6);
         variable stall_cycles : integer;
-        variable actkey_inst : boolean;
+        variable first_inst   : boolean; -- first instruction: either actkey or hash
     begin
 
         wait until reset_done;
@@ -275,9 +276,9 @@ begin
                         pdi_valid <= '1';
                     end if;
 
-                    actkey_inst := line_head = cons_ins and word_block(W-1 downto W-8) = X"70";
+                    first_inst := line_head = cons_ins and (word_block(W-1 downto W-8) = X"70" or word_block(W-1 downto W-8) = X"80");
 
-                    if G_TEST_MODE = 4 and actkey_inst and not timingBoard.isEmpty then
+                    if G_TEST_MODE = 4 and first_inst   and not timingBoard.isEmpty then
                         pdi_valid <= '0';
                         while not timingBoard.isEmpty loop
                             wait until rising_edge(clk);
@@ -288,7 +289,7 @@ begin
                     pdi_data <= word_block;
                     wait until rising_edge(clk) and pdi_ready = '1';
 
-                    if G_TEST_MODE = 4 and actkey_inst then
+                    if G_TEST_MODE = 4 and first_inst   then
                         assert timingBoard.isEmpty report "timingBoard should be empty here!" severity failure;
                         timingBoard.push(cycle_counter);
                     end if;

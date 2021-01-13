@@ -29,6 +29,7 @@ package LWC_TB_pkg is
     type LinkedList is protected
         procedure push(constant d   : in NATURAL);
         impure function pop return NATURAL;
+        impure function last return NATURAL;
         impure function isEmpty return BOOLEAN;
     end protected;
 
@@ -278,11 +279,18 @@ package body LWC_TB_pkg is
             deallocate(node);
             return ret;
         end;
+
+
+        impure function last return NATURAL is
+        begin
+            return root.d;
+        end;
  
         impure function isEmpty return BOOLEAN is
         begin
             return root = null;
         end;
+
  
     end protected body;
 
