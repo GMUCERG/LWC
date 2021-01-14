@@ -234,19 +234,21 @@ def get_msg_format(format, ofile, decrypt, hashop):
 
 def get_test_vector_info(msgid, keyid, ad_len, pt_len, ct_len, decrypt, hashop, hash_tag_size):
     ''' Get a string of test vector information '''
+    data = dict(MsgID=msgid, KeyID=keyid)
     if (hashop):
         optxt = txt_opcode[getattr(Opcode, 'hash')]
-        data = 'Pt Size = {: 4}'.format(pt_len)
-        data = 'Hash_Tag Size = {: 4}'.format(hash_tag_size) # change later
+        data['HM Size'] = pt_len
+        data['Digest Size'] = hash_tag_size
     elif (decrypt):
         optxt = txt_opcode[getattr(Opcode, 'decrypt')]
-        data = 'Ct Size = {: 4}'.format(ct_len)
+        data['AD Size'] = ad_len
+        data['CT Size'] = ct_len
     else:
         optxt = txt_opcode[getattr(Opcode, 'encrypt')]
-        data = 'Pt Size = {: 4}'.format(pt_len)
-    txt  = '#### {}\n'.format(optxt)
-    txt += '#### MsgID={: 3}, KeyID={: 3} '.format(msgid, keyid)
-    txt += 'Ad Size = {: 4}, {}\n'.format(ad_len, data)
+        data['AD Size'] = ad_len
+        data['PT Size'] = pt_len
+    txt  = f'#### {optxt}\n'
+    txt += '#### ' + ', '.join([f'{k}={v}' for k,v in data.items()]) + '\n'
     return txt
 
 def instr_info(f):
