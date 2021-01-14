@@ -1204,10 +1204,22 @@ def basic_hash_sizes(block_size_msg_digest):
     return routine
 
 def blanket_message_aead_test(opts):
+    ad_bs = opts.block_size_ad//8
+    xt_bs = opts.block_size//8
+    sizes = list(range(10)) + [15, 16, 17, 29, 61, 63, 64, 65, 67, 97, 127, 128, 129,
+        ad_bs // 2 - 1, ad_bs // 2,
+        ad_bs - 1, ad_bs, ad_bs + 1,
+        2*ad_bs - 1, 2*ad_bs, 2*ad_bs + 1,
+        xt_bs - 1, xt_bs, xt_bs + 1,
+        xt_bs // 2 - 1, xt_bs // 2,
+        2*xt_bs - 1, 2*xt_bs, 2*xt_bs + 1,
+    ]
+    sizes=list(set(sizes))
     routine = []
-    for ad_size in range(2*opts.block_size_ad//8):
-        for mess_size in range(2*opts.block_size//8):
-            routine.append([True, False, ad_size, mess_size,False])
+    for ad_size in sizes:
+        for mess_size in sizes:
+            routine.extend([True, dec, ad_size, mess_size,False] for dec in [False, True])
+    print(f"blanket_message_aead_test: generating testvectors with {len(routine)} messages")
     return routine
 
 def basic_aead_sizes(new_key, enc_dec, block_size_ad, block_size_message):
@@ -1240,101 +1252,35 @@ def gen_benchmark_routine(opts):
 
     orig_dest=opts.dest
     if opts.hash:
-        data = gen_dataset(opts, blanket_message_hash_test(opts.block_size_msg_digest), 1, 1)
         opts.dest = os.path.join(orig_dest, 'blanket_hash_test')
+        print(f'Generating {os.path.abspath(opts.dest)}')
+        data = gen_dataset(opts, blanket_message_hash_test(opts.block_size_msg_digest), 1, 1)
         gen_tv_and_write_files(opts, data[0])
-        print(f'Generated: {os.path.abspath(opts.dest)}')
 
-        data = gen_dataset(opts, basic_hash_sizes(opts.block_size_msg_digest), 1, 1)
         opts.dest = os.path.join(orig_dest, 'basic_hash_sizes')
+        print(f'Generating {os.path.abspath(opts.dest)}')
+        data = gen_dataset(opts, basic_hash_sizes(opts.block_size_msg_digest), 1, 1)
         gen_tv_and_write_files(opts, data[0])
-        print(f'Generated: {os.path.abspath(opts.dest)}')
 
-    # Power measure runs
-    data = gen_dataset(opts, [[True, False, 0, 16, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_0_16')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 16, 0, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_16_0')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 16, 16, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_16_16')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-
-    data = gen_dataset(opts, [[True, False, 0, 64, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_0_64')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 64, 0, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_64_0')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 64, 64, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_64_64')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-
-    data = gen_dataset(opts, [[True, False, 0, 1536, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_0_1536')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 1536, 0, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_1536_0')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 1536, 1536, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_1536_1536')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-
-    data = gen_dataset(opts, [[True, False, 0, 4*opts.block_size//8, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_0_4x')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 4*opts.block_size_ad//8, 0, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_4x_0')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 4*opts.block_size_ad//8, 4*opts.block_size//8, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_4x_4x')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-
-    data = gen_dataset(opts, [[True, False, 0, 5*opts.block_size//8, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_0_5x')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 5*opts.block_size_ad//8, 0, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_5x_0')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 5*opts.block_size_ad//8, 5*opts.block_size//8, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_5x_5x')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-
-    data = gen_dataset(opts, blanket_message_aead_test(opts), 1, 1)
     opts.dest = os.path.join(orig_dest, 'kats_for_verification')
+    print(f'Generating {os.path.abspath(opts.dest)}')
+    data = gen_dataset(opts, blanket_message_aead_test(opts), 1, 1)
     gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
 
     # Ensure new key
+    opts.dest = os.path.join(orig_dest, 'generic_aead_sizes_new_key')
+    print(f'Generating {os.path.abspath(opts.dest)}')
     routine_new_key = [[True, False, 0, 0, False]]
     routine_new_key += basic_aead_sizes(True, False, opts.block_size_ad, opts.block_size)
     routine_new_key += basic_aead_sizes(True, True, opts.block_size_ad, opts.block_size)
     data_enc = gen_dataset(opts, routine_new_key, 1, 1)
-    opts.dest = os.path.join(orig_dest, 'generic_aead_sizes_new_key')
     gen_tv_and_write_files(opts, data_enc[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
 
     # Ensure at least one new key
+    opts.dest = os.path.join(orig_dest, 'generic_aead_sizes_reuse_key')
+    print(f'Generating {os.path.abspath(opts.dest)}')
     routine_reuse_key = [[True, False, 0,0, False]]
     routine_reuse_key += basic_aead_sizes(False, False, opts.block_size_ad, opts.block_size)
     routine_reuse_key += basic_aead_sizes(False, True, opts.block_size_ad, opts.block_size)
     data_enc = gen_dataset(opts, routine_reuse_key, 1, 1)
-    opts.dest = os.path.join(orig_dest, 'generic_aead_sizes_reuse_key')
     gen_tv_and_write_files(opts, data_enc[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
