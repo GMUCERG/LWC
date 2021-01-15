@@ -276,9 +276,9 @@ begin
                         pdi_valid <= '1';
                     end if;
 
-                    first_inst := line_head = cons_ins and (word_block(W-1 downto W-8) = X"70" or word_block(W-1 downto W-8) = X"80");
+                    first_inst := line_head = cons_ins and ((word_block(W-1 downto W-8) = X"70") or (word_block(W-1 downto W-8) = X"80"));
 
-                    if G_TEST_MODE = 4 and first_inst   and not timingBoard.isEmpty then
+                    if G_TEST_MODE = 4 and first_inst and not timingBoard.isEmpty then
                         pdi_valid <= '0';
                         while not timingBoard.isEmpty loop
                             wait until rising_edge(clk);

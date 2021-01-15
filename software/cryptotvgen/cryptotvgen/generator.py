@@ -192,7 +192,8 @@ def get_len(format, ad_len, pt_len):
 
 def get_msg_format(args, ofile, decrypt, hashop):
     ''' Create a msg format for pdi/sdi file '''
-    format = args.msg_dec_format if (decrypt and args.msg_dec_format) else args.msg_format
+    dec_fmt = args.dec_msg_format
+    format = dec_fmt if decrypt and dec_fmt else args.msg_format
 
     msg_format = []
     tag = []

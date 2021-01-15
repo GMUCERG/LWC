@@ -782,7 +782,7 @@ def get_parser():
     tvops = parser.add_argument_group(
         '', 'Formatting options::')
     tvops.add_argument(
-        '--msg_format', nargs='+', action=ValidateMsgFormat,
+        '--msg_format', '--enc_msg_format', nargs='+', action=ValidateMsgFormat,
         default=('npub', 'ad', 'data', 'tag'), metavar='SEGMENT_TYPE',
         help=textwrap.dedent('''\
             Specify the order of segment types in the input to encryption.
@@ -832,7 +832,7 @@ def get_parser():
 
             '''))
     tvops.add_argument(
-        '--msg_dec_format', nargs='+', action=ValidateMsgFormat,
+        '--dec_msg_format', nargs='+', action=ValidateMsgFormat,
         default=None, metavar='SEGMENT_TYPE',
         help=textwrap.dedent('''\
             Specify the order of segment types in the input to decryption.
