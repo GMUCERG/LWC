@@ -190,8 +190,9 @@ def get_len(format, ad_len, pt_len):
     hex = '{:0{s}X}'.format(int(bin, 2), s=int(size*2))
     return hex
 
-def get_msg_format(format, ofile, decrypt, hashop):
+def get_msg_format(args, ofile, decrypt, hashop):
     ''' Create a msg format for pdi/sdi file '''
+    format = args.msg_dec_format if (decrypt and args.msg_dec_format) else args.msg_format
 
     msg_format = []
     tag = []
@@ -625,8 +626,7 @@ class TestVector(object):
             f.write('{}'.format(txt))
 
             # Write Segment
-            msg_format = get_msg_format(self.opts.msg_format,
-                                        ofile, self.decrypt, self.hashop)
+            msg_format = get_msg_format(self.opts, ofile, self.decrypt, self.hashop)
             for i, sgt in enumerate(msg_format):
 
                 if self.hashop:
@@ -851,7 +851,7 @@ class TestVector(object):
         f.write('#KEY\n{}\n{}\n'.format(new_key, self.key))
 
         # Write Segments
-        msg_format = get_msg_format(self.opts.msg_format,0,self.decrypt, self.hashop)
+        msg_format = get_msg_format(self.opts,0,self.decrypt, self.hashop)
         for i, sgt in enumerate(msg_format):
             # Data getter
             data = self.get_data(sgt)
@@ -867,9 +867,10 @@ class TestVector(object):
         file_path = os.path.join(self.opts.dest, HLS_CC_DO_FILE)
         f = open(file_path, 'a', newline='')
         f.write('#NEW\n\tMessage Number #{}\n'.format(self.msg_id))
-        msg_format = get_msg_format(self.opts.msg_format,1,self.decrypt, self.hashop)
+        msg_format = get_msg_format(self.opts,1,self.decrypt, self.hashop)
         for i, sgt in enumerate(msg_format):
             data = self.get_data(sgt)
+            eoi  = int(self.is_last_vld_segment(sgt, msg_format))
             self.wr_cc_hls_segment(f, data, eoi, sgt, True)
         f.write("#END\n\n")
         f.close()

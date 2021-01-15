@@ -785,18 +785,21 @@ def get_parser():
         '--msg_format', nargs='+', action=ValidateMsgFormat,
         default=('npub', 'ad', 'data', 'tag'), metavar='SEGMENT_TYPE',
         help=textwrap.dedent('''\
-            Specify the order of segment types in the input to encryption and
-            decryption. Tag is always omitted in the input to encryption, and
+            Specify the order of segment types in the input to encryption.
+            If --msg_dec_format is not specified, the specified order is used 
+            for decryption as well.
+            Tag is always omitted in the input to encryption, and
             included in the input to decryption. In the expected output from
             encryption tag is always added last. In the expected output from
             decryption only nsec and data are used (if specified).
+            
             Len is always automatically added as a first segment in the
             input for encryption and decryption for the offline algorithms.
             Len is not allowed as an input to encryption or decryption for
             the online algorithms.
 
             Example 1:
-            --msg_format npub tag data ad
+                --msg_format npub tag data ad
 
             The above example generates
             for an input to encryption: npub, data (plaintext), ad
@@ -805,7 +808,7 @@ def get_parser():
             for an expected output from decryption: data (plaintext)
 
             Example 2:
-            --msg_format npub_ad data_tag
+                --msg_format npub_ad data_tag
 
             The above example generates
             for an input to encryption:  npub_ad, data (plaintext)
@@ -826,6 +829,34 @@ def get_parser():
             Note: no support for multiple segments of the same type,
             separated by segments of another type e.g., header and trailer,
             treated as two segments of the type AD, separated by the message segments
+
+            '''))
+    tvops.add_argument(
+        '--msg_dec_format', nargs='+', action=ValidateMsgFormat,
+        default=None, metavar='SEGMENT_TYPE',
+        help=textwrap.dedent('''\
+            Specify the order of segment types in the input to decryption.
+            If not specified, the order specifed in `--msg_format` (or its default value) is used.
+
+            Valid Segment types (case-insensitive):
+                npub    -> public message number
+                nsec    -> secret message number
+                ad      -> associated data
+                ad_npub -> associated data || npub
+                npub_ad -> npub || associated data
+                data    -> data (pt/ct)
+                data_tag -> data (pt/ct) || tag
+                tag     -> authentication tag
+
+            'tag' is always omitted in the input to encryption, and
+            included in the input to decryption.
+            In the expected output from
+            decryption only 'nsec' and 'data' are used (if specified).
+
+            Please see the help on `--msg_format` for further details.
+
+            Example:
+                --msg_dec_format npub tag data ad
 
             '''))
     tvops.add_argument(
