@@ -4,7 +4,7 @@
 --! @project    LWC Hardware API Testbench
 --!                  
 --! @copyright  
---! @version    1.1.1
+--! @version    1.1.2
 --! @license    
 -------------------------------------------------------------------------------
 
@@ -19,20 +19,6 @@ package LWC_TB_pkg is
     procedure LWC_HREAD (L : inout LINE; VALUE : out STD_LOGIC_VECTOR; GOOD : out BOOLEAN);
     
     function log2_ceil (N : NATURAL) RETURN NATURAL;
-
-    type RandGen is protected
-        procedure seed(s : in POSITIVE);
-        procedure seed(s1, s2 : in POSITIVE);
-        impure function randint(min, max : INTEGER) return INTEGER;
-    end protected;
-
-    type LinkedList is protected
-        procedure push(constant d   : in NATURAL);
-        impure function pop return NATURAL;
-        impure function last return NATURAL;
-        impure function isEmpty return BOOLEAN;
-    end protected;
-
 end package LWC_TB_pkg;
 
 package body LWC_TB_pkg is
@@ -192,41 +178,6 @@ package body LWC_TB_pkg is
     end if;
     end function LWC_to_hstring;
 
-    
-    type RandGen is protected body
-
-        variable seed1 : positive;
-        variable seed2 : positive;
-  
-        procedure seed(s : in positive) is
-        begin
-            seed1 := s;
-            if s > 1 then
-                seed2 := s - 1;
-            else
-                seed2 := s + 42;
-            end if;
-        end procedure;
-
-        procedure seed(s1, s2 : in positive) is
-        begin
-            seed1 := s1;
-            seed2 := s2;
-        end procedure;
-
-        impure function random return real is
-            variable result : real;
-        begin
-            uniform(seed1, seed2, result);
-            return result;
-        end function;
-
-        impure function randint(min, max : integer) return integer is
-        begin
-            return integer(trunc(real(max - min + 1) * random)) + min;
-        end function;
-    end protected body;
-
     function log2_ceil (n : natural) return natural is
     begin
         if (n = 0) then
@@ -241,57 +192,4 @@ package body LWC_TB_pkg is
             end if;
         end if;
     end function log2_ceil;
-
-    type LinkedList is protected body
-        type Item;
-        type ItemPtr is access Item;
-        type Item is record
-            d   : NATURAL;
-            nxt : ItemPtr;
-        end record;
- 
-        variable root : ItemPtr;
- 
-        procedure push(constant d   : in NATURAL) is
-            variable newNode : ItemPtr;
-            variable node    : ItemPtr;
-        begin
-            newNode   := new Item;
-            newNode.d := d;
-            if root = null then
-                root := newNode;
-            else
-                node := root;
-                while node.nxt /= null loop
-                   node := node.nxt;
-                end loop;
-                node.nxt := newNode;
-            end if;
-        end;
- 
-        impure function pop return NATURAL is
-            variable node : ItemPtr;
-            variable ret : NATURAL;
-        begin
-            node := root;
-            root := root.nxt;
-            ret  := node.d;
-            deallocate(node);
-            return ret;
-        end;
-
-
-        impure function last return NATURAL is
-        begin
-            return root.d;
-        end;
- 
-        impure function isEmpty return BOOLEAN is
-        begin
-            return root = null;
-        end;
-
- 
-    end protected body;
-
 end package body LWC_TB_pkg;
