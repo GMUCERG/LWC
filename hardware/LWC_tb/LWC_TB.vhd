@@ -90,7 +90,9 @@ architecture TB of LWC_TB is
     
     signal start_cycle          : NATURAL;
     signal timing_started       : BOOLEAN := False;
+    signal timing_started_probe       : std_logic;
     signal timing_stopped       : BOOLEAN := False;
+    signal timing_stopped_probe       : std_logic;
     
     ---------------------- constants ----------------------
     constant cons_tb            : STRING(1 to 6) := "# TB :";
@@ -216,6 +218,9 @@ begin
     sdi_valid_delayed <= transport sdi_valid after input_delay;
     do_ready_delayed  <= transport do_ready  after input_delay;
 
+    timing_started_probe <= '1' when timing_started else '0';
+    timing_stopped_probe <= '1' when timing_stopped else '0';
+
     --  =======================================================================
     --! ============================ PDI Stimulus =============================
     tb_read_pdi : process
@@ -301,7 +306,6 @@ begin
     begin
         wait until reset_done;
         wait until rising_edge(clk);
-        sdi_valid <= '1';
 
         while not endfile(sdi_file) loop
             readline(sdi_file, line_data);
@@ -318,10 +322,14 @@ begin
                         if stall_cycles > 0 then
                             sdi_valid <= '0';
                             wait for stall_cycles * clk_period;
-                            wait until rising_edge(clk);
+                            -- wait until rising_edge(clk);
                         end if;
-                        sdi_valid <= '1';
+                    elsif G_TEST_MODE = 4 and not timing_started then
+                        sdi_valid <= '0';
+                        wait until timing_started;
                     end if;
+
+                    sdi_valid <= '1';
                     sdi_data <= word_block;
                     wait until rising_edge(clk) and sdi_ready = '1';
                end loop;
@@ -375,13 +383,13 @@ begin
                             if stall_cycles > 0 then
                                 do_ready <= '0';
                                 wait for stall_cycles * clk_period;
-                                wait until rising_edge(clk);
+                                -- wait until rising_edge(clk);
                             end if;
                         elsif G_TEST_MODE = 4 and not timing_started then
                             -- stall until timing has started from PDI
                             do_ready <= '0';
                             timing_stopped <= False;
-                            wait until rising_edge(clk) and timing_started;
+                            wait until timing_started;
                         end if;
 
                         do_ready <= '1';
