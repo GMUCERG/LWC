@@ -146,7 +146,7 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
         incl_candidates = set()
         extract_list = []
 
-        crypto_dir_regexps = {crypto_type:[re.compile(f'supercop-{sc_version}/crypto_{crypto_type}/([^/]+)/{d}/') for d in impl_src_dirs]
+        crypto_dir_regexps = {crypto_type:[re.compile(f'supercop-{sc_version}/crypto_{crypto_type}/([^/]+)/.*/')]
                               for crypto_type in lwc_candidates.keys()}
 
         # TODO make this more efficient, though unlikely to be a performance bottleneck
@@ -179,7 +179,7 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
         if os.path.exists(candidates_dir):
             shutil.rmtree(candidates_dir)
         shutil.copytree(str(pathlib.Path(tmp_dir) / f'supercop-{sc_version}'),
-                        str(candidates_dir))
+                        str(candidates_dir), symlinks=True)
         shutil.rmtree(tmp_dir)
         print('moved sources to cryptotvgen data dir')
     else:
