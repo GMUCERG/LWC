@@ -150,7 +150,7 @@ def test_all():
     generated_sources = (core_src_path / 'generated_srcs')
     generated_sources.mkdir(exist_ok=True)
 
-    tb_files = [ str((core_src_path / 'src_tb' / s).resolve()) for s in ['LWC_TB_compatibility_pkg.vhd', 'LWC_TB.vhd'] ]
+    tb_files = [ str((core_src_path.parent / 'LWC_tb' / s).resolve()) for s in ['LWC_TB_pkg.vhd', 'LWC_TB.vhd'] ]
 
 
     for vhdl_std in ['93', '08']:

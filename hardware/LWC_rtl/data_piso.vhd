@@ -31,10 +31,6 @@ use work.NIST_LWAPI_pkg.all;
 
 
 entity DATA_PISO is
-	generic (
-        G_W                : integer;
-		G_ASYNC_RSTN       : boolean	
-	);
     port(
 
         clk                :  in std_logic;
@@ -49,7 +45,7 @@ entity DATA_PISO is
         data_valid_s       : out STD_LOGIC;
         data_ready_s       : in  STD_LOGIC;
 
-        data_p             : in  STD_LOGIC_VECTOR(G_W-1 downto 0);
+        data_p             : in  STD_LOGIC_VECTOR(W-1 downto 0);
         data_valid_p       : in  STD_LOGIC;
         data_ready_p       : out STD_LOGIC;
 
@@ -81,7 +77,7 @@ begin
     assert (CCW = 8) OR (CCW = 16) or (CCW = 32) report "This module only supports CCW={8,16,32}!" severity failure;
 
 CCW8_16: if CCW /= 32 generate
-	    GEN_proc_SYNC_RST: if (not G_ASYNC_RSTN) generate
+	    GEN_proc_SYNC_RST: if (not ASYNC_RSTN) generate
         process (clk)
         begin
             if rising_edge(clk) then
@@ -93,7 +89,7 @@ CCW8_16: if CCW /= 32 generate
             end if;
         end process;
     end generate GEN_proc_SYNC_RST;
-    GEN_proc_ASYNC_RSTN: if (G_ASYNC_RSTN) generate
+    GEN_proc_ASYNC_RSTN: if (ASYNC_RSTN) generate
         process (clk, rst)
         begin
             if(rst='0')  then
@@ -230,46 +226,46 @@ CCW16: if CCW = 16 generate
         end case;
     end process;
 
-   -- controll signals are not set in the FSM to avoid circular dependency
-   -- data_valid_* should not depend on data_ready_* and vice versa
+    -- controll signals are not set in the FSM to avoid circular dependency
+    -- data_valid_* should not depend on data_ready_* and vice versa
 
-   last         <=           '1' when  ((data_size_p = "001" or data_size_p = "010") and state = LD_1) OR
-                                       ((data_size_p = "011" or data_size_p = "100") and state = LD_2)
-                                 else '0';
+    last         <=           '1' when  ((data_size_p = "001" or data_size_p = "010") and state = LD_1) OR
+                                        ((data_size_p = "011" or data_size_p = "100") and state = LD_2)
+                                  else '0';
 
-   data_ready_p <= data_ready_s  when  last = '1' or data_size_p = "000" else '0'; -- if last word, or empty word
+    data_ready_p <= data_ready_s  when  last = '1' or data_size_p = "000" else '0'; -- if last word, or empty word
 
-   data_valid_s <= data_valid_p;
+    data_valid_s <= data_valid_p;
 
-   data_s       <= data_p (31 downto 16) when (mux = "001") else
-                   data_p (15 downto  0);
+    data_s       <= data_p (31 downto 16) when (mux = "001") else
+                    data_p (15 downto  0);
 
-   valid_bytes_s <= valid_bytes_p(3 downto 2) when (mux = "001") else valid_bytes_p(1 downto 0);
-   pad_loc_s     <=     pad_loc_p(3 downto 2) when (mux = "001") else     pad_loc_p(1 downto 0);
+    valid_bytes_s <= valid_bytes_p(3 downto 2) when (mux = "001") else valid_bytes_p(1 downto 0);
+    pad_loc_s     <=     pad_loc_p(3 downto 2) when (mux = "001") else     pad_loc_p(1 downto 0);
 
   
-  eoi_s           <= eoi_p AND last;
-  eot_s           <= eot_p AND last;
-  data_size_s     <= "000" when data_size_p = "000" else
-                     "001" when (data_size_p = "001" or (data_size_p = "011" and last = '1')) else
-                     "010";
+    eoi_s           <= eoi_p AND last;
+    eot_s           <= eot_p AND last;
+    data_size_s     <= "000" when data_size_p = "000" else
+                       "001" when (data_size_p = "001" or (data_size_p = "011" and last = '1')) else
+                       "010";
 
 end generate CCW16;
 
 
 CCW32: if CCW = 32 generate
 
-    data_s       <= data_p;
-    data_valid_s <= data_valid_p;
-    data_ready_p <= data_ready_s;
+    data_s         <= data_p;
+    data_valid_s   <= data_valid_p;
+    data_ready_p   <= data_ready_s;
+    
+    valid_bytes_s  <= valid_bytes_p;
+    pad_loc_s      <= pad_loc_p;
 
-    valid_bytes_s <= valid_bytes_p;
-    pad_loc_s     <= pad_loc_p;
+    eoi_s          <= eoi_p;
+    eot_s          <= eot_p;
 
-  eoi_s           <= eoi_p;
-  eot_s           <= eot_p;
-
-  data_size_s <= data_size_p;
+    data_size_s    <= data_size_p;
 
 end generate CCW32;
 
