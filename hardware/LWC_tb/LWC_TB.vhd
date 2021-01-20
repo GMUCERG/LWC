@@ -179,7 +179,7 @@ begin
             rst <= '1';
         else
             rst <= '1';
-            wait for 2 * clk_period;
+            wait for 2 * clk_period + input_delay;
             rst <= '0';
         end if;
         wait until rising_edge(clk);
