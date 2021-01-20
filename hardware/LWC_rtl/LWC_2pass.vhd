@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
 --! @file       LWC_2pass.vhd
 --! @brief      LWC_2pass top level file
---! @copyright  Copyright (c) 2020 Cryptographic Engineering Research Group
+--! @copyright  Copyright (c) 2021 Cryptographic Engineering Research Group
 --!             ECE Department, George Mason University Fairfax, VA, U.S.A.
 --!             All rights Reserved.
 --! @license    This project is released under the GNU Public License.
@@ -14,10 +14,7 @@
 --------------------------------------------------------------------------------
 --! Description
 --!
---!
---!
---!
---!
+--!  LWC top-level entity for two-pass algorithm implementations
 --!
 --------------------------------------------------------------------------------
 
@@ -52,8 +49,7 @@ entity LWC_2pass is
         fdi_ready        : out  std_logic;
         fdo_data         : out std_logic_vector(CCW-1 downto 0);
         fdo_valid        : out std_logic;
-        fdo_ready        : in  std_logic;
-        fdi_last : in std_logic
+        fdo_ready        : in  std_logic
     );
 end LWC_2pass;
 
@@ -86,14 +82,11 @@ architecture structure of LWC_2pass is
     signal bdo_ready_cipher_out     : std_logic;
     ------!Cipher to Post-Processor
     signal end_of_block_cipher_out  : std_logic;
-    -- signal bdo_size_cipher_out      : std_logic_vector(3       -1 downto 0);
     signal bdo_valid_bytes_cipher_out:std_logic_vector(CCWdiv8 -1 downto 0);
---    signal bdo_type_cipher_out      :std_logic_vector(4        -1 downto 0);
-    -- signal decrypt_cipher_out       : std_logic;
+    signal bdo_type_cipher_out      :std_logic_vector(4        -1 downto 0);
     signal msg_auth_valid           : std_logic;
     signal msg_auth_ready           : std_logic;
     signal msg_auth                 : std_logic;
-    -- signal done                     : std_logic;
     --==========================================================================
 
     --==========================================================================
@@ -135,7 +128,7 @@ begin
 	-- ASYNC_RSTN notification
     assert (ASYNC_RSTN = false) report "[LWC_2pass] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
 
-    Inst_PreProcessor: entity work.PreProcessor(PreProcessor)
+    Inst_PreProcessor: entity work.PreProcessor
     	generic map(
         		G_W             => W,
         		G_SW            => SW,
@@ -191,7 +184,7 @@ begin
                 bdo             => bdo_cipher_out                          ,
                 bdo_valid       => bdo_valid_cipher_out                    ,
                 bdo_ready       => bdo_ready_cipher_out                    ,
---                bdo_type        => bdo_type_cipher_out                     ,
+                bdo_type        => bdo_type_cipher_out                     ,
                 bdo_valid_bytes => bdo_valid_bytes_cipher_out              ,
                 end_of_block    => end_of_block_cipher_out                 ,
                 msg_auth_valid  => msg_auth_valid                          ,
@@ -202,10 +195,9 @@ begin
                 fdi_ready       => fdi_ready                               ,
                 fdo_valid       => fdo_valid                               ,
                 fdo_ready       => fdo_ready,
-                fdo_data        => fdo_data,
-                fdi_last => fdi_last
+                fdo_data        => fdo_data
             );
-    Inst_PostProcessor: entity work.PostProcessor(PostProcessor)
+    Inst_PostProcessor: entity work.PostProcessor
     	generic map(
         		G_W            => W,
         		G_ASYNC_RSTN   => ASYNC_RSTN
@@ -217,7 +209,7 @@ begin
                 bdo_valid       => bdo_valid_cipher_out                    ,
                 bdo_ready       => bdo_ready_cipher_out                    ,
                 end_of_block    => end_of_block_cipher_out                 ,
---                bdo_type        => bdo_type_cipher_out                     ,
+                bdo_type        => bdo_type_cipher_out                     ,
                 bdo_valid_bytes => bdo_valid_bytes_cipher_out              ,
                 cmd             => cmd_FIFO_out                            ,
                 cmd_valid       => cmd_valid_FIFO_out                      ,
@@ -230,7 +222,7 @@ begin
                 msg_auth_ready  => msg_auth_ready                          ,
                 msg_auth        => msg_auth
             );
-    Inst_Header_Fifo: entity work.fwft_fifo(structure)
+    Inst_Header_Fifo: entity work.fwft_fifo
         generic map (
                 G_W             => W,
                 G_LOG2DEPTH     => 2
@@ -245,6 +237,5 @@ begin
                 dout_valid      => cmd_valid_FIFO_out,
                 dout_ready      => cmd_ready_FIFO_out
             );
-
 
 end structure;
