@@ -440,6 +440,7 @@ begin
                             assert timing_started;
                             cycles := cycle_counter - start_cycle;
                             timing_stopped <= True;
+                            do_ready <= '0';
                             wait until not timing_started;
                             write(logMsg, INTEGER'image(msgid) & ", "  & INTEGER'image(cycles) );
                             writeline(timing_file, logMsg);
