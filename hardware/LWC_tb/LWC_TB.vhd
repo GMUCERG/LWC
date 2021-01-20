@@ -165,7 +165,6 @@ begin
     end process;
 
     resetProc: process
-        variable seed : POSITIVE;
     begin
         report LF & " -- Testvectors:  " & G_FNAME_PDI & " " & G_FNAME_SDI & " " & G_FNAME_DO & LF &
         " -- Clock Period: " & INTEGER'image(G_PERIOD_PS) & " ps" & LF &
@@ -231,7 +230,6 @@ begin
         variable stall_cycles  : INTEGER;
         variable actkey_hash   : BOOLEAN; -- either actkey or hash instruction
         variable op_sent       : BOOLEAN := False; -- instruction other than actkey or hash was already sent
-        variable timer_running : BOOLEAN := False; -- local variable capture immediate state of timer
     begin
         wait until reset_done;
         wait until rising_edge(clk);
