@@ -6,7 +6,7 @@ use work.LWC_TB_pkg.all;
 
 entity LWC_TB_2pass_wrapper_uut is
     generic (
-        G_MAX_SEGMENT_BYTES: integer := 16 * 1024
+        G_MAX_SEGMENT_BYTES: integer := 4 * 1024
     );
     port (
         clk             : in  std_logic;
@@ -58,7 +58,7 @@ architecture structural of LWC_TB_2pass_wrapper_uut is
     end component;
 begin
 
-    assert False report "Using LWC_2pass+wrapper with G_MAX_SEGMENT_BYTES=" & integer'image(G_MAX_SEGMENT_BYTES) severity warning;
+    assert False report "LWC_TB_2pass_wrapper_uut: twoPassFIFO instantiated with capacity of " & integer'image(G_MAX_SEGMENT_BYTES) & " Bytes" severity note;
     
     uut: LWC_2pass_wrapper
         port map(
@@ -82,7 +82,7 @@ begin
             fdo_ready    => fdo_ready
         );
 
-    twoPassfifo : entity work.fwft_fifo_tb
+    twoPassFIFO : entity work.fwft_fifo_tb
         generic map(
             G_W              => W,
             G_LOG2DEPTH      => log2_ceil(8*G_MAX_SEGMENT_BYTES/W)

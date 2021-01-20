@@ -6,7 +6,7 @@ use work.LWC_TB_pkg.all;
 
 entity LWC_TB_2pass_uut is
     generic (
-          G_MAX_SEGMENT_BYTES : integer := 16 * 1024
+          G_MAX_SEGMENT_BYTES : integer := 4 * 1024
     );
     port (
         clk             : in  std_logic;
