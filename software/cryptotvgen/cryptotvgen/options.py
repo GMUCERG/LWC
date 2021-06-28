@@ -87,7 +87,7 @@ class ValidateCandidatesDir(argparse.Action):
         super(ValidateCandidatesDir, self).__init__(option_strings, dest, nargs, **kwargs)
 
     def __call__(self, parser, namespace, value, option_string=None):
-        value = pathlib.Path(value).resolve()
+        value = pathlib.Path(value)
         if not (value.exists() and value.is_dir()):
             sys.exit(f"candidate_dir {value} does not exist or is not a directory!")
         setattr(namespace, self.dest, value)
@@ -441,12 +441,11 @@ def get_parser():
             '''))
 
     test.add_argument(
-        '--gen_custom', type=str,
-        metavar=('Array'), action=ValidateGenCustom,
+        '--gen_custom', type=str, metavar=('<parameters[:parameters]*>'), action=ValidateGenCustom,
         help=textwrap.dedent('''\
             Randomly generate multiple test vectors, with each test vector
             specified using the following fields:
-               NEW_KEY (Boolean), DECRYPT (Boolean), AD_LEN, PT_LEN or
+               NEW_KEY (Boolean), DECRYPT (Boolean), AD_LEN, PT_LEN or CT_LEN or
                HASH_LEN, HASH (Boolean)
                ":" is used as a separator between two consecutive test
                vectors.
@@ -707,22 +706,22 @@ def get_parser():
         metavar=('PUBLIC_PORTS_WIDTH', 'SECRET_PORT_WIDTH'),
         help='Size of PDI/DO and SDI port in bits.')
     impops.add_argument(
-        '--key_size', type=int, default=128, metavar='BITS',
+        '--key_size', type=int, default=None, metavar='BITS',
         help='Size of key in bits')
     impops.add_argument(
-        '--npub_size', type=int, default=128, metavar='BITS',
+        '--npub_size', type=int, default=None, metavar='BITS',
         help='Size of public message number in bits')
     impops.add_argument(
-        '--nsec_size', type=int, default=0, metavar='BITS',
+        '--nsec_size', type=int, default=None, metavar='BITS',
         help='Size of secret message number in bits')
     impops.add_argument(
-        '--tag_size', type=int, default=128, metavar='BITS',
+        '--tag_size', type=int, default=None, metavar='BITS',
         help='Size of authentication tag in bits')
     impops.add_argument(
-        '--message_digest_size', type=int, default=64, metavar='BITS',
+        '--message_digest_size', type=int, default=None, metavar='BITS',
         help='Size of message digest (hash_tag) in bits')
     impops.add_argument(
-        '--block_size', type=int, default=128, metavar='BITS',
+        '--block_size', type=int, default=None, metavar='BITS',
         help='''Algorithm's data block size''')
     impops.add_argument(
         '--block_size_ad', type=int, metavar='BITS',
@@ -783,21 +782,24 @@ def get_parser():
     tvops = parser.add_argument_group(
         '', 'Formatting options::')
     tvops.add_argument(
-        '--msg_format', nargs='+', action=ValidateMsgFormat,
+        '--msg_format', '--enc_msg_format', nargs='+', action=ValidateMsgFormat,
         default=('npub', 'ad', 'data', 'tag'), metavar='SEGMENT_TYPE',
         help=textwrap.dedent('''\
-            Specify the order of segment types in the input to encryption and
-            decryption. Tag is always omitted in the input to encryption, and
+            Specify the order of segment types in the input to encryption.
+            If --msg_dec_format is not specified, the specified order is used 
+            for decryption as well.
+            Tag is always omitted in the input to encryption, and
             included in the input to decryption. In the expected output from
             encryption tag is always added last. In the expected output from
             decryption only nsec and data are used (if specified).
+            
             Len is always automatically added as a first segment in the
             input for encryption and decryption for the offline algorithms.
             Len is not allowed as an input to encryption or decryption for
             the online algorithms.
 
             Example 1:
-            --msg_format npub tag data ad
+                --msg_format npub tag data ad
 
             The above example generates
             for an input to encryption: npub, data (plaintext), ad
@@ -806,7 +808,7 @@ def get_parser():
             for an expected output from decryption: data (plaintext)
 
             Example 2:
-            --msg_format npub_ad data_tag
+                --msg_format npub_ad data_tag
 
             The above example generates
             for an input to encryption:  npub_ad, data (plaintext)
@@ -827,6 +829,34 @@ def get_parser():
             Note: no support for multiple segments of the same type,
             separated by segments of another type e.g., header and trailer,
             treated as two segments of the type AD, separated by the message segments
+
+            '''))
+    tvops.add_argument(
+        '--dec_msg_format', nargs='+', action=ValidateMsgFormat,
+        default=None, metavar='SEGMENT_TYPE',
+        help=textwrap.dedent('''\
+            Specify the order of segment types in the input to decryption.
+            If not specified, the order specifed in `--msg_format` (or its default value) is used.
+
+            Valid Segment types (case-insensitive):
+                npub    -> public message number
+                nsec    -> secret message number
+                ad      -> associated data
+                ad_npub -> associated data || npub
+                npub_ad -> npub || associated data
+                data    -> data (pt/ct)
+                data_tag -> data (pt/ct) || tag
+                tag     -> authentication tag
+
+            'tag' is always omitted in the input to encryption, and
+            included in the input to decryption.
+            In the expected output from
+            decryption only 'nsec' and 'data' are used (if specified).
+
+            Please see the help on `--msg_format` for further details.
+
+            Example:
+                --msg_dec_format npub tag data ad
 
             '''))
     tvops.add_argument(
@@ -853,7 +883,7 @@ def get_parser():
         '--max_d', type=int, default=1000, metavar='BYTES',
         help='Maximum randomly generated data length')
     tvops.add_argument(
-        '--max_block_per_sgmt', type=int, default=9999, metavar='COUNT',
+        '--max_block_per_sgmt', type=int, default=None, metavar='COUNT',
         help='Maximum data block per segment (based on --block_size) parameter')
     tvops.add_argument(
         '--max_io_per_line', type=int, default=9999, metavar='COUNT',

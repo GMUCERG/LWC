@@ -1,46 +1,44 @@
 -------------------------------------------------------------------------------
---! @file       LWC_TB_compatibility_pkg.vhd
---! @brief      Minimalistic std_logic_1164 compatibility package for LWC_TB
---!             Provides implementations for TO_HSTRING TO_HSTRING which are only
---!                 standardized since on VHDL 2008, while avoiding namespace clashes.
+--! @file       LWC_TB_pkg.vhd
+--! @brief      Testbench Utility Package
 --! @project    LWC Hardware API Testbench
---! @author     David Bishop <dbishop@vhdl.org> <dbishopx@gmail.com>
---!                  adopted by: Kamyar Mohajerani <kamyar@ieee.org>
+--!                  
 --! @copyright  
---! @version    1.0
+--! @version    1.1.2
 --! @license    
---! @note       Based on 'std_logic_1164_additions.vhd'
---!                 retrieved from https://github.com/FPHDL/fphdl
 -------------------------------------------------------------------------------
 
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.math_real.all;
+
 use std.textio.all;
 
-package LWC_TB_compatibility_pkg is
-  function LWC_TO_HSTRING (VALUE : STD_LOGIC_VECTOR) return STRING;
-  procedure LWC_HREAD (L : inout LINE; VALUE : out STD_LOGIC_VECTOR; GOOD : out BOOLEAN);
-end package LWC_TB_compatibility_pkg;
- 
-package body LWC_TB_compatibility_pkg is
- 
-  function or_reduce (l : STD_LOGIC_VECTOR) return STD_LOGIC is
+package LWC_TB_pkg is
+    function LWC_TO_HSTRING (VALUE : STD_LOGIC_VECTOR) return STRING;
+    procedure LWC_HREAD (L : inout LINE; VALUE : out STD_LOGIC_VECTOR; GOOD : out BOOLEAN);
+    
+    function log2_ceil (N : NATURAL) RETURN NATURAL;
+end package LWC_TB_pkg;
+
+package body LWC_TB_pkg is
+
+    function or_reduce (l : STD_LOGIC_VECTOR) return STD_LOGIC is
     variable result : STD_LOGIC := '0';
-  begin
+    begin
     for i in l'reverse_range loop
       result := (l(i) or result);
     end loop;
     return result;
-  end function or_reduce;
+    end function or_reduce;
 
-  constant NBSP : CHARACTER      := CHARACTER'val(160); -- space character
-  constant NUS  : STRING(2 to 1) := (others => ' '); -- null STRING -- @suppress "Null range: The left argument is strictly larger than the right"
- 
-  procedure skip_whitespace (
+    constant NBSP : CHARACTER      := CHARACTER'val(160); -- space character
+
+    procedure skip_whitespace (
     L : inout LINE) is
     variable c : CHARACTER;
     variable left : positive;
-  begin
+    begin
     while L /= null and L.all'length /= 0 loop
       left := L.all'left;
       c := L.all(left);
@@ -50,13 +48,13 @@ package body LWC_TB_compatibility_pkg is
         exit;
       end if;
     end loop;
-  end procedure skip_whitespace;
+    end procedure skip_whitespace;
 
-  procedure Char2QuadBits (C           :     CHARACTER;
-                           RESULT      : out STD_LOGIC_VECTOR(3 downto 0);
-                           GOOD        : out BOOLEAN;
-                           ISSUE_ERROR : in  BOOLEAN) is
-  begin
+    procedure Char2QuadBits (C           :     CHARACTER;
+    RESULT      : out STD_LOGIC_VECTOR(3 downto 0);
+    GOOD        : out BOOLEAN;
+    ISSUE_ERROR : in  BOOLEAN) is
+    begin
     case C is
       when '0'       => RESULT := x"0"; GOOD := true;
       when '1'       => RESULT := x"1"; GOOD := true;
@@ -81,10 +79,10 @@ package body LWC_TB_compatibility_pkg is
           report "LWC_HREAD Read a '" & C & "', expected a Hex character (0-F)." severity error;
         GOOD := false;
     end case;
-  end procedure Char2QuadBits;
- 
-  procedure LWC_HREAD (L    : inout LINE; VALUE : out STD_LOGIC_VECTOR;
-                   GOOD : out   BOOLEAN) is
+    end procedure Char2QuadBits;
+
+    procedure LWC_HREAD (L    : inout LINE; VALUE : out STD_LOGIC_VECTOR;
+    GOOD : out   BOOLEAN) is
     variable ok  : BOOLEAN;
     variable c   : CHARACTER;
     constant ne  : INTEGER := (VALUE'length+3)/4;
@@ -92,14 +90,14 @@ package body LWC_TB_compatibility_pkg is
     variable sv  : STD_LOGIC_VECTOR(0 to ne*4 - 1);
     variable i   : INTEGER;
     variable lastu  : BOOLEAN := false;       -- last character was an "_"
-  begin
+    begin
     VALUE := (VALUE'range => 'U'); -- initialize to a "U"
     skip_whitespace (L);
     if VALUE'length > 0 then
       read (L, c, ok);
       i := 0;
       while i < ne loop
- 
+
         if not ok then
           GOOD := false;
           return;
@@ -135,17 +133,17 @@ package body LWC_TB_compatibility_pkg is
     else
       GOOD := true;                     -- Null input string, skips whitespace
     end if;
-  end procedure LWC_HREAD;
- 
-  function LWC_to_hstring (value : STD_LOGIC_VECTOR) return STRING is
+    end procedure LWC_HREAD;
+
+    function LWC_to_hstring (value : STD_LOGIC_VECTOR) return STRING is
     constant ne     : INTEGER := (value'length+3)/4;
     variable pad    : STD_LOGIC_VECTOR(0 to (ne*4 - value'length) - 1);
     variable ivalue : STD_LOGIC_VECTOR(0 to ne*4 - 1);
     variable result : STRING(1 to ne);
     variable quad   : STD_LOGIC_VECTOR(0 to 3);
-  begin
+    begin
     if value'length < 1 then
-      return NUS;
+      return "";
     else
       if value (value'left) = 'Z' then
         pad := (others => 'Z');
@@ -178,7 +176,20 @@ package body LWC_TB_compatibility_pkg is
       end loop;
       return result;
     end if;
-  end function LWC_to_hstring;
+    end function LWC_to_hstring;
 
-end package body LWC_TB_compatibility_pkg;
- 
+    function log2_ceil (n : natural) return natural is
+    begin
+        if (n = 0) then
+          return 0;
+        elsif n <= 2 then
+            return 1;
+        else
+            if (n mod 2 = 0) then
+                return 1 + log2_ceil(n/2);
+            else
+                return 1 + log2_ceil((n + 1)/2);
+            end if;
+        end if;
+    end function log2_ceil;
+end package body LWC_TB_pkg;

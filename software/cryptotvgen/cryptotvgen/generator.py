@@ -190,8 +190,10 @@ def get_len(format, ad_len, pt_len):
     hex = '{:0{s}X}'.format(int(bin, 2), s=int(size*2))
     return hex
 
-def get_msg_format(format, ofile, decrypt, hashop):
+def get_msg_format(args, ofile, decrypt, hashop):
     ''' Create a msg format for pdi/sdi file '''
+    dec_fmt = args.dec_msg_format
+    format = dec_fmt if decrypt and dec_fmt else args.msg_format
 
     msg_format = []
     tag = []
@@ -234,19 +236,21 @@ def get_msg_format(format, ofile, decrypt, hashop):
 
 def get_test_vector_info(msgid, keyid, ad_len, pt_len, ct_len, decrypt, hashop, hash_tag_size):
     ''' Get a string of test vector information '''
+    data = dict(MsgID=msgid, KeyID=keyid)
     if (hashop):
         optxt = txt_opcode[getattr(Opcode, 'hash')]
-        data = 'Pt Size = {: 4}'.format(pt_len)
-        data = 'Hash_Tag Size = {: 4}'.format(hash_tag_size) # change later
+        data['HM Size'] = pt_len
+        data['Digest Size'] = hash_tag_size
     elif (decrypt):
         optxt = txt_opcode[getattr(Opcode, 'decrypt')]
-        data = 'Ct Size = {: 4}'.format(ct_len)
+        data['AD Size'] = ad_len
+        data['CT Size'] = ct_len
     else:
         optxt = txt_opcode[getattr(Opcode, 'encrypt')]
-        data = 'Pt Size = {: 4}'.format(pt_len)
-    txt  = '#### {}\n'.format(optxt)
-    txt += '#### MsgID={: 3}, KeyID={: 3} '.format(msgid, keyid)
-    txt += 'Ad Size = {: 4}, {}\n'.format(ad_len, data)
+        data['AD Size'] = ad_len
+        data['PT Size'] = pt_len
+    txt  = f'#### {optxt}\n'
+    txt += '#### ' + ', '.join([f'{k}={v}' for k,v in data.items()]) + '\n'
     return txt
 
 def instr_info(f):
@@ -389,8 +393,8 @@ class TestVector(object):
         self.decrypt = op
         # Input
         self.key     = key
-        self.npub    = npub[:int(2*self.opts.npub_size/8)]
-        self.nsec_pt = nsec_pt[:int(2*self.opts.nsec_size/8)]
+        self.npub    = npub[:2*self.opts.npub_size//8]
+        self.nsec_pt = nsec_pt[:2*self.opts.nsec_size//8]
         self.ad      = ad
         self.pt      = pt
         self.partial = 0
@@ -400,7 +404,7 @@ class TestVector(object):
         self.tag = ''
         self.hash = pt
         self.hash_tag = ''
-        self.hash_tag_size = self.opts.message_digest_size/8
+        self.hash_tag_size = self.opts.message_digest_size // 8 if self.opts.message_digest_size is not None else None
 
     def aead_encrypt(self):
         ''' Compute aead algorithm '''
@@ -599,7 +603,7 @@ class TestVector(object):
                                        lenbytes(self.ct),
                                        self.decrypt,
                                        self.hashop,
-                                       int(self.hash_tag_size))
+                                       self.hash_tag_size)
             f.write('{}'.format(txt))
 
             if (not ofile):
@@ -623,8 +627,7 @@ class TestVector(object):
             f.write('{}'.format(txt))
 
             # Write Segment
-            msg_format = get_msg_format(self.opts.msg_format,
-                                        ofile, self.decrypt, self.hashop)
+            msg_format = get_msg_format(self.opts, ofile, self.decrypt, self.hashop)
             for i, sgt in enumerate(msg_format):
 
                 if self.hashop:
@@ -635,19 +638,19 @@ class TestVector(object):
                 data = self.get_data(sgt)
 
                 # Sub-segment
-                max_sgmt = (self.opts.block_size/8)*self.opts.max_block_per_sgmt
-                tot_sgmt = int(math.ceil(lenbytes(data)/max_sgmt))
-                if (sgt in ['tag', 'hash_tag']):    # No segment split for tag/hash_tag
-                    tot_sgmt = 1
-                tot_sgmt = 1 if tot_sgmt == 0 else tot_sgmt
+                tot_sgmt = 1
+                max_sgmt = 0
+                # No segment split for tag/hash_tag
+                if sgt not in ['tag', 'hash_tag'] and self.opts.max_block_per_sgmt and self.opts.block_size:
+                    max_sgmt = (self.opts.block_size//8) * self.opts.max_block_per_sgmt
+                    tot_sgmt = max(1, int(math.ceil(lenbytes(data)/max_sgmt)))
 
-                (is_eoi, is_eot, is_lst) = (0,0,0)
+                is_eoi, is_eot, is_lst = (0,0,0)
                 for j in range(tot_sgmt):
                     begin = int(j*max_sgmt*2)
                     end = begin + int(max_sgmt*2)
                     if j == tot_sgmt-1:
-                        is_eoi = \
-                            int(self.is_last_vld_segment(sgt, msg_format))
+                        is_eoi = int(self.is_last_vld_segment(sgt, msg_format))
                         if (self.hashop and ofile):
                             is_lst = 1 if i == len(msg_format)-2 else 0
                         else:
@@ -849,7 +852,7 @@ class TestVector(object):
         f.write('#KEY\n{}\n{}\n'.format(new_key, self.key))
 
         # Write Segments
-        msg_format = get_msg_format(self.opts.msg_format,0,self.decrypt, self.hashop)
+        msg_format = get_msg_format(self.opts,0,self.decrypt, self.hashop)
         for i, sgt in enumerate(msg_format):
             # Data getter
             data = self.get_data(sgt)
@@ -865,9 +868,10 @@ class TestVector(object):
         file_path = os.path.join(self.opts.dest, HLS_CC_DO_FILE)
         f = open(file_path, 'a', newline='')
         f.write('#NEW\n\tMessage Number #{}\n'.format(self.msg_id))
-        msg_format = get_msg_format(self.opts.msg_format,1,self.decrypt, self.hashop)
+        msg_format = get_msg_format(self.opts,1,self.decrypt, self.hashop)
         for i, sgt in enumerate(msg_format):
             data = self.get_data(sgt)
+            eoi  = int(self.is_last_vld_segment(sgt, msg_format))
             self.wr_cc_hls_segment(f, data, eoi, sgt, True)
         f.write("#END\n\n")
         f.close()
@@ -934,6 +938,7 @@ def gen_dataset(opts, routine, start_msg_no, start_key_no, mode=0):
         return "".join(a)
 
     # print(routine)
+    assert opts.key_size and opts.npub_size is not None and opts.nsec_size is not None, "key_size npub_size nsec_size should be set"
     for i, tv in enumerate(routine):
         hashop = tv[4]
 
@@ -945,23 +950,23 @@ def gen_dataset(opts, routine, start_msg_no, start_key_no, mode=0):
             decrypt = tv[1]
 
         if mode == 2:
-            key  = get_running_value(opts.key_size/8)
-            npub = get_running_value(opts.npub_size/8)
-            nsec = get_running_value(opts.nsec_size/8)
+            key  = get_running_value(opts.key_size//8)
+            npub = get_running_value(opts.npub_size//8)
+            nsec = get_running_value(opts.nsec_size//8)
             ad   = get_running_value(tv[2])
             data = get_running_value(tv[3])
 
         elif mode == 1:
-            key  = '55'*int(opts.key_size/8)
-            npub = 'B0'*int(opts.npub_size/8)
-            nsec = '66'*int(opts.nsec_size/8)
+            key  = '55' * (opts.key_size//8)
+            npub = 'B0' * (opts.npub_size//8)
+            nsec = '66' * (opts.nsec_size//8)
             ad   = 'A0'*tv[2]
             data = 'FF'*tv[3]
 
         else:
-            key  = gen_data(int(opts.key_size/8),   mode, '55')
-            npub = gen_data(int(opts.npub_size/8),  mode, 'B0')
-            nsec = gen_data(int(opts.nsec_size/8),  mode, '66')
+            key  = gen_data(opts.key_size // 8,   mode, '55')
+            npub = gen_data(opts.npub_size // 8,  mode, 'B0')
+            nsec = gen_data(opts.nsec_size // 8,  mode, '66')
             ad   = gen_data(tv[2],          mode, 'A0')
             data = gen_data(tv[3],          mode, 'FF')
 
@@ -1145,37 +1150,45 @@ def gen_tv_and_write_files(opts, dataset):
             f.write('###EOF\n')
 
 
-def determine_params(opts):
-    '''This untility function will read in the parameters of the reference
+def determine_params(opts, candidates_dir):
+    '''This utility function will read in the parameters of the reference
     implementation api.h file and update the opts dict
     '''
-    algo_api_h = ctgen_get_supercop_dir() / 'crypto_aead' / opts.aead / "ref/api.h"
-    if not os.path.exists(algo_api_h):
-        sys.exit(f"{algo_api_h} does not exist. Ensure --aead is correct")
-    with open(algo_api_h, 'r') as f:
-        api_h = f.read()
-    log.debug(api_h)
-    for line in api_h.splitlines():
-        if "KEYBYTES" in line:
-            opts.key_size = 8 * int(line.split()[-1])
-        elif "NPUBBYTES" in line:
-            opts.npub_size = 8 * int(line.split()[-1])
-        elif "NSECBYTES" in line:
-            opts.nsec_size = 8 * int(line.split()[-1])
-        elif "NSECBYTES" in line:
-            opts.nsec_size = 8 * int(line.split()[-1])
-        elif "CRYPTO_ABYTES" in line:
-            opts.tag_size = 8 * int(line.split()[-1])
-    if opts.hash:
-        algo_hash_api_h = ctgen_get_supercop_dir() / 'crypto_hash' / opts.hash / "ref/api.h"
-        if not os.path.exists(algo_hash_api_h):
-            sys.exit(f"{algo_hash_api_h} did not exists. Ensure --hash is correct")
-        with open(algo_hash_api_h, 'r') as f:
-            hash_api_h = f.read()
-        log.debug(hash_api_h)
-        for line in hash_api_h.splitlines():
-            if "CRYPTO_BYTES" in line:
-                opts.message_digest_size = 8 * int(line.split()[-1])
+    api_map = {"CRYPTO_KEYBYTES": 'key_size', "CRYPTO_NPUBBYTES": 'npub_size', "CRYPTO_NSECBYTES": 'nsec_size', "CRYPTO_NSECBYTES": 'nsec_size', 
+        "CRYPTO_ABYTES": 'tag_size', "CRYPTO_BYTES": 'message_digest_size'
+        }
+    log.warning('Determining parameters automatically from api.h header files')
+    opts = vars(opts)
+    for op in ['aead', 'hash']:
+        alg = opts.get(op)
+        if not alg:
+            continue
+        impl_path = candidates_dir / f'crypto_{op}' / alg
+        api_h_files = list(impl_path.glob('**/api.h'))
+        if not api_h_files or len(api_h_files) < 1:
+            log.warning(f"No api.h files found in {impl_path}. Make sure --aead and/or --candidates_dir/--libs_dir are correct.")
+            print(f"No api.h files found in {impl_path}. Make sure --aead and/or --candidates_dir/--libs_dir are correct.")
+            return
+        if len(api_h_files) > 1:
+            log.warning("multiple api.h files found in the implementation folder.")
+        api_h = api_h_files[0]
+        if not os.path.exists(api_h):
+            log.warning(f"{api_h} does not exist. Ensure --aead and/or --candidates_dir/--libs_dir are correct.")
+            return
+
+        with open(api_h, 'r') as f:
+            api_h_content = f.read()
+
+        for line in api_h_content.splitlines():
+            splitted_line = line.split()
+            if len(splitted_line) >= 3 and splitted_line[0] == '#define':
+                k,v = splitted_line[1:3]
+                opt_attr = api_map.get(k)
+                if opt_attr:
+                    if opts[opt_attr] is None:
+                        v = int(v)*8
+                        log.info(f'From {api_h}: determined {opt_attr} to be {v} bits')
+                        opts[opt_attr] = v
 
 def blanket_message_hash_test(block_size_msg_digest):
     routine = []
@@ -1193,10 +1206,22 @@ def basic_hash_sizes(block_size_msg_digest):
     return routine
 
 def blanket_message_aead_test(opts):
+    ad_bs = opts.block_size_ad//8
+    xt_bs = opts.block_size//8
+    sizes = list(range(10)) + [15, 16, 17, 29, 61, 63, 64, 65, 67, 97, 127, 128, 129,
+        ad_bs // 2 - 1, ad_bs // 2,
+        ad_bs - 1, ad_bs, ad_bs + 1,
+        2*ad_bs - 1, 2*ad_bs, 2*ad_bs + 1,
+        xt_bs - 1, xt_bs, xt_bs + 1,
+        xt_bs // 2 - 1, xt_bs // 2,
+        2*xt_bs - 1, 2*xt_bs, 2*xt_bs + 1,
+    ]
+    sizes=list(set(sizes))
     routine = []
-    for ad_size in range(2*opts.block_size_ad//8):
-        for mess_size in range(2*opts.block_size//8):
-            routine.append([True, False, ad_size, mess_size,False])
+    for ad_size in sizes:
+        for mess_size in sizes:
+            routine.extend([True, dec, ad_size, mess_size,False] for dec in [False, True])
+    print(f"blanket_message_aead_test: generating testvectors with {len(routine)} messages")
     return routine
 
 def basic_aead_sizes(new_key, enc_dec, block_size_ad, block_size_message):
@@ -1218,7 +1243,7 @@ def basic_aead_sizes(new_key, enc_dec, block_size_ad, block_size_message):
     return routine
 
 
-def gen_benckmark_routine(opts):
+def gen_benchmark_routine(opts):
     if (opts.verbose):
         print("gen_benckmark_routine")
     if not opts.aead or not opts.block_size or not opts.block_size_ad:
@@ -1227,105 +1252,37 @@ def gen_benckmark_routine(opts):
         sys.exit("If --hash algorithm is desired --block_size_msg_digest is required")
     log.debug(f"original options \n{opts}\n")
 
-    # Update parameters based on api.h
-    determine_params(opts)
     orig_dest=opts.dest
     if opts.hash:
-        data = gen_dataset(opts, blanket_message_hash_test(opts.block_size_msg_digest), 1, 1)
         opts.dest = os.path.join(orig_dest, 'blanket_hash_test')
+        print(f'Generating {os.path.abspath(opts.dest)}')
+        data = gen_dataset(opts, blanket_message_hash_test(opts.block_size_msg_digest), 1, 1)
         gen_tv_and_write_files(opts, data[0])
-        print(f'Generated: {os.path.abspath(opts.dest)}')
 
-        data = gen_dataset(opts, basic_hash_sizes(opts.block_size_msg_digest), 1, 1)
         opts.dest = os.path.join(orig_dest, 'basic_hash_sizes')
+        print(f'Generating {os.path.abspath(opts.dest)}')
+        data = gen_dataset(opts, basic_hash_sizes(opts.block_size_msg_digest), 1, 1)
         gen_tv_and_write_files(opts, data[0])
-        print(f'Generated: {os.path.abspath(opts.dest)}')
 
-    # Power measure runs
-    data = gen_dataset(opts, [[True, False, 0, 16, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_0_16')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 16, 0, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_16_0')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 16, 16, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_16_16')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-
-    data = gen_dataset(opts, [[True, False, 0, 64, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_0_64')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 64, 0, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_64_0')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 64, 64, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_64_64')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-
-    data = gen_dataset(opts, [[True, False, 0, 1536, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_0_1536')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 1536, 0, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_1536_0')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 1536, 1536, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_1536_1536')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-
-    data = gen_dataset(opts, [[True, False, 0, 4*opts.block_size//8, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_0_4x')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 4*opts.block_size_ad//8, 0, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_4x_0')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 4*opts.block_size_ad//8, 4*opts.block_size//8, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_4x_4x')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-
-    data = gen_dataset(opts, [[True, False, 0, 5*opts.block_size//8, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_0_5x')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 5*opts.block_size_ad//8, 0, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_5x_0')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, [[True, False, 5*opts.block_size_ad//8, 5*opts.block_size//8, False]], 1, 1)
-    opts.dest = os.path.join(orig_dest, 'pow_5x_5x')
-    gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
-
-    data = gen_dataset(opts, blanket_message_aead_test(opts), 1, 1)
     opts.dest = os.path.join(orig_dest, 'kats_for_verification')
+    print(f'Generating {os.path.abspath(opts.dest)}')
+    data = gen_dataset(opts, blanket_message_aead_test(opts), 1, 1)
     gen_tv_and_write_files(opts, data[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
 
     # Ensure new key
-    routine_new_key = [[True, False, 0,0, False]]
+    opts.dest = os.path.join(orig_dest, 'generic_aead_sizes_new_key')
+    print(f'Generating {os.path.abspath(opts.dest)}')
+    routine_new_key = [[True, False, 0, 0, False]]
     routine_new_key += basic_aead_sizes(True, False, opts.block_size_ad, opts.block_size)
     routine_new_key += basic_aead_sizes(True, True, opts.block_size_ad, opts.block_size)
     data_enc = gen_dataset(opts, routine_new_key, 1, 1)
-    opts.dest = os.path.join(orig_dest, 'generic_aead_sizes_new_key')
     gen_tv_and_write_files(opts, data_enc[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
 
     # Ensure at least one new key
+    opts.dest = os.path.join(orig_dest, 'generic_aead_sizes_reuse_key')
+    print(f'Generating {os.path.abspath(opts.dest)}')
     routine_reuse_key = [[True, False, 0,0, False]]
     routine_reuse_key += basic_aead_sizes(False, False, opts.block_size_ad, opts.block_size)
     routine_reuse_key += basic_aead_sizes(False, True, opts.block_size_ad, opts.block_size)
     data_enc = gen_dataset(opts, routine_reuse_key, 1, 1)
-    opts.dest = os.path.join(orig_dest, 'generic_aead_sizes_reuse_key')
     gen_tv_and_write_files(opts, data_enc[0])
-    print(f'Generated: {os.path.abspath(opts.dest)}')
