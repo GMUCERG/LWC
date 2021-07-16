@@ -38,6 +38,7 @@ entity PreProcessor is
 	generic (
 		G_W          : integer;
 		G_SW         : integer;
+        G_OFFLINE    : boolean := False;
 		G_ASYNC_RSTN : boolean	
 	);
     port (  
@@ -112,9 +113,10 @@ architecture PreProcessor of PreProcessor is
 
 
     ---STATES
-    type t_state32 is (S_INT_MODE, S_INT_KEY, S_HDR_KEY, S_LD_KEY, S_HDR_NPUB, S_LD_NPUB,
-                       S_HDR_AD, S_LD_AD, S_HDR_MSG, S_LD_MSG, S_HDR_TAG, S_LD_TAG,
-                       S_HDR_HASH, S_LD_HASH, S_EMPTY_HASH);
+    type t_state32 is (S_INT_MODE, S_INT_KEY, S_HDR_KEY, S_LD_KEY, S_HDR_LENGTH, S_LD_LENGTH, S_HDR_NPUB, S_LD_NPUB,
+        S_HDR_AD, S_LD_AD, S_HDR_MSG, S_LD_MSG, S_HDR_TAG, S_LD_TAG,
+        S_HDR_HASH, S_LD_HASH, S_EMPTY_HASH);  
+
                        
     type t_state16 is (S_INT_MODE, S_INT_KEY, S_HDR_KEY, S_LD_KEY, S_HDR_NPUB, S_LD_NPUB,
                        S_HDR_AD, S_LD_AD, S_HDR_MSG, S_LD_MSG, S_HDR_TAG, S_LD_TAG, 
@@ -352,7 +354,11 @@ FSM_32BIT: if (G_W=32) generate
                     if (pdi_opcode = INST_ACTKEY) then
                         nx_state <= S_INT_KEY;
                     elsif ((pdi_opcode = INST_ENC or pdi_opcode = INST_DEC) and cmd_ready = '1') then
-                        nx_state <= S_HDR_NPUB;
+                        if G_OFFLINE = True then
+                            nx_state <= S_HDR_LENGTH;
+                        else
+                            nx_state <= S_HDR_NPUB;
+                        end if;
                     elsif (pdi_opcode = INST_HASH and cmd_ready = '1') then
                         nx_state <= S_HDR_HASH;
                     end if;
@@ -375,7 +381,17 @@ FSM_32BIT: if (G_W=32) generate
                 if (sdi_fire and key_ready_p = '1' and last_flit_of_segment = '1') then
                     nx_state <= S_INT_MODE;
                 end if;
+            
+            when S_HDR_LENGTH=>
+                if pdi_fire then
+                    received_wrong_header <= pdi_opcode /= HDR_LENGTH;
+                    nx_state <= S_LD_LENGTH;
+                end if;
 
+            when S_LD_LENGTH =>
+                if (pdi_fire and bdi_ready_p ='1' and last_flit_of_segment = '1') then
+                    nx_state <= S_HDR_NPUB;
+                end if;  
             -- NPUB
             when S_HDR_NPUB=>
                 if pdi_fire then
@@ -545,6 +561,19 @@ FSM_32BIT: if (G_W=32) generate
                 key_update      <= '1';
                 en_SegLenCnt    <= sdi_valid and key_ready_p;
 
+            -- Length HDR for offline algorithms
+            when S_HDR_LENGTH =>
+                pdi_ready_internal <= '1';
+                len_SegLenCnt   <= pdi_valid;
+                if (pdi_valid = '1') then
+                    nx_eoi_flag <= pdi_data(26);
+                    nx_eot_flag <= pdi_data(25);
+                end if;
+            when S_LD_LENGTH =>
+                pdi_ready_internal       <= bdi_ready_p;
+                bdi_valid_p     <= pdi_valid;
+                bdi_type        <= HDR_LENGTH;
+                en_SegLenCnt    <= pdi_valid and bdi_ready_p;
             -- NPUB
             when S_HDR_NPUB =>
                 pdi_ready_internal       <= '1';
