@@ -11,8 +11,10 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.math_real.all;
-
 use std.textio.all;
+
+use work.NIST_LWAPI_pkg.ALL;
+
 
 package LWC_TB_pkg is
     function LWC_TO_HSTRING (VALUE : STD_LOGIC_VECTOR) return STRING;
@@ -22,15 +24,6 @@ package LWC_TB_pkg is
 end package LWC_TB_pkg;
 
 package body LWC_TB_pkg is
-
-    function or_reduce (l : STD_LOGIC_VECTOR) return STD_LOGIC is
-    variable result : STD_LOGIC := '0';
-    begin
-    for i in l'reverse_range loop
-      result := (l(i) or result);
-    end loop;
-    return result;
-    end function or_reduce;
 
     constant NBSP : CHARACTER      := CHARACTER'val(160); -- space character
 
@@ -124,7 +117,7 @@ package body LWC_TB_pkg is
           read(L, c, ok);
         end if;
       end loop;
-      if or_reduce (sv (0 to pad-1)) = '1' then  -- %%% replace with "or"
+      if LWC_OR_REDUCE (sv (0 to pad-1)) = '1' then  -- %%% replace with "or"
         GOOD := false;                           -- vector was truncated.
       else
         GOOD  := true;

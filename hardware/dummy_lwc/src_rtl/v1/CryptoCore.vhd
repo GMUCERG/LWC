@@ -191,7 +191,7 @@ begin
     -- Utility signal: Indicates whether the input word is fully filled or not.
     -- If '1', word is only partially filled.
     -- Used to determine whether 0x80 padding word can be inserted into this last word.
-    bdi_partial_s <= or_reduce(bdi_pad_loc_s);
+    bdi_partial_s <= LWC_OR_REDUCE(bdi_pad_loc_s);
 
     ----------------------------------------------------------------------------
     --! Tag RAM instantiation - used to calculate tag and hash_value

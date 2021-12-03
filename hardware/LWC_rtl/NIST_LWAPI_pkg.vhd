@@ -89,6 +89,9 @@ package NIST_LWAPI_pkg is
     --! Functions used by LWC Core, PreProcessor and PostProcessor
     --! expands input vector 8 times.
     function Byte_To_Bits_EXP (bytes_in : std_logic_vector) return std_logic_vector;
+    
+    --! same as OR_REDUCE in ieee.std_logic_misc. ieee.std_logic_misc is a Non-standard package and should be avoided
+    function LWC_OR_REDUCE (l : STD_LOGIC_VECTOR) return STD_LOGIC;
 
 end NIST_LWAPI_pkg;
 
@@ -111,5 +114,14 @@ begin
 
     return bits;
 end Byte_To_Bits_EXP;
+
+function LWC_OR_REDUCE (l : STD_LOGIC_VECTOR) return STD_LOGIC is
+    variable result : STD_LOGIC := '0';
+    begin
+    for i in l'reverse_range loop
+      result := (l(i) or result);
+    end loop;
+    return result;
+end function LWC_OR_REDUCE;
 
 end NIST_LWAPI_pkg;
