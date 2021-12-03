@@ -108,6 +108,7 @@ architecture structure of LWC is
             clk             : in  STD_LOGIC;
             rst             : in  STD_LOGIC;
             key             : in  STD_LOGIC_VECTOR(CCSW - 1 downto 0);
+            key_update      : in  STD_LOGIC;
             key_valid       : in  STD_LOGIC;
             key_ready       : out STD_LOGIC;
             bdi             : in  STD_LOGIC_VECTOR(CCW - 1 downto 0);
@@ -120,7 +121,6 @@ architecture structure of LWC is
             bdi_eoi         : in  STD_LOGIC;
             bdi_type        : in  STD_LOGIC_VECTOR(4 - 1 downto 0);
             decrypt_in      : in  STD_LOGIC;
-            key_update      : in  STD_LOGIC;
             hash_in         : in  std_logic;
             bdo             : out STD_LOGIC_VECTOR(CCW - 1 downto 0);
             bdo_valid       : out STD_LOGIC;

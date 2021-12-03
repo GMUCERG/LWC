@@ -29,10 +29,9 @@ entity LWC_TB IS
     generic (
         G_MAX_FAILURES      : INTEGER := 100;                      --! Maximum number of failures before stopping the simulation
         G_TEST_MODE         : INTEGER := 0;                        --! 0: normal, 1: stall both sdi/pdi_valid and do_ready, 2: stall sdi/pdi_valid, 3: stall do_ready, 4: Timing (cycle) measurement 
-        G_TEST_IPSTALL      : INTEGER := 3;                        --! Number of cycles (or max cycles, if G_RANDOMIZE_STALLS) to stall pdi_valid
-        G_TEST_ISSTALL      : INTEGER := 3;                        --! Number of cycles (or max cycles, if G_RANDOMIZE_STALLS) to stall sdi_valid
-        G_TEST_OSTALL       : INTEGER := 3;                        --! Number of cycles (or max cycles, if G_RANDOMIZE_STALLS) to stall do_ready
-        -- G_RANDOMIZE_STALLS  : BOOLEAN := False;                    --! Randomize number of stalls from range [0, max], where max is any of the above G_TEST_xSTALL values (removed to keep VHDL 93 compatibility)
+        G_TEST_IPSTALL      : INTEGER := 3;                        --! Number of cycles to stall pdi_valid
+        G_TEST_ISSTALL      : INTEGER := 3;                        --! Number of cycles to stall sdi_valid
+        G_TEST_OSTALL       : INTEGER := 3;                        --! Number of cycles to stall do_ready
         G_PERIOD_PS         : INTEGER := 10_000;                   --! Simulation clock period in picoseconds
         G_FNAME_PDI         : STRING  := "../KAT/v1/pdi.txt";      --! Path to the input file containing cryptotvgen PDI testvector data
         G_FNAME_SDI         : STRING  := "../KAT/v1/sdi.txt";      --! Path to the input file containing cryptotvgen SDI testvector data
@@ -41,7 +40,7 @@ entity LWC_TB IS
         G_FNAME_TIMING      : STRING  := "timing.txt";             --! Path to the generated timing measurements (when G_TEST_MODE=4)
         G_FNAME_FAILED_TVS  : STRING  := "failed_testvectors.txt"; --! Path to the generated log of failed testvector words
         G_FNAME_RESULT      : STRING  := "result.txt";             --! Path to the generated result file containing 0 or 1  -- REDUNDANT / NOT USED
-        G_PRERESET_WAIT     : TIME    := 100 ns                    --! Xilinx GSR takes 100ns, required for post-synth simulation
+        G_PRERESET_WAIT_PS  : INTEGER := 100_000                   --! Xilinx GSR takes 100ns, required for post-synth simulation
     );
 end LWC_TB;
 
@@ -95,14 +94,14 @@ architecture TB of LWC_TB is
     signal timing_stopped_probe       : std_logic;
     
     ---------------------- constants ----------------------
-    constant cons_tb            : STRING(1 to 6) := "# TB :";
-    constant cons_ins           : STRING(1 to 6) := "INS = ";
-    constant cons_hdr           : STRING(1 to 6) := "HDR = ";
-    constant cons_dat           : STRING(1 to 6) := "DAT = ";
-    constant cons_stt           : STRING(1 to 6) := "STT = ";
-    constant cons_eof           : STRING(1 to 6) := "###EOF";
-    constant SUCCESS_WORD       : STD_LOGIC_VECTOR(W - 1 downto 0) := INST_SUCCESS & (W - 5 downto 0 => '0');
-    constant FAILURE_WORD       : STD_LOGIC_VECTOR(W - 1 downto 0) := INST_FAILURE & (W - 5 downto 0 => '0');
+    constant TB_HEAD      : STRING(1 to 6) := "# TB :";
+    constant INS_HEAD     : STRING(1 to 6) := "INS = ";
+    constant HDR_HEAD     : STRING(1 to 6) := "HDR = ";
+    constant DAT_HEAD     : STRING(1 to 6) := "DAT = ";
+    constant STT_HEAD     : STRING(1 to 6) := "STT = ";
+    constant EOF_HEAD     : STRING(1 to 6) := "###EOF";
+    constant SUCCESS_WORD : STD_LOGIC_VECTOR(W - 1 downto 0) := INST_SUCCESS & (W - 5 downto 0 => '0');
+    constant FAILURE_WORD : STD_LOGIC_VECTOR(W - 1 downto 0) := INST_FAILURE & (W - 5 downto 0 => '0');
 
 
     ------------------- input / output files ----------------------
@@ -171,7 +170,7 @@ begin
         " -- Test Mode:    " & INTEGER'image(G_TEST_MODE) & LF &
         " -- Max Failures: " & INTEGER'image(G_MAX_FAILURES) & LF & CR severity note;
 
-        wait for G_PRERESET_WAIT;
+        wait for G_PRERESET_WAIT_PS * ps;
         if ASYNC_RSTN then
             rst <= '0';
             wait for 2 * clk_period;
@@ -225,10 +224,11 @@ begin
     tb_read_pdi : process
         variable line_data     : LINE;
         variable word_block    : STD_LOGIC_VECTOR(W-1 downto 0) := (others => '0');
-        variable read_result   : BOOLEAN;
+        variable read_ok       : BOOLEAN;
         variable line_head     : STRING(1 to 6);
         variable stall_cycles  : INTEGER;
-        variable actkey_hash   : BOOLEAN; -- either actkey or hash instruction
+        variable actkey_ins    : BOOLEAN;
+        variable hash_ins      : BOOLEAN;
         variable op_sent       : BOOLEAN := False; -- instruction other than actkey or hash was already sent
     begin
         wait until reset_done;
@@ -236,18 +236,19 @@ begin
         
         while not endfile(pdi_file) loop
             readline(pdi_file, line_data);
-            read(line_data, line_head, read_result); --! read line header
-            if read_result and (line_head = cons_ins) then
+            read(line_data, line_head, read_ok); --! read line header
+            if read_ok and (line_head = INS_HEAD) then
                 tv_count <= tv_count + 1;
             end if;
-            if read_result and (line_head = cons_ins or line_head = cons_hdr or line_head = cons_dat) then
+            if read_ok and (line_head = INS_HEAD or line_head = HDR_HEAD or line_head = DAT_HEAD) then
                 loop
-                    LWC_HREAD(line_data, word_block, read_result);
-                    if not read_result then
+                    LWC_HREAD(line_data, word_block, read_ok);
+                    if not read_ok then
                         exit;
                     end if;
                     
-                    actkey_hash := (word_block(W-1 downto W-8) = X"70") or (word_block(W-1 downto W-8) = X"80"); -- for all values of W
+                    actkey_ins := (line_head = INS_HEAD) and (word_block(W-1 downto W-4) = INST_ACTKEY);
+                    hash_ins   := (line_head = INS_HEAD) and (word_block(W-1 downto W-4) = INST_HASH);
 
                     -- stalls
                     if G_TEST_MODE = 1 or G_TEST_MODE = 2 then
@@ -257,12 +258,12 @@ begin
                             wait for stall_cycles * clk_period;
                             wait until rising_edge(clk); -- TODO verify number of generated stall cycles
                         end if;
-                    elsif G_TEST_MODE = 4 and line_head = cons_ins and (actkey_hash or op_sent) and timing_started then
+                    elsif G_TEST_MODE = 4 and line_head = INS_HEAD and (actkey_ins or hash_ins or op_sent) and timing_started then
                         if not timing_stopped then
                             pdi_valid <= '0';
-                            wait until rising_edge(clk) and timing_stopped; -- wait for DO process to complete timed operation
+                            wait until rising_edge(clk) and timing_stopped; -- wait for tb_verify_do process to complete timed operation
                         end if;
-                        timing_started <= False; -- signal to DO: I saw you stopped timing
+                        timing_started <= False; -- Ack receiving timing_stopped = '1' to tb_verify_do process
                     end if;
 
                     pdi_valid <= '1';
@@ -270,8 +271,8 @@ begin
                     wait until rising_edge(clk) and pdi_ready = '1';
                     
                     -- NOTE: should never stall here
-                    if G_TEST_MODE = 4 and line_head = cons_ins then
-                        op_sent := not actkey_hash;
+                    if G_TEST_MODE = 4 and line_head = INS_HEAD then
+                        op_sent := not actkey_ins and not hash_ins;
                         if not timing_started then
                             start_cycle <= cycle_counter;
                             timing_started <= True;
@@ -298,7 +299,7 @@ begin
     tb_read_sdi : process
         variable line_data    : LINE;
         variable word_block   : STD_LOGIC_VECTOR(SW-1 downto 0) := (others => '0');
-        variable read_result  : BOOLEAN;
+        variable read_ok      : BOOLEAN;
         variable line_head    : STRING(1 to 6);
         variable stall_cycles : INTEGER;
     begin
@@ -307,11 +308,11 @@ begin
 
         while not endfile(sdi_file) loop
             readline(sdi_file, line_data);
-            read(line_data, line_head, read_result);
-            if read_result and (line_head = cons_ins or line_head = cons_hdr or line_head = cons_dat) then
+            read(line_data, line_head, read_ok);
+            if read_ok and (line_head = INS_HEAD or line_head = HDR_HEAD or line_head = DAT_HEAD) then
                 loop
-                    LWC_HREAD(line_data, word_block, read_result);
-                    if not read_result then
+                    LWC_HREAD(line_data, word_block, read_ok);
+                    if not read_ok then
                         exit;
                     end if;
 
@@ -320,7 +321,6 @@ begin
                         if stall_cycles > 0 then
                             sdi_valid <= '0';
                             wait for stall_cycles * clk_period;
-                            -- wait until rising_edge(clk);
                         end if;
                     elsif G_TEST_MODE = 4 and not timing_started then
                         sdi_valid <= '0';
@@ -339,14 +339,14 @@ begin
 
     --  =======================================================================
     --! =========================== DO Verification ===========================
-    tb_verifydata : process
+    tb_verify_do : process
         variable line_no        : INTEGER := 0;
         variable line_data      : LINE;
         variable logMsg         : LINE;
         variable failMsg        : LINE;
         variable tb_block       : STD_LOGIC_VECTOR(20 - 1 downto 0);
         variable word_block     : STD_LOGIC_VECTOR(W  - 1 downto 0) := (others => '0');
-        variable read_result    : BOOLEAN;
+        variable read_ok        : BOOLEAN;
         variable temp_read      : STRING(1 to 6);
         variable word_count     : INTEGER := 1;
         variable force_exit     : BOOLEAN := False;
@@ -366,12 +366,12 @@ begin
         while not endfile(do_file) and not force_exit loop
             readline(do_file, line_data);
             line_no := line_no + 1;
-            read(line_data, temp_read, read_result);
-            if read_result then
-                if temp_read = cons_stt or temp_read = cons_hdr or temp_read = cons_dat then
+            read(line_data, temp_read, read_ok);
+            if read_ok then
+                if temp_read = STT_HEAD or temp_read = HDR_HEAD or temp_read = DAT_HEAD then
                     loop
-                        LWC_HREAD(line_data, word_block, read_result);
-                        if not read_result then
+                        LWC_HREAD(line_data, word_block, read_ok);
+                        if not read_ok then
                             exit;
                         end if;
 
@@ -434,7 +434,7 @@ begin
                         end if;
                         word_count := word_count + 1;
 
-                        if G_TEST_MODE = 4 and temp_read = cons_stt then
+                        if G_TEST_MODE = 4 and temp_read = STT_HEAD then
                             assert timing_started;
                             cycles := cycle_counter - start_cycle;
                             timing_stopped <= True;
@@ -446,12 +446,14 @@ begin
                         end if;
 
                     end loop;
-                elsif temp_read = cons_eof then
+                elsif temp_read = EOF_HEAD then
                     force_exit := True;
-                elsif temp_read = cons_tb then
+                elsif temp_read = TB_HEAD then
                     testcase := testcase + 1;
-                    LWC_HREAD(line_data, tb_block, read_result); --! read data
-                    read_result    := False;
+                    LWC_HREAD(line_data, tb_block, read_ok);
+                    if not read_ok then
+                        exit;
+                    end if;
                     opcode := tb_block(19 downto 16);
                     keyid  := to_integer(to_01(unsigned(tb_block(15 downto 8))));
                     msgid  := to_integer(to_01(unsigned(tb_block(7  downto 0))));
@@ -467,7 +469,7 @@ begin
                         else
                             write(logMsg, STRING'(" for DEC"));
                         end if;
-                        writeline(log_file,logMsg);
+                        writeline(log_file, logMsg);
                     end if;
                     report "---------Started verifying MsgID = " & INTEGER'image(testcase) severity note;
                 end if;

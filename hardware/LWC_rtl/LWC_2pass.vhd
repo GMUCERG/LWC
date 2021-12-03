@@ -43,7 +43,7 @@ entity LWC_2pass is
         do_ready        : in  std_logic;
         do_valid        : out std_logic;
         do_last         : out std_logic;
-
+        --! Tow-pass FIFO interface
         fdi_data         : in std_logic_vector(CCW-1 downto 0);
         fdi_valid        : in std_logic;
         fdi_ready        : out  std_logic;

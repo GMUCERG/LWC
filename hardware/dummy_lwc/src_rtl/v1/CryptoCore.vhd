@@ -18,43 +18,42 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-use ieee.std_logic_misc.all;
 use work.NIST_LWAPI_pkg.all;
 use work.design_pkg.all;
 
 
 entity CryptoCore is
     port (
-        clk             : in   STD_LOGIC;
-        rst             : in   STD_LOGIC;
+        clk             : in   std_logic;
+        rst             : in   std_logic;
         --PreProcessor===============================================
         ----!key----------------------------------------------------
-        key             : in   STD_LOGIC_VECTOR (CCSW     -1 downto 0);
-        key_valid       : in   STD_LOGIC;
-        key_ready       : out  STD_LOGIC;
+        key             : in   std_logic_vector (CCSW     -1 downto 0);
+        key_valid       : in   std_logic;
+        key_ready       : out  std_logic;
         ----!Data----------------------------------------------------
-        bdi             : in   STD_LOGIC_VECTOR (CCW     -1 downto 0);
-        bdi_valid       : in   STD_LOGIC;
-        bdi_ready       : out  STD_LOGIC;
-        bdi_pad_loc     : in   STD_LOGIC_VECTOR (CCWdiv8 -1 downto 0);
-        bdi_valid_bytes : in   STD_LOGIC_VECTOR (CCWdiv8 -1 downto 0);
-        bdi_size        : in   STD_LOGIC_VECTOR (3       -1 downto 0);
-        bdi_eot         : in   STD_LOGIC;
-        bdi_eoi         : in   STD_LOGIC;
-        bdi_type        : in   STD_LOGIC_VECTOR (4       -1 downto 0);
-        decrypt_in      : in   STD_LOGIC;
-        key_update      : in   STD_LOGIC;
+        bdi             : in   std_logic_vector (CCW     -1 downto 0);
+        bdi_valid       : in   std_logic;
+        bdi_ready       : out  std_logic;
+        bdi_pad_loc     : in   std_logic_vector (CCWdiv8 -1 downto 0);
+        bdi_valid_bytes : in   std_logic_vector (CCWdiv8 -1 downto 0);
+        bdi_size        : in   std_logic_vector (3       -1 downto 0);
+        bdi_eot         : in   std_logic;
+        bdi_eoi         : in   std_logic;
+        bdi_type        : in   std_logic_vector (4       -1 downto 0);
+        decrypt_in      : in   std_logic;
+        key_update      : in   std_logic;
         hash_in         : in   std_logic;
         --!Post Processor=========================================
-        bdo             : out  STD_LOGIC_VECTOR (CCW      -1 downto 0);
-        bdo_valid       : out  STD_LOGIC;
-        bdo_ready       : in   STD_LOGIC;
-        bdo_type        : out  STD_LOGIC_VECTOR (4       -1 downto 0);
-        bdo_valid_bytes : out  STD_LOGIC_VECTOR (CCWdiv8 -1 downto 0);
-        end_of_block    : out  STD_LOGIC;
-        msg_auth_valid  : out  STD_LOGIC;
-        msg_auth_ready  : in   STD_LOGIC;
-        msg_auth        : out  STD_LOGIC
+        bdo             : out  std_logic_vector (CCW      -1 downto 0);
+        bdo_valid       : out  std_logic;
+        bdo_ready       : in   std_logic;
+        bdo_type        : out  std_logic_vector (4       -1 downto 0);
+        bdo_valid_bytes : out  std_logic_vector (CCWdiv8 -1 downto 0);
+        end_of_block    : out  std_logic;
+        msg_auth_valid  : out  std_logic;
+        msg_auth_ready  : in   std_logic;
+        msg_auth        : out  std_logic
     );
 end CryptoCore;
 
