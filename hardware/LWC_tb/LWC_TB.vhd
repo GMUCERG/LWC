@@ -40,14 +40,23 @@ entity LWC_TB IS
         G_FNAME_TIMING      : STRING  := "timing.txt";             --! Path to the generated timing measurements (when G_TEST_MODE=4)
         G_FNAME_FAILED_TVS  : STRING  := "failed_testvectors.txt"; --! Path to the generated log of failed testvector words
         G_FNAME_RESULT      : STRING  := "result.txt";             --! Path to the generated result file containing 0 or 1  -- REDUNDANT / NOT USED
-        G_PRERESET_WAIT_PS  : INTEGER := 100_000                   --! Xilinx GSR takes 100ns, required for post-synth simulation
+        G_PRERESET_WAIT_NS  : INTEGER := 100;                      --! Time (in nanosecods) to wait before reseting DUT. Xilinx GSR takes 100ns, required for post-synth simulation
+        G_INPUT_DELAY_NS    : INTEGER := 0                         --! Input delay
     );
 end LWC_TB;
 
 architecture TB of LWC_TB is
-    -------------! timing constants ------------------
-    constant clk_period         : TIME := G_PERIOD_PS * ps;
-    constant input_delay        : TIME := 0 ns; -- clk_period / 2; --
+    ---------------------- constants ----------------------
+    constant input_delay  : TIME := G_INPUT_DELAY_NS * ns; -- clk_period / 2; --
+    constant clk_period   : TIME := G_PERIOD_PS * ps;
+    constant TB_HEAD      : STRING(1 to 6) := "# TB :";
+    constant INS_HEAD     : STRING(1 to 6) := "INS = ";
+    constant HDR_HEAD     : STRING(1 to 6) := "HDR = ";
+    constant DAT_HEAD     : STRING(1 to 6) := "DAT = ";
+    constant STT_HEAD     : STRING(1 to 6) := "STT = ";
+    constant EOF_HEAD     : STRING(1 to 6) := "###EOF";
+    constant SUCCESS_WORD : STD_LOGIC_VECTOR(W - 1 downto 0) := INST_SUCCESS & (W - 5 downto 0 => '0');
+    constant FAILURE_WORD : STD_LOGIC_VECTOR(W - 1 downto 0) := INST_FAILURE & (W - 5 downto 0 => '0');
 
     -- =================== --
     -- SIGNALS DECLARATION --
@@ -93,17 +102,6 @@ architecture TB of LWC_TB is
     signal timing_stopped       : BOOLEAN := False;
     signal timing_stopped_probe       : std_logic;
     
-    ---------------------- constants ----------------------
-    constant TB_HEAD      : STRING(1 to 6) := "# TB :";
-    constant INS_HEAD     : STRING(1 to 6) := "INS = ";
-    constant HDR_HEAD     : STRING(1 to 6) := "HDR = ";
-    constant DAT_HEAD     : STRING(1 to 6) := "DAT = ";
-    constant STT_HEAD     : STRING(1 to 6) := "STT = ";
-    constant EOF_HEAD     : STRING(1 to 6) := "###EOF";
-    constant SUCCESS_WORD : STD_LOGIC_VECTOR(W - 1 downto 0) := INST_SUCCESS & (W - 5 downto 0 => '0');
-    constant FAILURE_WORD : STD_LOGIC_VECTOR(W - 1 downto 0) := INST_FAILURE & (W - 5 downto 0 => '0');
-
-
     ------------------- input / output files ----------------------
     file pdi_file       : TEXT open read_mode  is G_FNAME_PDI;
     file sdi_file       : TEXT open read_mode  is G_FNAME_SDI;
@@ -170,7 +168,7 @@ begin
         " -- Test Mode:    " & INTEGER'image(G_TEST_MODE) & LF &
         " -- Max Failures: " & INTEGER'image(G_MAX_FAILURES) & LF & CR severity note;
 
-        wait for G_PRERESET_WAIT_PS * ps;
+        wait for G_PRERESET_WAIT_NS * ns;
         if ASYNC_RSTN then
             rst <= '0';
             wait for 2 * clk_period;
@@ -471,7 +469,7 @@ begin
                         end if;
                         writeline(log_file, logMsg);
                     end if;
-                    report "---------Started verifying MsgID = " & INTEGER'image(testcase) severity note;
+                    report "--------- Verifying testcase " & INTEGER'image(testcase) & " MsgID = " & INTEGER'image(msgid) & " KeyID = " & INTEGER'image(keyid) severity note;
                 end if;
             end if;
         end loop;

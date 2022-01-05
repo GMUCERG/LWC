@@ -26,7 +26,6 @@ rtl.clock_port = "clk"
 
 tb.top = 'LWC_TB'
 tb.sources = [
-    "src_rtl/v1/LWC/NIST_LWAPI_pkg.vhd",
     "../LWC_tb/LWC_TB_pkg.vhd",
     "../LWC_tb/LWC_TB.vhd",
 ]
