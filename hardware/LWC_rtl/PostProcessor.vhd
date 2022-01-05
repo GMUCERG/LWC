@@ -471,15 +471,13 @@ begin
         --! 16 Bit specific declarations
         signal nx_state, pr_state : t_state16;
         signal HDR_TAG_internal   : std_logic_vector(31 downto 0);
-        signal data_seg_length    : std_logic_vector(G_W - 1 downto 0);
         signal tag_size_bytes     : std_logic_vector(16 - 1 downto 0);
 
     begin
 
         --! Logics
-        data_seg_length  <= cmd;
         tag_size_bytes   <= std_logic_vector(to_unsigned(TAGdiv8, 16));
-        load_SegLenCnt   <= data_seg_length(G_W - 1 downto G_W - 8 * (G_W / 8));
+        load_SegLenCnt   <= cmd(16 - 1 downto 0);
         HDR_TAG_internal <= HDR_TAG & x"300" & tag_size_bytes(15 downto 0);
 
         --! State register
@@ -972,16 +970,16 @@ begin
 
                 when S_HDR_HASHLEN_MSB =>
                     do_valid_internal <= '1';
-                    do_data_internal  <= do_data_t16(15 downto 8);
+                    do_data_internal  <= do_data_t16(2 * G_W - 1 downto G_W);
 
                 when S_HDR_HASHLEN_LSB =>
                     do_valid_internal <= '1';
-                    do_data_internal  <= do_data_t16(7 downto 0);
+                    do_data_internal  <= do_data_t16(G_W - 1 downto 0);
 
                 when S_OUT_HASH =>
                     bdo_ready         <= do_ready;
                     do_valid_internal <= bdo_valid;
-                    do_data_internal  <= bdo_cleared;
+                    do_data_internal  <= bdo_cleared(G_W - 1 downto 0);
 
                 --!MSG/CT
                 when S_HDR_MSG =>
@@ -1025,12 +1023,12 @@ begin
                     bdo_ready         <= do_ready;
                     do_valid_internal <= bdo_valid;
                     en_SegLenCnt      <= bdo_valid and do_ready;
-                    do_data_internal  <= bdo_cleared;
+                    do_data_internal  <= bdo_cleared(G_W - 1 downto 0);
 
                 --TAG
                 when S_HDR_TAG =>
-                    do_valid_internal                  <= '1';
-                    do_data_internal(G_W - 1 downto 0) <= HDR_TAG_internal(31 downto 32 - G_W);
+                    do_valid_internal <= '1';
+                    do_data_internal  <= HDR_TAG_internal(31 downto 32 - G_W);
 
                 when S_HDR_RESTAG =>
                     do_valid_internal <= '1';
