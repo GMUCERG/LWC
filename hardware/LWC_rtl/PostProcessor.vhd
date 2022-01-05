@@ -184,7 +184,7 @@ begin
         signal bdo_valid_p : std_logic;
         signal bdo_ready_p : std_logic;
         signal bdo_p_fire  : boolean;
-        signal bdo_p       : std_logic_vector(31 downto 0);
+        signal bdo_p       : std_logic_vector(G_W - 1 downto 0);
 
         signal nx_state, pr_state : t_state32;
 
@@ -194,7 +194,7 @@ begin
 
         --! SIPO
         -- for ccw < W: a sipo is used for width conversion
-        bdoSIPO : entity work.DATA_SIPO(behavioral)
+        bdoSIPO : entity work.DATA_SIPO
             generic map(
                 G_ASYNC_RSTN => G_ASYNC_RSTN
             )
@@ -928,7 +928,6 @@ begin
                     end if;
             end case;
         end process;
-
 
         --! Output state function
         process(pr_state, bdo_valid, decrypt, cmd, cmd_valid, do_ready, eot, dout_LenReg, bdo_cleared, do_data_t16, HDR_TAG_internal, tag_size_bytes, data_seg_length)
