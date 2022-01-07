@@ -200,7 +200,7 @@ begin
     Inst_PostProcessor: entity work.PostProcessor
     	generic map(
         		G_W            => W,
-        		G_ASYNC_RSTN   => ASYNC_RSTN
+        		ASYNC_RSTN   => ASYNC_RSTN
         	)
         port map(
                 clk             => clk                                     ,

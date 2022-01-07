@@ -31,12 +31,10 @@ package NIST_LWAPI_pkg is
     --! External bus: supported values are 8, 16 and 32 bits
     constant W          : positive := 32;
     constant SW         : positive := W;
-    --! Implementation of an "offline" algorithm
-    constant G_OFFLINE  : boolean := False;
     --! only used in protected implementations
     constant PDI_SHARES : positive := 1;
     constant SDI_SHARES : positive := 1;
-    -- constant RW         : natural  := 0;
+    constant RW         : natural  := 0;
 
     --! Asynchronous and active-low reset.
     --! Can be set to `True` when targeting ASICs given that your CryptoCore supports it.
@@ -129,8 +127,6 @@ package NIST_LWAPI_pkg is
     --! first TO_01 and then TO_INTEGER
     function TO_INT01(S : UNSIGNED) return INTEGER;
     function TO_INT01(S : STD_LOGIC_VECTOR) return INTEGER;
-
-    function is_zero(slv: std_logic_vector) return boolean;
 
 end NIST_LWAPI_pkg;
 
@@ -256,11 +252,5 @@ package body NIST_LWAPI_pkg is
         return TO_INT01(unsigned(S));
 
     end function TO_INT01;
-
-        function is_zero(slv: std_logic_vector) return boolean is
-        constant zeros : std_logic_vector(slv'range) := (others => '0');
-    begin
-        return slv = zeros;
-    end function;
 
 end NIST_LWAPI_pkg;

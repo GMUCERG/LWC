@@ -1,0 +1,11 @@
+design_pkg.vhd
+LWC/NIST_LWAPI_pkg.vhd
+SPDRam.vhd
+CryptoCore.vhd
+LWC/key_piso.vhd
+LWC/fwft_fifo.vhd
+LWC/data_sipo.vhd
+LWC/data_piso.vhd
+LWC/PreProcessor.vhd
+LWC/PostProcessor.vhd
+LWC/LWC.vhd

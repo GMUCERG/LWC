@@ -3,26 +3,26 @@
 --! @brief      Pre-processor for NIST LWC API
 --!
 --! @author     Michael Tempelmeier
---! @author     Farnoud Farahmand
---! @author     Kamyar Mohajerani
---!
 --! @copyright  Copyright (c) 2019 Chair of Security in Information Technology
 --!             ECE Department, Technical University of Munich, GERMANY
 --!
---!             Copyright (c) 2022 Cryptographic Engineering Research Group
+--! @author     Farnoud Farahmand
+--! @copyright  Copyright (c) 2019 Cryptographic Engineering Research Group
 --!             ECE Department, George Mason University Fairfax, VA, U.S.A.
 --!             All rights Reserved.
---!
+
 --! @license    This project is released under the GNU Public License.
 --!             The license and distribution terms for this file may be
 --!             found in the file LICENSE in this distribution or at
 --!             http://www.gnu.org/licenses/gpl-3.0.txt
---!
 --! @note       This is publicly available encryption source code that falls
 --!             under the License Exception TSU (Technology and software-
 --!             unrestricted)
 --------------------------------------------------------------------------------
 --! Description
+--!
+--!
+--!
 --!
 --!
 --------------------------------------------------------------------------------
@@ -34,7 +34,9 @@ use work.NIST_LWAPI_pkg.all;
 use work.design_pkg.all;
 
 entity PreProcessor is
-
+    generic(
+        G_OFFLINE : boolean := False
+    );
     port(
         clk             : in  std_logic;
         rst             : in  std_logic;
@@ -67,7 +69,6 @@ entity PreProcessor is
         cmd_valid       : out std_logic;
         cmd_ready       : in  std_logic
     );
-
 end entity PreProcessor;
 
 architecture PreProcessor of PreProcessor is
@@ -433,7 +434,7 @@ begin
                         received_wrong_header <= pdi_opcode /= HDR_AD;
                         nx_eoi_flag           <= pdi_cmd_eoi;
                         nx_eot_flag           <= pdi_cmd_eot;
-                        if is_zero(pdi_seg_length) then
+                        if pdi_seg_length = x"0000" then
                             if pdi_cmd_eoi = '1' then
                                 if decrypt_flag = '1' then
                                     nx_state <= S_HDR_TAG;
@@ -474,7 +475,7 @@ begin
                         ld_en_SegLenCnt       <= '1';
                         nx_eoi_flag           <= pdi_cmd_eoi;
                         nx_eot_flag           <= pdi_cmd_eot;
-                        if is_zero(pdi_seg_length) and eot_flag = '1' then
+                        if pdi_seg_length = x"0000" and eot_flag = '1' then
                             if decrypt_flag = '1' then
                                 nx_state <= S_HDR_TAG;
                             else
@@ -536,7 +537,7 @@ begin
                         ld_en_SegLenCnt       <= '1';
                         nx_eoi_flag           <= pdi_cmd_eoi;
                         nx_eot_flag           <= pdi_cmd_eot;
-                        if is_zero(pdi_seg_length) then
+                        if pdi_seg_length = x"0000" then
                             nx_state <= S_EMPTY_HASH;
                         else
                             nx_state <= S_LD_HASH;
@@ -792,7 +793,7 @@ begin
                     pdi_ready_internal <= '1';
                     if pdi_valid = '1' then
                         ld_en_SegLenCnt <= '1';
-                        if is_zero(pdi_seg_length) then
+                        if pdi_seg_length = x"0000" then
                             if pdi_cmd_eoi = '1' then
                                 if decrypt_flag = '1' then
                                     nx_state <= S_HDR_TAG;
@@ -918,7 +919,7 @@ begin
                     pdi_ready_internal <= '1';
                     if pdi_valid = '1' then
                         ld_en_SegLenCnt <= '1';
-                        if is_zero(pdi_seg_length) then
+                        if pdi_seg_length = x"0000" then
                             nx_state <= S_EMPTY_HASH;
                         else
                             nx_state <= S_LD_HASH;
@@ -977,8 +978,9 @@ begin
             "001" when 1,
             "000" when others;
 
-        bdi_pad_loc     <= bdi_pad_loc_p(3 downto 4 - CCWdiv8);
-        bdi_valid_bytes <= bdi_valid_bytes_p(3 downto 4 - CCWdiv8);
+        bdi_pad_loc((W / 8) - 1 downto 0) <= bdi_pad_loc_p(3 downto 4 - (W / 8));
+
+        bdi_valid_bytes((W / 8) - 1 downto 0) <= bdi_valid_bytes_p(3 downto 4 - (W / 8));
 
         bdi_eoi <= bdi_eoi_internal;
         bdi_eot <= bdi_eot_internal;
@@ -1116,7 +1118,7 @@ begin
 
                 when S_HDR_ADLEN_LSB =>
                     if (pdi_valid = '1') then
-                        if is_zero(dout_LenReg) and is_zero(pdi_data(7 downto 0)) and eot_flag = '1' then
+                        if (dout_LenReg = x"00" and pdi_data(7 downto 0) = x"00" and eot_flag = '1') then
                             if (bdi_eoi_internal = '1') then
                                 if (decrypt_flag = '1') then
                                     nx_state <= S_INST;
@@ -1158,7 +1160,7 @@ begin
 
                 when S_HDR_MSGLEN_LSB =>
                     if (pdi_valid = '1' and cmd_ready = '1') then
-                        if is_zero(dout_LenReg) and is_zero(pdi_data(7 downto 0)) and eot_flag = '1' then
+                        if (dout_LenReg = x"00" and pdi_data(7 downto 0) = x"00" and eot_flag = '1') then
                             if (decrypt_flag = '1') then
                                 nx_state <= S_HDR_TAG;
                             else
@@ -1230,7 +1232,7 @@ begin
 
                 when S_HDR_HASHLEN_LSB =>
                     if (pdi_valid = '1') then
-                        if is_zero(dout_LenReg) and is_zero(pdi_data(7 downto 0)) then
+                        if (dout_LenReg = x"00" and pdi_data(7 downto 0) = x"00") then
                             nx_state <= S_EMPTY_HASH;
                         else
                             nx_state <= S_LD_HASH;

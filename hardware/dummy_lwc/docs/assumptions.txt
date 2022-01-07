@@ -12,18 +12,17 @@ LWC Development Package
     File name                       | Used  | Release number 	| Functional modifications 
                                     | (Y/N) |                	| (Y/N)                    
     =========================================================================
-    data_piso.vhd                   | Y     | v1.0.3            |  N  
-    data_sipo.vhd                   | Y     | v1.0.3            |  N 
-    fwft_fifo.vhd                   | Y     | v1.0.3            |  N 
-    key_piso.vhd                    | Y     | v1.0.3            |  N 
-    LWC_TB.vhd                      | Y     | v1.0.3            |  N 
-    LWC.vhd                         | Y     | v1.0.3            |  N 
-    NIST_LWAPI_pkg.vhd              | Y     | v1.0.3            |  N 
-    PreProcessor.vhd                | Y     | v1.0.3            |  N 
-    PostProcessor.vhd               | Y     | v1.0.3            |  N 
-    StepDownCountLd.vhd             | Y     | v1.0.3            |  N 
-    design_pkg.vhd                  | Y     | v1.0.3            |  N                       
-    std_logic_1164_additions.vhd    | Y     | v1.0.3            |  N    
+    data_piso.vhd                   | Y     | latest            |  N  
+    data_sipo.vhd                   | Y     | latest            |  N 
+    fwft_fifo.vhd                   | Y     | latest            |  N 
+    key_piso.vhd                    | Y     | latest            |  N 
+    LWC_TB.vhd                      | Y     | latest            |  N 
+    LWC.vhd                         | Y     | latest            |  N 
+    NIST_LWAPI_pkg.vhd              | Y     | latest            |  N 
+    PreProcessor.vhd                | Y     | latest            |  N 
+    PostProcessor.vhd               | Y     | latest            |  N 
+    design_pkg.vhd                  | Y     | latest            |  N                       
+    std_logic_1164_additions.vhd    | Y     | latest            |  N    
     
 D. Supported types and order of segment types
 
