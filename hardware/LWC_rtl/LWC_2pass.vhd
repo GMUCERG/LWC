@@ -130,9 +130,9 @@ begin
 
     Inst_PreProcessor: entity work.PreProcessor
     	generic map(
-        		G_W             => W,
+        		W             => W,
         		G_SW            => SW,
-        		G_ASYNC_RSTN    => ASYNC_RSTN
+        		ASYNC_RSTN    => ASYNC_RSTN
 			)
         port map(
                 clk             => clk                                     ,

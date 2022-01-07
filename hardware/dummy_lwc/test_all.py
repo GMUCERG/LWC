@@ -153,7 +153,7 @@ def test_all():
     tb_files = [ str((core_src_path.parent / 'LWC_tb' / s).resolve()) for s in ['LWC_TB_pkg.vhd', 'LWC_TB.vhd'] ]
 
 
-    for vhdl_std in ['93', '08']:
+    for vhdl_std in ['02', '08']:
         for ms in [False]:
             replace_files_map = {}
             for w, ccw in param_variants:

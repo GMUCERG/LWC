@@ -6,7 +6,6 @@ LWC/key_piso.vhd
 LWC/fwft_fifo.vhd
 LWC/data_sipo.vhd
 LWC/data_piso.vhd
-LWC/StepDownCountLd.vhd
 LWC/PreProcessor.vhd
 LWC/PostProcessor.vhd
 LWC/LWC.vhd

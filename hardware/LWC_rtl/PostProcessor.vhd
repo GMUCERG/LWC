@@ -137,20 +137,16 @@ begin
     do_data  <= do_data_internal when do_valid_internal = '1' else do_data_defaults;
 
     --! Segment Length Counter
-    -- This counter can be saved, if we do not want to support multiple segments
-    SegLen : entity work.StepDownCountLd(StepDownCountLd)
-        generic map(
-            N    => 16,
-            step => G_W / 8
-        )
-        port map(
-            clk   => clk,
-            -- rst     => rst,
-            len   => len_SegLenCnt,
-            ena   => en_SegLenCnt,
-            load  => load_SegLenCnt,
-            count => dout_SegLenCnt
-        );
+    process(clk)
+    begin
+        if rising_edge(clk) then
+            if len_SegLenCnt = '1' then
+                dout_SegLenCnt <= load_SegLenCnt;
+            elsif en_SegLenCnt = '1' then
+                dout_SegLenCnt <= std_logic_vector(unsigned(dout_SegLenCnt) - (G_W / 8));
+            end if;
+        end if;
+    end process;
 
     last_flit_of_segment <= '1' when (to_integer(to_01(unsigned(dout_SegLenCnt))) <= G_W / 8) else '0';
 

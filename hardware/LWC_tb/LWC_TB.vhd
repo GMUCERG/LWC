@@ -40,7 +40,7 @@ entity LWC_TB IS
         G_FNAME_TIMING      : STRING  := "timing.txt";             --! Path to the generated timing measurements (when G_TEST_MODE=4)
         G_FNAME_FAILED_TVS  : STRING  := "failed_testvectors.txt"; --! Path to the generated log of failed testvector words
         G_FNAME_RESULT      : STRING  := "result.txt";             --! Path to the generated result file containing 0 or 1  -- REDUNDANT / NOT USED
-        G_PRERESET_WAIT_NS  : INTEGER := 100;                      --! Time (in nanosecods) to wait before reseting DUT. Xilinx GSR takes 100ns, required for post-synth simulation
+        G_PRERESET_WAIT_NS  : INTEGER := 0;                        --! Time (in nanosecods) to wait before reseting DUT. Xilinx GSR takes 100ns, required for post-synth simulation
         G_INPUT_DELAY_NS    : INTEGER := 0                         --! Input delay
     );
 end LWC_TB;

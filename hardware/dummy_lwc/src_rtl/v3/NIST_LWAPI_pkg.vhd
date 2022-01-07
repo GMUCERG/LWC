@@ -29,7 +29,7 @@ use IEEE.NUMERIC_STD.all;
 package NIST_LWAPI_pkg is
 
     --! External bus: supported values are 8, 16 and 32 bits
-    constant W          : positive := 32;
+    constant W          : positive := 8;
     constant SW         : positive := W;
     --! only used in protected implementations
     constant PDI_SHARES : positive := 1;
