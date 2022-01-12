@@ -29,12 +29,17 @@ use IEEE.NUMERIC_STD.all;
 package NIST_LWAPI_pkg is
 
     --! External bus: supported values are 8, 16 and 32 bits
-    constant W          : positive := 32;
+    constant W          : positive := 8;
     constant SW         : positive := W;
+    --! Implementation of an "offline" algorithm
+    constant G_OFFLINE  : boolean  := False;
     --! only used in protected implementations
     constant PDI_SHARES : positive := 1;
     constant SDI_SHARES : positive := 1;
-    constant RW         : natural  := 0;
+    -- constant RW         : natural  := 0;
+    -- constant API_KEY_BYTES        : integer := 32; --! Key size in bytes
+    -- constant API_TAG_BYTES        : integer := 32; --! Tag size in bytes
+    -- constant API_DIGEST_BYTES : integer := 64 --! Hash digest size in byutes
 
     --! Asynchronous and active-low reset.
     --! Can be set to `True` when targeting ASICs given that your CryptoCore supports it.
@@ -44,49 +49,49 @@ package NIST_LWAPI_pkg is
     --! to avoid leaking intermeadiate values if do_valid = '0'.
     constant do_data_defaults : std_logic_vector(W - 1 downto 0) := (others => '0');
 
+    subtype T_LWC_HEADER is std_logic_vector(3 downto 0);
+    subtype T_LWC_OPCODE is std_logic_vector(3 downto 0);
+
     -- DO NOT CHANGE ANYTHING BELOW!
     constant Wdiv8  : integer := W / 8;
     constant SWdiv8 : integer := SW / 8;
 
     --! INSTRUCTIONS (OPCODES)
-    constant INST_HASH       : std_logic_vector(3 downto 0) := "1000";
-    constant INST_ENC        : std_logic_vector(3 downto 0) := "0010";
-    constant INST_DEC        : std_logic_vector(3 downto 0) := "0011";
-    constant INST_LDKEY      : std_logic_vector(3 downto 0) := "0100";
-    constant INST_ACTKEY     : std_logic_vector(3 downto 0) := "0111";
-    constant INST_SUCCESS    : std_logic_vector(3 downto 0) := "1110";
-    constant INST_FAILURE    : std_logic_vector(3 downto 0) := "1111";
+    constant INST_HASH      : T_LWC_OPCODE := "1000";
+    constant INST_ENC       : T_LWC_OPCODE := "0010";
+    constant INST_DEC       : T_LWC_OPCODE := "0011";
+    constant INST_LDKEY     : T_LWC_OPCODE := "0100";
+    constant INST_ACTKEY    : T_LWC_OPCODE := "0111";
+    constant INST_SUCCESS   : T_LWC_OPCODE := "1110";
+    constant INST_FAILURE   : T_LWC_OPCODE := "1111";
     --! SEGMENT TYPE ENCODING
     --! Reserved := "0000";
-    constant HDR_AD          : std_logic_vector(3 downto 0) := "0001";
-    constant HDR_NPUB_AD     : std_logic_vector(3 downto 0) := "0010";
-    constant HDR_AD_NPUB     : std_logic_vector(3 downto 0) := "0011";
-    constant HDR_PT          : std_logic_vector(3 downto 0) := "0100";
-    --deprecated! use HDR_PT instead!
-    alias HDR_MSG is HDR_PT;
-    constant HDR_CT          : std_logic_vector(3 downto 0) := "0101";
-    constant HDR_CT_TAG      : std_logic_vector(3 downto 0) := "0110";
-    constant HDR_HASH_MSG    : std_logic_vector(3 downto 0) := "0111";
-    constant HDR_TAG         : std_logic_vector(3 downto 0) := "1000";
-    constant HDR_HASH_VALUE  : std_logic_vector(3 downto 0) := "1001";
-    --NOT USED in this support package
-    constant HDR_LENGTH      : std_logic_vector(3 downto 0) := "1010";
+    constant HDR_AD         : T_LWC_HEADER := "0001";
+    constant HDR_NPUB_AD    : T_LWC_HEADER := "0010";
+    constant HDR_AD_NPUB    : T_LWC_HEADER := "0011";
+    constant HDR_PT         : T_LWC_HEADER := "0100";
+    constant HDR_CT         : T_LWC_HEADER := "0101";
+    constant HDR_CT_TAG     : T_LWC_HEADER := "0110";
+    constant HDR_HASH_MSG   : T_LWC_HEADER := "0111";
+    constant HDR_TAG        : T_LWC_HEADER := "1000";
+    constant HDR_HASH_VALUE : T_LWC_HEADER := "1001";
+    constant HDR_LENGTH     : T_LWC_HEADER := "1010";
+    constant HDR_KEY        : T_LWC_HEADER := "1100";
+    constant HDR_NPUB       : T_LWC_HEADER := "1101";
     --! Reserved := "1011";
-    constant HDR_KEY         : std_logic_vector(3 downto 0) := "1100";
-    constant HDR_NPUB        : std_logic_vector(3 downto 0) := "1101";
     --NOT USED in NIST LWC
-    constant HDR_NSEC        : std_logic_vector(3 downto 0) := "1110";
+    constant HDR_NSEC       : T_LWC_HEADER := "1110";
     --NOT USED in NIST LWC
-    constant HDR_ENSEC       : std_logic_vector(3 downto 0) := "1111";
+    constant HDR_ENSEC      : T_LWC_HEADER := "1111";
     --! Maximum supported length
     --! Length of segment header
-    constant SINGLE_PASS_MAX : integer                      := 16;
-    --! Length of segment header
-    constant TWO_PASS_MAX    : integer                      := 16;
+    -- constant SINGLE_PASS_MAX : integer                      := 16;
+    -- --! Length of segment header
+    -- constant TWO_PASS_MAX    : integer                      := 16;
 
-    --! Other
-    --! Limit to the segment counter size
-    constant CTR_SIZE_LIM : integer := 16;
+    -- --! Other
+    -- --! Limit to the segment counter size
+    -- constant CTR_SIZE_LIM : integer := 16;
 
     -- type bit_array_t is array (natural range <>) of std_logic;
     -- type slv_array_t is array (natural range <>) of std_logic_vector;
@@ -128,6 +133,27 @@ package NIST_LWAPI_pkg is
     function TO_INT01(S : UNSIGNED) return INTEGER;
     function TO_INT01(S : STD_LOGIC_VECTOR) return INTEGER;
 
+    --! check if all bits are zero
+    function is_zero(slv : std_logic_vector) return boolean;
+    function is_zero(u : unsigned) return boolean;
+
+    --! Reverse the Bit order of the input vector.
+    function reverse_bits(slv : std_logic_vector) return std_logic_vector;
+    function reverse_bits(u : unsigned) return unsigned;
+
+    --! binary to one-hot encoder
+    function to_1H(u : unsigned) return unsigned;
+    function to_1H(slv : std_logic_vector) return std_logic_vector;
+    function to_1H(u : unsigned; out_bits : positive) return unsigned;
+    function to_1H(slv : std_logic_vector; out_bits : positive) return std_logic_vector;
+
+    function minimum(a : integer; b : integer) return integer;
+
+    --! dynamic (u << sh) using an efficient barrel shifter
+    function barrel_shift_left(u : unsigned; sh : unsigned) return unsigned;
+
+    -- function resize(u : unsigned; sz: natural) return unsigned;
+
 end NIST_LWAPI_pkg;
 
 package body NIST_LWAPI_pkg is
@@ -138,7 +164,6 @@ package body NIST_LWAPI_pkg is
 
         variable bits : std_logic_vector((8 * bytes_in'length) - 1 downto 0);
     begin
-
         for i in 0 to bytes_in'length - 1 loop
             if (bytes_in(i) = '1') then
                 bits(8 * (i + 1) - 1 downto 8 * i) := (others => '1');
@@ -146,10 +171,10 @@ package body NIST_LWAPI_pkg is
                 bits(8 * (i + 1) - 1 downto 8 * i) := (others => '0');
             end if;
         end loop;
-
         return bits;
     end Byte_To_Bits_EXP;
 
+    --! Returns the number of bits required to represet values 0 to n-1
     function log2ceil(n : positive) return natural is
         variable pow2 : positive := 1;
         variable r    : natural  := 0;
@@ -252,5 +277,106 @@ package body NIST_LWAPI_pkg is
         return TO_INT01(unsigned(S));
 
     end function TO_INT01;
+
+    function is_zero(u : unsigned) return boolean is
+    begin
+        if u'length <= 0 then
+            return True;
+        end if;
+        return u = 0;
+    end function;
+
+    function is_zero(slv : std_logic_vector) return boolean is
+    begin
+        return is_zero(unsigned(slv));
+    end function;
+
+    --! Reverse the Byte order of the input word.
+    function reverse_bytes(vec : std_logic_vector) return std_logic_vector is
+        variable res     : std_logic_vector(vec'length - 1 downto 0);
+        constant n_bytes : integer := vec'length / 8;
+    begin
+        -- Check that vector length is actually byte aligned.
+        -- assert (vec'length mod 8 = 0)
+        -- report "Vector size must be in multiple of Bytes!" severity failure;
+        for i in 0 to (n_bytes - 1) loop
+            res(8 * (i + 1) - 1 downto 8 * i) := vec(8 * (n_bytes - i) - 1 downto 8 * (n_bytes - i - 1));
+        end loop;
+        return res;
+    end function;
+
+    --! Reverse the bit-order of the input
+    function reverse_bits(slv : std_logic_vector) return std_logic_vector is
+        variable res : std_logic_vector(slv'range);
+    begin
+        for i in res'range loop
+            res(i) := slv(slv'length - i - 1);
+        end loop;
+        return res;
+    end function;
+
+    function reverse_bits(u : unsigned) return unsigned is
+    begin
+        return unsigned(reverse_bits(std_logic_vector(u)));
+    end function;
+
+    --! binary to one-hot encoder
+    function to_1H(u : unsigned) return unsigned is
+    begin
+        return to_1H(u, 2 ** u'length);
+    end function;
+
+    --! binary to one-hot encoder
+    function to_1H(u : unsigned; out_bits : positive) return unsigned is
+        variable ret : unsigned(out_bits - 1 downto 0) := (others => '0');
+    begin
+        for i in 0 to out_bits - 1 loop
+            if u = to_unsigned(i, u'length) then
+                ret(i) := '1';
+            end if;
+        end loop;
+        return ret;
+    end function;
+
+    function to_1H(slv : std_logic_vector; out_bits : positive) return std_logic_vector is
+    begin
+        return std_logic_vector(to_1H(unsigned(slv), out_bits));
+    end function;
+
+    function to_1H(slv : std_logic_vector) return std_logic_vector is
+    begin
+        return std_logic_vector(to_1H(unsigned(slv)));
+    end function;
+
+    function minimum(a : integer; b : integer) return integer is
+    begin
+        if a < b then
+            return a;
+        else
+            return b;
+        end if;
+    end function;
+
+    function barrel_shift_left(u : unsigned; sh : unsigned) return unsigned is
+        variable ret : unsigned(u'length + (2 ** sh'length) - 1 downto 0) := u;
+    begin
+        for i in 0 to sh'length - 1 loop
+            if sh(i) = '1' then
+                ret := shift_left(ret, 2 ** i);
+            end if;
+        end loop;
+        return ret;
+    end function;
+
+    -- function resize(u : unsigned; sz: natural) return unsigned is
+    --     variable min_sz: positive := u'length;
+    --     variable ret : unsigned(sz - 1 downto 0) := (others => '0');
+    -- begin
+    --     if sz < min_sz then
+    --         min_sz := sz;
+    --     end if;
+    --     ret(min_sz - 1 downto 0) := u;
+    --     return ret;
+    -- end function;
 
 end NIST_LWAPI_pkg;

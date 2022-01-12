@@ -27,7 +27,7 @@ use work.NIST_LWAPI_pkg.all;
 
 entity LWC_TB IS
     generic (
-        G_MAX_FAILURES      : INTEGER := 100;                      --! Maximum number of failures before stopping the simulation
+        G_MAX_FAILURES      : INTEGER := 0;                      --! Maximum number of failures before stopping the simulation
         G_TEST_MODE         : INTEGER := 0;                        --! 0: normal, 1: stall both sdi/pdi_valid and do_ready, 2: stall sdi/pdi_valid, 3: stall do_ready, 4: Timing (cycle) measurement 
         G_TEST_IPSTALL      : INTEGER := 3;                        --! Number of cycles to stall pdi_valid
         G_TEST_ISSTALL      : INTEGER := 3;                        --! Number of cycles to stall sdi_valid

@@ -143,10 +143,10 @@ begin
                 sdi_data        => sdi_data                                ,
                 sdi_valid       => sdi_valid                               ,
                 sdi_ready       => sdi_ready                               ,
-                key             => key_cipher_in                           ,
+                key_data             => key_cipher_in                           ,
                 key_valid       => key_valid_cipher_in                     ,
                 key_ready       => key_ready_cipher_in                     ,
-                bdi             => bdi_cipher_in                           ,
+                bdi_data             => bdi_cipher_in                           ,
                 bdi_valid       => bdi_valid_cipher_in                     ,
                 bdi_ready       => bdi_ready_cipher_in                     ,
                 bdi_pad_loc     => bdi_pad_loc_cipher_in                   ,
@@ -158,7 +158,7 @@ begin
                 decrypt         => decrypt_cipher_in                       ,
                 hash            => hash_cipher_in                          ,
                 key_update      => key_update_cipher_in                    ,
-                cmd             => cmd_FIFO_in                             ,
+                cmd_data             => cmd_FIFO_in                             ,
                 cmd_valid       => cmd_valid_FIFO_in                       ,
                 cmd_ready       => cmd_ready_FIFO_in
             );

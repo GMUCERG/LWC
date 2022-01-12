@@ -1,14 +1,20 @@
 --------------------------------------------------------------------------------
 --! @file       LWC.vhd (CAESAR API for Lightweight)
+--!
 --! @brief      LWC top level file
+--!
 --! @author     Panasayya Yalla & Ekawat (ice) Homsirikamol
---! @copyright  Copyright (c) 2016 Cryptographic Engineering Research Group
+--!             Edited by Kamyar Mohajerani
+--!
+--! @copyright  Copyright (c) 2022 Cryptographic Engineering Research Group
 --!             ECE Department, George Mason University Fairfax, VA, U.S.A.
 --!             All rights Reserved.
+--!
 --! @license    This project is released under the GNU Public License.
 --!             The license and distribution terms for this file may be
 --!             found in the file LICENSE in this distribution or at
 --!             http://www.gnu.org/licenses/gpl-3.0.txt
+--!
 --! @note       This is publicly available encryption source code that falls
 --!             under the License Exception TSU (Technology and software-
 --!             unrestricted)
@@ -16,7 +22,17 @@
 --! Description
 --!
 --!
---!
+--!   
+--!                               ┌────────────┐
+--!                            ┌─►│ HeaderFifo ├──┐
+--!          ┌──────────────┐  │  └────────────┘  │  ┌───────────────┐
+--!          │              ├──┘                  └─►│               │
+--!    PDI──►│              │     ┌────────────┐     │               │
+--!          │ PreProcessor ├────►│            │     │ PostProcessor ├─►DO
+--!    SDI──►│              │     │ CryptoCore ├────►│               │
+--!          │              ├────►│            │     │               │
+--!          └──────────────┘     └────────────┘     └───────────────┘
+--!       
 --!
 --!
 --!
@@ -79,14 +95,11 @@ architecture structure of LWC is
     signal bdo_ready_cipher_out       : std_logic;
     ------!Cipher to Post-Processor
     signal end_of_block_cipher_out    : std_logic;
-    -- signal bdo_size_cipher_out      : std_logic_vector(3       -1 downto 0);
     signal bdo_valid_bytes_cipher_out : std_logic_vector(CCWdiv8 - 1 downto 0);
     signal bdo_type_cipher_out        : std_logic_vector(4 - 1 downto 0);
-    -- signal decrypt_cipher_out       : std_logic;
     signal msg_auth_valid             : std_logic;
     signal msg_auth_ready             : std_logic;
     signal msg_auth                   : std_logic;
-    -- signal done                     : std_logic;
     --==========================================================================
 
     --==========================================================================
@@ -153,10 +166,7 @@ begin
     -- ASYNC_RSTN notification
     assert not ASYNC_RSTN report "[LWC] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
 
-    Inst_PreProcessor : entity work.PreProcessor(PreProcessor)
-        generic map(
-            G_OFFLINE    => False
-        )
+    Inst_PreProcessor : entity work.PreProcessor
         port map(
             clk             => clk,
             rst             => rst,
@@ -166,10 +176,10 @@ begin
             sdi_data        => sdi_data,
             sdi_valid       => sdi_valid,
             sdi_ready       => sdi_ready,
-            key             => key_cipher_in,
+            key_data             => key_cipher_in,
             key_valid       => key_valid_cipher_in,
             key_ready       => key_ready_cipher_in,
-            bdi             => bdi_cipher_in,
+            bdi_data             => bdi_cipher_in,
             bdi_valid       => bdi_valid_cipher_in,
             bdi_ready       => bdi_ready_cipher_in,
             bdi_pad_loc     => bdi_pad_loc_cipher_in,
@@ -181,10 +191,11 @@ begin
             decrypt         => decrypt_cipher_in,
             hash            => hash_cipher_in,
             key_update      => key_update_cipher_in,
-            cmd             => cmd_FIFO_in,
+            cmd_data             => cmd_FIFO_in,
             cmd_valid       => cmd_valid_FIFO_in,
             cmd_ready       => cmd_ready_FIFO_in
         );
+
     Inst_Cipher : CryptoCore
         port map(
             clk             => clk,
@@ -214,11 +225,8 @@ begin
             msg_auth_ready  => msg_auth_ready,
             msg_auth        => msg_auth
         );
+
     Inst_PostProcessor : entity work.PostProcessor
-        generic map(
-            G_W          => W,
-            ASYNC_RSTN => ASYNC_RSTN
-        )
         port map(
             clk             => clk,
             rst             => rst,
@@ -239,7 +247,8 @@ begin
             do_last         => do_last,
             do_ready        => do_ready
         );
-    Inst_Header_Fifo : entity work.fwft_fifo(structure)
+
+    Inst_HeaderFifo : entity work.fwft_fifo(structure)
         generic map(
             G_W         => W,
             G_LOG2DEPTH => 2

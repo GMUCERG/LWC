@@ -148,6 +148,10 @@ architecture structure of LWC is
     end component CryptoCore;
 begin
 
+    -- synthesis translate_off
+    assert false report "[LWC]" & LF & "  GW=" & integer'image(W) & "  SW=" & integer'image(SW) & LF & "  CCW=" & integer'image(CCW) & " CCSW=" & integer'image(CCSW) severity note;
+    -- synthesis translate_on
+
     -- Width parameters sanity checks
     -- See 'Implementer’s Guide to Hardware Implementations Compliant with the Hardware API for LWC', sec. 4.3:
     -- "The following combinations (w, ccw) are supported in the current version
@@ -155,13 +159,13 @@ begin
     --   The following combinations (sw, ccsw) are supported: (32, 32), (32, 16),
     --   (32, 8), (16, 16), and (8, 8). However, w and sw must be always the same."
 
-    assert false report "[LWC] GW=" & integer'image(W) & ", SW=" & integer'image(SW) & ", CCW=" & integer'image(CCW) & ", CCSW=" & integer'image(CCSW) severity note;
-
     assert ((W = 32 and (CCW = 32 or CCW = 16 or CCW = 8)) or (W = 16 and CCW = 16) or (W = 8 and CCW = 8))
     report "[LWC] Invalid combination of (G_W, CCW)" severity failure;
 
     assert ((SW = 32 and (CCSW = 32 or CCSW = 16 or CCSW = 8)) or (SW = 16 and CCSW = 16) or (SW = 8 and CCSW = 8))
     report "[LWC] Invalid combination of (SW, CCSW)" severity failure;
+
+    assert W = SW report "[LWC] SW /= W" severity failure;
 
     -- ASYNC_RSTN notification
     assert not ASYNC_RSTN report "[LWC] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
@@ -176,10 +180,10 @@ begin
             sdi_data        => sdi_data,
             sdi_valid       => sdi_valid,
             sdi_ready       => sdi_ready,
-            key             => key_cipher_in,
+            key_data        => key_cipher_in,
             key_valid       => key_valid_cipher_in,
             key_ready       => key_ready_cipher_in,
-            bdi             => bdi_cipher_in,
+            bdi_data        => bdi_cipher_in,
             bdi_valid       => bdi_valid_cipher_in,
             bdi_ready       => bdi_ready_cipher_in,
             bdi_pad_loc     => bdi_pad_loc_cipher_in,
@@ -191,7 +195,7 @@ begin
             decrypt         => decrypt_cipher_in,
             hash            => hash_cipher_in,
             key_update      => key_update_cipher_in,
-            cmd             => cmd_FIFO_in,
+            cmd_data        => cmd_FIFO_in,
             cmd_valid       => cmd_valid_FIFO_in,
             cmd_ready       => cmd_ready_FIFO_in
         );

@@ -69,7 +69,6 @@ end PostProcessor;
 architecture RTL of PostProcessor is
 
     --Signals
-    signal do_data_internal     : std_logic_vector(W - 1 downto 0);
     signal do_valid_internal    : std_logic;
     signal cmd_ready_internal   : std_logic;
     signal bdo_cleared          : std_logic_vector(CCW - 1 downto 0);
@@ -87,10 +86,11 @@ architecture RTL of PostProcessor is
 
     --Aliases
     alias cmd_opcode     : std_logic_vector( 3 downto 0) is cmd(W - 1 downto W - 4);
+    alias cmd_seg_length : std_logic_vector((W/2)-1 downto 0) is cmd((W / 2) - 1 downto 0);
 
     --Constants
-    constant HASHdiv8  : integer                            := HASH_VALUE_SIZE / 8;
-    constant TAGdiv8   : integer                            := TAG_SIZE / 8;
+    constant HASHdiv8  : integer                          := HASH_VALUE_SIZE / 8;
+    constant TAGdiv8   : integer                          := TAG_SIZE / 8;
     constant zero_data : std_logic_vector(W - 1 downto 0) := (others => '0');
 
     --State types for different I/O sizes
@@ -123,9 +123,7 @@ begin
     -- set unused bytes to zero
     bdo_cleared <= bdo and Byte_To_Bits_EXP(bdo_valid_bytes);
 
-    -- make sure we do not output intermeadiate data
     do_valid <= do_valid_internal;
-    do_data  <= do_data_internal when do_valid_internal = '1' else do_data_defaults;
 
     --! Segment Length Counter
     process(clk)
@@ -162,10 +160,10 @@ begin
     FSM_32BIT : if (W = 32) generate
 
         --! 32 Bit specific declarations
-        alias do_data_internal_opcode   : std_logic_vector( 3 downto 0) is do_data_internal(31 downto 28);
-        alias do_data_internal_flags    : std_logic_vector( 3 downto 0) is do_data_internal(27 downto 24);
-        alias do_data_internal_reserved : std_logic_vector( 7 downto 0) is do_data_internal(23 downto 16);
-        alias do_data_internal_length   : std_logic_vector(15 downto 0) is do_data_internal(15 downto 0);
+        alias do_data_internal_opcode   : std_logic_vector( 3 downto 0) is do_data(31 downto 28);
+        alias do_data_internal_flags    : std_logic_vector( 3 downto 0) is do_data(27 downto 24);
+        alias do_data_internal_reserved : std_logic_vector( 7 downto 0) is do_data(23 downto 16);
+        alias do_data_internal_length   : std_logic_vector(15 downto 0) is do_data(15 downto 0);
 
         --sipo
         signal bdo_valid_p : std_logic;
@@ -174,9 +172,6 @@ begin
         signal bdo_p       : std_logic_vector(W - 1 downto 0);
 
         signal nx_state, pr_state : t_state32;
-
-
-        alias cmd_seg_length : std_logic_vector(15 downto 0) is cmd(15 downto 0);
 
     begin
 
@@ -335,7 +330,8 @@ begin
             -- DEFAULT SIGNALS
             -- external interface
             do_last            <= '0';
-            do_data_internal   <= bdo_p;
+            -- make sure we do not output intermeadiate data
+            do_data            <= do_data_defaults;
             do_valid_internal  <= '0';
             -- CryptoCore
             bdo_ready_p        <= '0';
@@ -399,6 +395,7 @@ begin
                 when S_OUT_MSG =>
                     bdo_ready_p       <= do_ready;
                     do_valid_internal <= bdo_valid_p;
+                    do_data           <= bdo_p;
                     en_SegLenCnt      <= bdo_valid_p and do_ready;
 
                 --TAG
@@ -414,6 +411,7 @@ begin
                 when S_OUT_TAG =>
                     bdo_ready_p       <= do_ready;
                     do_valid_internal <= bdo_valid_p;
+                    do_data           <= bdo_p;
 
                 when S_VER_TAG =>
                     msg_auth_ready <= '1';
@@ -431,21 +429,22 @@ begin
                 when S_OUT_HASH_VALUE =>
                     bdo_ready_p       <= do_ready;
                     do_valid_internal <= bdo_valid_p;
+                    do_data           <= bdo_p;
 
                 --STATUS
                 when S_STATUS_FAIL =>
-                    do_valid_internal             <= '1';
+                    do_valid_internal       <= '1';
                     -- do_last must only be asserted together with do_valid(_internal)
-                    do_last                       <= '1';
-                    do_data_internal_opcode       <= INST_FAILURE;
-                    do_data_internal(27 downto 0) <= (others => '0');
+                    do_last                 <= '1';
+                    do_data_internal_opcode <= INST_FAILURE;
+                    do_data(27 downto 0)    <= (others => '0');
 
                 when S_STATUS_SUCCESS =>
-                    do_valid_internal             <= '1';
+                    do_valid_internal       <= '1';
                     -- do_last must only be asserted together with do_valid(_internal)
-                    do_last                       <= '1';
-                    do_data_internal_opcode       <= INST_SUCCESS;
-                    do_data_internal(27 downto 0) <= (others => '0');
+                    do_last                 <= '1';
+                    do_data_internal_opcode <= INST_SUCCESS;
+                    do_data(27 downto 0)    <= (others => '0');
 
             end case;
         end process;
@@ -626,7 +625,7 @@ begin
             -- external interface
             do_last            <= '0';
             do_valid_internal  <= '0';
-            do_data_internal   <= (others => '-');
+            do_data            <= (others => '-');
             -- CryptoCore
             bdo_ready          <= '0';
             msg_auth_ready     <= '0';
@@ -650,20 +649,20 @@ begin
 
                 --HASH
                 when S_HDR_HASH =>
-                    do_valid_internal                        <= '1';
-                    do_data_internal(W - 1 downto W - 4) <= HDR_HASH_VALUE;
-                    do_data_internal(W - 5 downto W - 7) <= "001";
-                    do_data_internal(W - 8)                <= '1';
-                    do_data_internal(W - 9 downto 0)       <= (others => '0');
+                    do_valid_internal           <= '1';
+                    do_data(W - 1 downto W - 4) <= HDR_HASH_VALUE;
+                    do_data(W - 5 downto W - 7) <= "001";
+                    do_data(W - 8)              <= '1';
+                    do_data(W - 9 downto 0)     <= (others => '0');
 
                 when S_HDR_HASHLEN =>
                     do_valid_internal <= '1';
-                    do_data_internal  <= std_logic_vector(to_unsigned(HASHdiv8, W));
+                    do_data           <= std_logic_vector(to_unsigned(HASHdiv8, W));
 
                 when S_OUT_HASH =>
                     bdo_ready         <= do_ready;
                     do_valid_internal <= bdo_valid;
-                    do_data_internal  <= std_logic_vector(resize(unsigned(bdo_cleared), W));
+                    do_data           <= std_logic_vector(resize(unsigned(bdo_cleared), W));
 
                 --MSG
                 when S_HDR_MSG =>
@@ -674,59 +673,59 @@ begin
 
                     if (decrypt = '1') then
                         --header is msg
-                        do_data_internal(W - 1 downto W - 4) <= HDR_PT;
-                        do_data_internal(W - 8)                <= '1' and cmd(W - 7);
+                        do_data(W - 1 downto W - 4) <= HDR_PT;
+                        do_data(W - 8)              <= '1' and cmd(W - 7);
                     else
                         ---header is ciphertext
-                        do_data_internal(W - 1 downto W - 4) <= HDR_CT;
-                        do_data_internal(W - 8)                <= '0';
+                        do_data(W - 1 downto W - 4) <= HDR_CT;
+                        do_data(W - 8)              <= '0';
                     end if;
 
-                    do_data_internal(W - 5)                          <= '0';
-                    do_data_internal(W - 6)                          <= '0';
-                    do_data_internal(W - 7)                          <= cmd(W - 7);
-                    do_data_internal(W - 1 - (W / 8) * 4 downto 0) <= cmd(W - 1 - (W / 8) * 4 downto 0);
+                    do_data(W - 5)                        <= '0';
+                    do_data(W - 6)                        <= '0';
+                    do_data(W - 7)                        <= cmd(W - 7);
+                    do_data(W - 1 - (W / 8) * 4 downto 0) <= cmd(W - 1 - (W / 8) * 4 downto 0);
 
                 when S_HDR_MSGLEN =>
                     cmd_ready_internal <= do_ready;
                     len_SegLenCnt      <= do_ready and cmd_valid;
                     do_valid_internal  <= cmd_valid;
-                    do_data_internal   <= cmd;
+                    do_data            <= cmd;
 
                 when S_OUT_MSG =>
                     bdo_ready         <= do_ready;
                     do_valid_internal <= bdo_valid;
                     en_SegLenCnt      <= bdo_valid and do_ready;
-                    do_data_internal  <= std_logic_vector(resize(unsigned(bdo_cleared), W));
+                    do_data           <= std_logic_vector(resize(unsigned(bdo_cleared), W));
 
                 --TAG
                 when S_HDR_TAG =>
-                    do_valid_internal                  <= '1';
-                    do_data_internal(W - 1 downto 0) <= HDR_TAG_internal(31 downto 32 - W);
+                    do_valid_internal       <= '1';
+                    do_data(W - 1 downto 0) <= HDR_TAG_internal(31 downto 32 - W);
 
                 when S_HDR_TAGLEN =>
-                    do_valid_internal                                    <= '1';
-                    do_data_internal(W - 1 downto W - (W / 8) * 8) <= tag_size_bytes(W - 1 downto W - (W / 8) * 8);
+                    do_valid_internal                     <= '1';
+                    do_data(W - 1 downto W - (W / 8) * 8) <= tag_size_bytes(W - 1 downto W - (W / 8) * 8);
 
                 when S_OUT_TAG =>
                     bdo_ready         <= do_ready;
                     do_valid_internal <= bdo_valid;
-                    do_data_internal  <= std_logic_vector(resize(unsigned(bdo_cleared), W));
+                    do_data           <= std_logic_vector(resize(unsigned(bdo_cleared), W));
 
                 when S_VER_TAG_IN =>
                     msg_auth_ready <= '1';
 
                 when S_STATUS_FAIL =>
-                    do_valid_internal                        <= '1';
-                    do_last                                  <= '1';
-                    do_data_internal(W - 1 downto W - 4) <= "1111";
-                    do_data_internal(W - 5 downto 0)       <= (others => '0');
+                    do_valid_internal           <= '1';
+                    do_last                     <= '1';
+                    do_data(W - 1 downto W - 4) <= "1111";
+                    do_data(W - 5 downto 0)     <= (others => '0');
 
                 when S_STATUS_SUCCESS =>
-                    do_valid_internal                        <= '1';
-                    do_last                                  <= '1';
-                    do_data_internal(W - 1 downto W - 4) <= "1110";
-                    do_data_internal(W - 5 downto 0)       <= (others => '0');
+                    do_valid_internal           <= '1';
+                    do_last                     <= '1';
+                    do_data(W - 1 downto W - 4) <= "1110";
+                    do_data(W - 5 downto 0)     <= (others => '0');
 
             end case;
         end process;
@@ -924,7 +923,7 @@ begin
             -- external interface
             do_last            <= '0';
             do_valid_internal  <= '0';
-            do_data_internal   <= (others => '-');
+            do_data            <= (others => '-');
             -- Ciphercore
             bdo_ready          <= '0';
             msg_auth_ready     <= '0';
@@ -949,27 +948,27 @@ begin
 
                 --HASH
                 when S_HDR_HASH =>
-                    do_valid_internal                        <= '1';
-                    do_data_internal(W - 1 downto W - 4) <= HDR_HASH_VALUE;
-                    do_data_internal(W - 5 downto W - 7) <= "001";
-                    do_data_internal(W - 8)                <= '1';
+                    do_valid_internal           <= '1';
+                    do_data(W - 1 downto W - 4) <= HDR_HASH_VALUE;
+                    do_data(W - 5 downto W - 7) <= "001";
+                    do_data(W - 8)              <= '1';
 
                 when S_HDR_RESHASH =>
                     do_valid_internal <= '1';
-                    do_data_internal  <= (others => '0');
+                    do_data           <= (others => '0');
 
                 when S_HDR_HASHLEN_MSB =>
                     do_valid_internal <= '1';
-                    do_data_internal  <= do_data_t16(2 * W - 1 downto W);
+                    do_data           <= do_data_t16(15 downto 8);
 
                 when S_HDR_HASHLEN_LSB =>
                     do_valid_internal <= '1';
-                    do_data_internal  <= do_data_t16(W - 1 downto 0);
+                    do_data           <= do_data_t16(7 downto 0);
 
                 when S_OUT_HASH =>
                     bdo_ready         <= do_ready;
                     do_valid_internal <= bdo_valid;
-                    do_data_internal  <= bdo_cleared(W - 1 downto 0);
+                    do_data           <= bdo_cleared(7 downto 0);
 
                 --!MSG/CT
                 when S_HDR_MSG =>
@@ -979,21 +978,21 @@ begin
                     nx_eot             <= cmd(W - 7);
                     if (decrypt = '1') then
                         --header is msg
-                        do_data_internal(W - 1 downto W - 4) <= HDR_PT;
-                        do_data_internal(W - 8)                <= '1' and cmd(W - 7);
+                        do_data(W - 1 downto W - 4) <= HDR_PT;
+                        do_data(W - 8)              <= '1' and cmd(W - 7);
                     else
                         ---header is ciphertext
-                        do_data_internal(W - 1 downto W - 4) <= HDR_CT;
-                        do_data_internal(W - 8)                <= '0';
+                        do_data(W - 1 downto W - 4) <= HDR_CT;
+                        do_data(W - 8)              <= '0';
                     end if;
-                    do_data_internal(W - 5) <= '0';
-                    do_data_internal(W - 6) <= '0';
-                    do_data_internal(W - 7) <= cmd(W - 7);
+                    do_data(W - 5) <= '0';
+                    do_data(W - 6) <= '0';
+                    do_data(W - 7) <= cmd(W - 7);
 
                 when S_HDR_RESMSG =>
                     cmd_ready_internal <= do_ready;
                     do_valid_internal  <= cmd_valid;
-                    do_data_internal   <= cmd;
+                    do_data            <= cmd;
 
                 when S_HDR_MSGLEN_MSB =>
                     cmd_ready_internal <= do_ready;
@@ -1001,56 +1000,56 @@ begin
                         nx_dout_LenReg <= data_seg_length(W - 1 downto W - 8);
                     end if;
                     do_valid_internal  <= cmd_valid;
-                    do_data_internal   <= cmd;
+                    do_data            <= cmd;
 
                 when S_HDR_MSGLEN_LSB =>
                     cmd_ready_internal <= do_ready;
                     len_SegLenCnt      <= do_ready and cmd_valid;
                     do_valid_internal  <= cmd_valid;
-                    do_data_internal   <= cmd;
+                    do_data            <= cmd;
 
                 when S_OUT_MSG =>
                     bdo_ready         <= do_ready;
                     do_valid_internal <= bdo_valid;
                     en_SegLenCnt      <= bdo_valid and do_ready;
-                    do_data_internal  <= bdo_cleared(W - 1 downto 0);
+                    do_data           <= bdo_cleared;
 
                 --TAG
                 when S_HDR_TAG =>
                     do_valid_internal <= '1';
-                    do_data_internal  <= HDR_TAG_internal(31 downto 32 - W);
+                    do_data           <= HDR_TAG_internal(31 downto 32 - W);
 
                 when S_HDR_RESTAG =>
                     do_valid_internal <= '1';
-                    do_data_internal  <= (others => '0');
+                    do_data           <= (others => '0');
 
                 when S_HDR_TAGLEN_MSB =>
-                    do_valid_internal                        <= '1';
-                    do_data_internal(W - 1 downto W - 8) <= tag_size_bytes(15 downto 8);
+                    do_valid_internal           <= '1';
+                    do_data(W - 1 downto W - 8) <= tag_size_bytes(15 downto 8);
 
                 when S_HDR_TAGLEN_LSB =>
-                    do_valid_internal                        <= '1';
-                    do_data_internal(W - 1 downto W - 8) <= tag_size_bytes(7 downto 0);
+                    do_valid_internal           <= '1';
+                    do_data(W - 1 downto W - 8) <= tag_size_bytes(7 downto 0);
 
                 when S_OUT_TAG =>
                     bdo_ready         <= do_ready;
                     do_valid_internal <= bdo_valid;
-                    do_data_internal  <= bdo_cleared;
+                    do_data           <= bdo_cleared;
 
                 when S_VER_TAG_IN =>
                     msg_auth_ready <= '1';
 
                 when S_STATUS_FAIL =>
-                    do_valid_internal                        <= '1';
-                    do_last                                  <= '1';
-                    do_data_internal(W - 1 downto W - 4) <= "1111";
-                    do_data_internal(W - 5 downto 0)       <= (others => '0');
+                    do_valid_internal           <= '1';
+                    do_last                     <= '1';
+                    do_data(W - 1 downto W - 4) <= "1111";
+                    do_data(W - 5 downto 0)     <= (others => '0');
 
                 when S_STATUS_SUCCESS =>
-                    do_valid_internal                        <= '1';
-                    do_last                                  <= '1';
-                    do_data_internal(W - 1 downto W - 4) <= "1110";
-                    do_data_internal(W - 5 downto 0)       <= (others => '0');
+                    do_valid_internal           <= '1';
+                    do_last                     <= '1';
+                    do_data(W - 1 downto W - 4) <= "1110";
+                    do_data(W - 5 downto 0)     <= (others => '0');
 
             end case;
         end process;
