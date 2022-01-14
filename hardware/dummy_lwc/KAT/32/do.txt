@@ -19,7 +19,7 @@
 # dec_msg_format         - None
 # gen_custom_mode        - 0
 # hash                   - dummy_lwc
-# io (W,SW)              - [16, 16]
+# io (W,SW)              - [32, 32]
 # key_size               - 128
 # max_ad                 - 80
 # max_block_per_sgmt     - None
@@ -43,9 +43,9 @@
 HDR = 52000000
 # Info :                      Tag, EOT=1, Last=1, Length=16 bytes
 HDR = 83000010
-DAT = 1A518E3518210D9816B8B111385D67DC
+DAT = FDAEC887D40E8B6737EFB31079AC1F67
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Decryption
 #### MsgID=2, KeyID=1, AD Size=0, CT Size=0
@@ -54,7 +54,7 @@ STT = E000
 # Info :                Plaintext, EOT=1, Last=1, Length=0 bytes
 HDR = 43000000
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Hash
 #### MsgID=3, KeyID=0, HM Size=0, Digest Size=32
@@ -62,10 +62,9 @@ STT = E000
 # TB :80003 (Encoding used by testbench)
 # Info :                 Hash_Tag, EOT=1, Last=1, Length=32 bytes
 HDR = 93000020
-DAT = 00000000000000000000000000000000
-DAT = 00000000000000000000000000000000
+DAT = 0000000000000000000000000000000000000000000000000000000000000000
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Encryption
 #### MsgID=4, KeyID=2, AD Size=1, PT Size=0
@@ -75,9 +74,9 @@ STT = E000
 HDR = 52000000
 # Info :                      Tag, EOT=1, Last=1, Length=16 bytes
 HDR = 83000010
-DAT = E1AB5FCCF28C4491C8C5EE79D43C6CE7
+DAT = 30BD02E1CBBDA92C67C05B550D32D443
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Decryption
 #### MsgID=5, KeyID=2, AD Size=1, CT Size=0
@@ -86,7 +85,7 @@ STT = E000
 # Info :                Plaintext, EOT=1, Last=1, Length=0 bytes
 HDR = 43000000
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Hash
 #### MsgID=6, KeyID=0, HM Size=1, Digest Size=32
@@ -94,10 +93,9 @@ STT = E000
 # TB :80006 (Encoding used by testbench)
 # Info :                 Hash_Tag, EOT=1, Last=1, Length=32 bytes
 HDR = 93000020
-DAT = E6800000000000000000000000000000
-DAT = 00000000000000000000000000000000
+DAT = 8C80000000000000000000000000000000000000000000000000000000000000
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Encryption
 #### MsgID=7, KeyID=3, AD Size=0, PT Size=1
@@ -105,12 +103,12 @@ STT = E000
 # TB :20307 (Encoding used by testbench)
 # Info :               Ciphertext, EOT=1, Last=0, Length=1 bytes
 HDR = 52000001
-DAT = FA00
+DAT = 2A000000
 # Info :                      Tag, EOT=1, Last=1, Length=16 bytes
 HDR = 83000010
-DAT = FACBDC8B34B41A59E11562398DC5E03A
+DAT = 2AFED8895DE17A41EB735A428866BA42
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Decryption
 #### MsgID=8, KeyID=3, AD Size=0, CT Size=1
@@ -118,9 +116,9 @@ STT = E000
 # TB :30308 (Encoding used by testbench)
 # Info :                Plaintext, EOT=1, Last=1, Length=1 bytes
 HDR = 43000001
-DAT = 3700
+DAT = DA000000
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Hash
 #### MsgID=9, KeyID=0, HM Size=2, Digest Size=32
@@ -128,10 +126,9 @@ STT = E000
 # TB :80009 (Encoding used by testbench)
 # Info :                 Hash_Tag, EOT=1, Last=1, Length=32 bytes
 HDR = 93000020
-DAT = F95B8000000000000000000000000000
-DAT = 00000000000000000000000000000000
+DAT = ABF8800000000000000000000000000000000000000000000000000000000000
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Encryption
 #### MsgID=10, KeyID=4, AD Size=1, PT Size=1
@@ -139,12 +136,12 @@ STT = E000
 # TB :2040A (Encoding used by testbench)
 # Info :               Ciphertext, EOT=1, Last=0, Length=1 bytes
 HDR = 52000001
-DAT = 4F00
+DAT = 86000000
 # Info :                      Tag, EOT=1, Last=1, Length=16 bytes
 HDR = 83000010
-DAT = 49F407D367E2EDB99460AD1F8B83C3AF
+DAT = BF7AF20FEBB608414471B5FE251276D0
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Decryption
 #### MsgID=11, KeyID=4, AD Size=1, CT Size=1
@@ -152,9 +149,9 @@ STT = E000
 # TB :3040B (Encoding used by testbench)
 # Info :                Plaintext, EOT=1, Last=1, Length=1 bytes
 HDR = 43000001
-DAT = 9800
+DAT = 2C000000
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Hash
 #### MsgID=12, KeyID=0, HM Size=3, Digest Size=32
@@ -162,10 +159,9 @@ STT = E000
 # TB :8000C (Encoding used by testbench)
 # Info :                 Hash_Tag, EOT=1, Last=1, Length=32 bytes
 HDR = 93000020
-DAT = 20D14280000000000000000000000000
-DAT = 00000000000000000000000000000000
+DAT = 9849078000000000000000000000000000000000000000000000000000000000
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Encryption
 #### MsgID=13, KeyID=5, AD Size=2, PT Size=2
@@ -173,12 +169,12 @@ STT = E000
 # TB :2050D (Encoding used by testbench)
 # Info :               Ciphertext, EOT=1, Last=0, Length=2 bytes
 HDR = 52000002
-DAT = 6E2A
+DAT = C0F60000
 # Info :                      Tag, EOT=1, Last=1, Length=16 bytes
 HDR = 83000010
-DAT = D55853CA43602BEFBA0D70EAA0D5EE31
+DAT = F9309BD665D119D9B6E5C747214DD446
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Decryption
 #### MsgID=14, KeyID=5, AD Size=2, CT Size=2
@@ -186,9 +182,9 @@ STT = E000
 # TB :3050E (Encoding used by testbench)
 # Info :                Plaintext, EOT=1, Last=1, Length=2 bytes
 HDR = 43000002
-DAT = 318C
+DAT = 22D40000
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Hash
 #### MsgID=15, KeyID=0, HM Size=4, Digest Size=32
@@ -196,10 +192,9 @@ STT = E000
 # TB :8000F (Encoding used by testbench)
 # Info :                 Hash_Tag, EOT=1, Last=1, Length=32 bytes
 HDR = 93000020
-DAT = 1062B803800000000000000000000000
-DAT = 00000000000000000000000000000000
+DAT = DF63232780000000000000000000000000000000000000000000000000000000
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Encryption
 #### MsgID=16, KeyID=6, AD Size=15, PT Size=15
@@ -207,12 +202,12 @@ STT = E000
 # TB :20610 (Encoding used by testbench)
 # Info :               Ciphertext, EOT=1, Last=0, Length=15 bytes
 HDR = 5200000F
-DAT = 7984600C84DEE9B45C085B77787BDB00
+DAT = D04D659F916EC0EE3FDA2B0323A40400
 # Info :                      Tag, EOT=1, Last=1, Length=16 bytes
 HDR = 83000010
-DAT = D0D019EDC63EC6E72EB08E634FC8658D
+DAT = 4C6821EBCD6667C878240553D35B3465
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Decryption
 #### MsgID=17, KeyID=6, AD Size=15, CT Size=15
@@ -220,9 +215,9 @@ STT = E000
 # TB :30611 (Encoding used by testbench)
 # Info :                Plaintext, EOT=1, Last=1, Length=15 bytes
 HDR = 4300000F
-DAT = 735D4EEAF2EFBF6402C2526CB5299300
+DAT = EC1868F8037CE06F9FE19F56FD196800
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Hash
 #### MsgID=18, KeyID=0, HM Size=15, Digest Size=32
@@ -230,10 +225,9 @@ STT = E000
 # TB :80012 (Encoding used by testbench)
 # Info :                 Hash_Tag, EOT=1, Last=1, Length=32 bytes
 HDR = 93000020
-DAT = 1514F30C7FA12DD04FA4E6430369E980
-DAT = 00000000000000000000000000000000
+DAT = A3DA0AC67DC0F30001B20B99BA09108000000000000000000000000000000000
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Encryption
 #### MsgID=19, KeyID=7, AD Size=16, PT Size=16
@@ -241,12 +235,12 @@ STT = E000
 # TB :20713 (Encoding used by testbench)
 # Info :               Ciphertext, EOT=1, Last=0, Length=16 bytes
 HDR = 52000010
-DAT = B1F05C752430349CE20EDBF59E598A7A
+DAT = 3BAEA19AC050A400E862EE4D44103778
 # Info :                      Tag, EOT=1, Last=1, Length=16 bytes
 HDR = 83000010
-DAT = CACE7886BEE8707484B9D05386FB4363
+DAT = B5ACCADAC16149C0D8444BD5FC24B833
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Decryption
 #### MsgID=20, KeyID=7, AD Size=16, CT Size=16
@@ -254,9 +248,9 @@ STT = E000
 # TB :30714 (Encoding used by testbench)
 # Info :                Plaintext, EOT=1, Last=1, Length=16 bytes
 HDR = 43000010
-DAT = A32CC6B6081D1FD6DDE8FFD87703D252
+DAT = A057A67B02AFF25528318375F9B1B800
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Hash
 #### MsgID=21, KeyID=0, HM Size=17, Digest Size=32
@@ -264,10 +258,9 @@ STT = E000
 # TB :80015 (Encoding used by testbench)
 # Info :                 Hash_Tag, EOT=1, Last=1, Length=32 bytes
 HDR = 93000020
-DAT = 10E471882E2F4517B1357E05CBDCDA06
-DAT = 11800000000000000000000000000000
+DAT = B2A67B0DB1BF41F83226348DEB184C3BF4800000000000000000000000000000
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Encryption
 #### MsgID=22, KeyID=8, AD Size=17, PT Size=17
@@ -275,13 +268,12 @@ STT = E000
 # TB :20816 (Encoding used by testbench)
 # Info :               Ciphertext, EOT=1, Last=0, Length=17 bytes
 HDR = 52000011
-DAT = 8F7897048CC881CB6D13380A7807A707
-DAT = 9B00
+DAT = 8B040CED21B7B81CE32FEB9D42161469F9000000
 # Info :                      Tag, EOT=1, Last=1, Length=16 bytes
 HDR = 83000010
-DAT = DF6240D568BE253DAA88F322AA2E3213
+DAT = C330925E3BFD78253A099F9523BC048A
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Decryption
 #### MsgID=23, KeyID=8, AD Size=17, CT Size=17
@@ -289,10 +281,9 @@ STT = E000
 # TB :30817 (Encoding used by testbench)
 # Info :                Plaintext, EOT=1, Last=1, Length=17 bytes
 HDR = 43000011
-DAT = AED174F47A9226C008EEF5408C620566
-DAT = BA00
+DAT = C4C287737A6E9CA1C2FBD8181ED76707B6000000
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Hash
 #### MsgID=24, KeyID=0, HM Size=18, Digest Size=32
@@ -300,10 +291,9 @@ STT = E000
 # TB :80018 (Encoding used by testbench)
 # Info :                 Hash_Tag, EOT=1, Last=1, Length=32 bytes
 HDR = 93000020
-DAT = 67A77C701E704DBE6755E4549AC91425
-DAT = E6E78000000000000000000000000000
+DAT = DC5F04F8AB3773B3E3E1C82949673FE24C088000000000000000000000000000
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Encryption
 #### MsgID=25, KeyID=9, AD Size=32, PT Size=32
@@ -311,13 +301,12 @@ STT = E000
 # TB :20919 (Encoding used by testbench)
 # Info :               Ciphertext, EOT=1, Last=0, Length=32 bytes
 HDR = 52000020
-DAT = E2323BDC062CF79C10CD376DDAE755CF
-DAT = 56B7CCAA78DC5A699C1A931F3EEE590B
+DAT = E5877D5E0686CB2985E4DF270649387B2927C5FD479F2750693A79143AF58B02
 # Info :                      Tag, EOT=1, Last=1, Length=16 bytes
 HDR = 83000010
-DAT = D94135CA4FA90762EC127375B6E4E8A7
+DAT = 214D7B516DBD2C49FA5671598D6265DC
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Decryption
 #### MsgID=26, KeyID=9, AD Size=32, CT Size=32
@@ -325,10 +314,9 @@ STT = E000
 # TB :3091A (Encoding used by testbench)
 # Info :                Plaintext, EOT=1, Last=1, Length=32 bytes
 HDR = 43000020
-DAT = 0223EE3CEE043E119F1246A52131E883
-DAT = B6A6194A90F493E413C5E2D7C538E444
+DAT = 58267B1F689465FD57EC529506A25F439486C3BC298D8984BB32F4A63A1EEC39
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Hash
 #### MsgID=27, KeyID=0, HM Size=32, Digest Size=32
@@ -336,10 +324,9 @@ STT = E000
 # TB :8001B (Encoding used by testbench)
 # Info :                 Hash_Tag, EOT=1, Last=1, Length=32 bytes
 HDR = 93000020
-DAT = 5DA12672701C12C2D45AC9D6B82C3575
-DAT = 1170E8B5DB9167177E6DF6867CA52C61
+DAT = 15C74A1022FC99523D4C310D07D133D3084B090914EF7BA670FA1679AE45FEE8
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Encryption
 #### MsgID=28, KeyID=10, AD Size=33, PT Size=33
@@ -347,14 +334,13 @@ STT = E000
 # TB :20A1C (Encoding used by testbench)
 # Info :               Ciphertext, EOT=1, Last=0, Length=33 bytes
 HDR = 52000021
-DAT = CB7868FAE33F3EF45FAC3328A802172A
-DAT = F85615A3DC3C4B14DE74000E9E0E81A5
-DAT = 4600
+DAT = 77BF549150EC967C8E8D21CE210AF30709ED98E776A412A9D650848E8173DA2D
+DAT = 38000000
 # Info :                      Tag, EOT=1, Last=1, Length=16 bytes
 HDR = 83000010
-DAT = 9A616432AC753A64DC9DDD1481C0419A
+DAT = E07E6DDE51FFCFBD161D5A7DBD542B11
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Decryption
 #### MsgID=29, KeyID=10, AD Size=33, CT Size=33
@@ -362,11 +348,10 @@ STT = E000
 # TB :30A1D (Encoding used by testbench)
 # Info :                Plaintext, EOT=1, Last=1, Length=33 bytes
 HDR = 43000021
-DAT = CDA6D7C175627C3BE6345A9596B37240
-DAT = FE88AA984A6109DB67EC69B3A0BFE4CC
-DAT = 4000
+DAT = 8B2D9D3A998A2FAB0E636E2818753EE7F57F514CBFC2AB7E56BECB68B80C17CE
+DAT = C4000000
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Hash
 #### MsgID=30, KeyID=0, HM Size=33, Digest Size=32
@@ -374,10 +359,9 @@ STT = E000
 # TB :8001E (Encoding used by testbench)
 # Info :                 Hash_Tag, EOT=1, Last=1, Length=32 bytes
 HDR = 93000020
-DAT = 8F62DDA15D4F610B1686FA4BBCA00554
-DAT = D5CECD854B0FAE13C5C615D479F8923B
+DAT = A664C7E558BC21996590B6A5632CC89A14E43CB08086B164782C26040372AB98
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Encryption
 #### MsgID=31, KeyID=11, AD Size=48, PT Size=48
@@ -385,14 +369,13 @@ STT = E000
 # TB :20B1F (Encoding used by testbench)
 # Info :               Ciphertext, EOT=1, Last=0, Length=48 bytes
 HDR = 52000030
-DAT = C36D276554AAB5FB58666734C20CDB34
-DAT = CE9219ABD95E7401C1EA463ABEB204AD
-DAT = DFC7979D8474EE9A96048B369FF95947
+DAT = 5A8FCE1BE07B0232772BD807A7515E0D5F519A7A927F505184D6193883E7881E
+DAT = 7E0B9C8DE50EEAF77045F82AE12314C1
 # Info :                      Tag, EOT=1, Last=1, Length=16 bytes
 HDR = 83000010
-DAT = 10670E15B29764489B424D5FD56DE552
+DAT = BBBF4B3E238C343CD17465224D982448
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Authenticated Decryption
 #### MsgID=32, KeyID=11, AD Size=48, CT Size=48
@@ -400,11 +383,10 @@ STT = E000
 # TB :30B20 (Encoding used by testbench)
 # Info :                Plaintext, EOT=1, Last=1, Length=48 bytes
 HDR = 43000030
-DAT = CC5A79CE0459272491523A80D44D399B
-DAT = C1A5470089ADE6DE08DE1B8EA8F3E601
-DAT = D0F0C936D4877C455F30D68289B8BBEA
+DAT = 83D82C3586C0E1BBA1FC96845550577F86067854F4C4B3D8520157BB71E6816F
+DAT = A75C7EA383B5097EA692B6A913221DB1
 # Status: Success
-STT = E000
+STT = E0000000
 
 #### Hash
 #### MsgID=33, KeyID=0, HM Size=48, Digest Size=32
@@ -412,9 +394,8 @@ STT = E000
 # TB :80021 (Encoding used by testbench)
 # Info :                 Hash_Tag, EOT=1, Last=1, Length=32 bytes
 HDR = 93000020
-DAT = E9B0DB0E0E81CB8278D5EFE70D03C9F0
-DAT = 23A94C98C004C6F2BE2CEDD2C1053B69
+DAT = 73A6330A9610301B234C02BBAA5ED42432891E703864CBA4FF32C7EB00CCB8FD
 # Status: Success
-STT = E000
+STT = E0000000
 
 ###EOF

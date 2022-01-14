@@ -205,10 +205,10 @@ begin
         port map(
                 clk             => clk                                     ,
                 rst             => rst                                     ,
-                bdo             => bdo_cipher_out                          ,
+                bdo_data             => bdo_cipher_out                          ,
                 bdo_valid       => bdo_valid_cipher_out                    ,
                 bdo_ready       => bdo_ready_cipher_out                    ,
-                end_of_block    => end_of_block_cipher_out                 ,
+                bdo_last    => end_of_block_cipher_out                 ,
                 bdo_type        => bdo_type_cipher_out                     ,
                 bdo_valid_bytes => bdo_valid_bytes_cipher_out              ,
                 cmd             => cmd_FIFO_out                            ,
@@ -218,9 +218,9 @@ begin
                 do_valid        => do_valid                                ,
                 do_last         => do_last                                 ,
                 do_ready        => do_ready                                ,
-                msg_auth_valid  => msg_auth_valid                          ,
-                msg_auth_ready  => msg_auth_ready                          ,
-                msg_auth        => msg_auth
+                auth_valid  => msg_auth_valid                          ,
+                auth_ready  => msg_auth_ready                          ,
+                auth_success        => msg_auth
             );
     Inst_Header_Fifo: entity work.fwft_fifo
         generic map (

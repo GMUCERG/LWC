@@ -27,6 +27,9 @@ use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
 
 package NIST_LWAPI_pkg is
+    --===============================================================================================================--
+    --=                                             User Configuration                                              =--
+    --===============================================================================================================--
 
     --! External bus: supported values are 8, 16 and 32 bits
     constant W          : positive := 32;
@@ -45,16 +48,18 @@ package NIST_LWAPI_pkg is
     --! Can be set to `True` when targeting ASICs given that your CryptoCore supports it.
     constant ASYNC_RSTN : boolean := False;
 
-    --! Default values for do_data bus
-    --! to avoid leaking intermeadiate values if do_valid = '0'.
-    constant do_data_defaults : std_logic_vector(W - 1 downto 0) := (others => '0');
 
-    subtype T_LWC_HEADER is std_logic_vector(3 downto 0);
-    subtype T_LWC_OPCODE is std_logic_vector(3 downto 0);
+    --===============================================================================================================--
+    -- DO NOT CHANGE ANYTHING BELOW
+    --===============================================================================================================--
 
-    -- DO NOT CHANGE ANYTHING BELOW!
+
     constant Wdiv8  : integer := W / 8;
     constant SWdiv8 : integer := SW / 8;
+
+    subtype T_LWC_SEGMENT is std_logic_vector(3 downto 0);
+    subtype T_LWC_OPCODE is std_logic_vector(3 downto 0);
+
 
     --! INSTRUCTIONS (OPCODES)
     constant INST_HASH      : T_LWC_OPCODE := "1000";
@@ -66,23 +71,23 @@ package NIST_LWAPI_pkg is
     constant INST_FAILURE   : T_LWC_OPCODE := "1111";
     --! SEGMENT TYPE ENCODING
     --! Reserved := "0000";
-    constant HDR_AD         : T_LWC_HEADER := "0001";
-    constant HDR_NPUB_AD    : T_LWC_HEADER := "0010";
-    constant HDR_AD_NPUB    : T_LWC_HEADER := "0011";
-    constant HDR_PT         : T_LWC_HEADER := "0100";
-    constant HDR_CT         : T_LWC_HEADER := "0101";
-    constant HDR_CT_TAG     : T_LWC_HEADER := "0110";
-    constant HDR_HASH_MSG   : T_LWC_HEADER := "0111";
-    constant HDR_TAG        : T_LWC_HEADER := "1000";
-    constant HDR_HASH_VALUE : T_LWC_HEADER := "1001";
-    constant HDR_LENGTH     : T_LWC_HEADER := "1010";
-    constant HDR_KEY        : T_LWC_HEADER := "1100";
-    constant HDR_NPUB       : T_LWC_HEADER := "1101";
+    constant HDR_AD         : T_LWC_SEGMENT := "0001";
+    constant HDR_NPUB_AD    : T_LWC_SEGMENT := "0010";
+    constant HDR_AD_NPUB    : T_LWC_SEGMENT := "0011";
+    constant HDR_PT         : T_LWC_SEGMENT := "0100";
+    constant HDR_CT         : T_LWC_SEGMENT := "0101";
+    constant HDR_CT_TAG     : T_LWC_SEGMENT := "0110";
+    constant HDR_HASH_MSG   : T_LWC_SEGMENT := "0111";
+    constant HDR_TAG        : T_LWC_SEGMENT := "1000";
+    constant HDR_HASH_VALUE : T_LWC_SEGMENT := "1001";
+    constant HDR_LENGTH     : T_LWC_SEGMENT := "1010";
+    constant HDR_KEY        : T_LWC_SEGMENT := "1100";
+    constant HDR_NPUB       : T_LWC_SEGMENT := "1101";
     --! Reserved := "1011";
     --NOT USED in NIST LWC
-    constant HDR_NSEC       : T_LWC_HEADER := "1110";
+    constant HDR_NSEC       : T_LWC_SEGMENT := "1110";
     --NOT USED in NIST LWC
-    constant HDR_ENSEC      : T_LWC_HEADER := "1111";
+    constant HDR_ENSEC      : T_LWC_SEGMENT := "1111";
     --! Maximum supported length
     --! Length of segment header
     -- constant SINGLE_PASS_MAX : integer                      := 16;
@@ -96,15 +101,6 @@ package NIST_LWAPI_pkg is
     -- type bit_array_t is array (natural range <>) of std_logic;
     -- type slv_array_t is array (natural range <>) of std_logic_vector;
 
-    --! =======================================================================
-    --! Functions used by LWC Core, PreProcessor and PostProcessor
-    --! expands input vector 8 times.
-    function Byte_To_Bits_EXP(bytes_in : std_logic_vector) return std_logic_vector;
-
-    --! Returns the number of bits required to represet positive integers strictly less than `n` (0 to n - 1 inclusive)
-    --! Output is equal to ceil(log2(n))
-    function log2ceil(n : positive) return natural;
-
     --! chop a std_logic_vector into `n` equal-length pieces as a slv_array_t
     --! requires length of a to be a multiple of n
     --! Big Endian: Most significant (MSB) portion of the input `a` is assigned to index 0 of the output
@@ -115,9 +111,6 @@ package NIST_LWAPI_pkg is
     --! Little Endian: least significant (LSB) portion of the input `a` is assigned to index 0 of the output
     -- function chop_le(a : std_logic_vector; n : positive) return slv_array_t;
 
-    --! Returns the number of bits required to represet `n`.
-    --! When n=1, returns 1, otherwise retursn ceil(log2(n))
-    function to_std_logic(a : boolean) return std_logic;
 
     --! concatinates slv_array_t elements into a single std_logic_vector
     -- Big Endian
@@ -127,6 +120,17 @@ package NIST_LWAPI_pkg is
     -- function concat_le(a : slv_array_t) return std_logic_vector;
 
     -- function xor_slv_array(a : slv_array_t) return std_logic_vector;
+    --! =======================================================================
+    --! Functions used by LWC Core, PreProcessor and PostProcessor
+    --! expands input vector 8 times.
+    function Byte_To_Bits_EXP(bytes_in : std_logic_vector) return std_logic_vector;
+
+    --! Returns the number of bits required to represet positive integers strictly less than `n` (0 to n - 1 inclusive)
+    --! Output is equal to ceil(log2(n))
+    function log2ceil(n : positive) return natural;
+
+    --! convert boolean to std_logic
+    function to_std_logic(a : boolean) return std_logic;
 
     --! same as OR_REDUCE in ieee.std_logic_misc. ieee.std_logic_misc is a Non-standard package and should be avoided
     function LWC_OR_REDUCE(l : STD_LOGIC_VECTOR) return STD_LOGIC;
@@ -142,6 +146,9 @@ package NIST_LWAPI_pkg is
     --! Reverse the Bit order of the input vector.
     function reverse_bits(slv : std_logic_vector) return std_logic_vector;
     function reverse_bits(u : unsigned) return unsigned;
+
+    --! reverse byte endian-ness of the input vector
+    function reverse_bytes(vec : std_logic_vector) return std_logic_vector;
 
     --! binary to one-hot encoder
     function to_1H(u : unsigned) return unsigned;

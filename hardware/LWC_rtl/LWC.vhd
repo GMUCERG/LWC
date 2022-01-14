@@ -67,15 +67,11 @@ entity LWC is
 end LWC;
 
 architecture structure of LWC is
-
-    --==========================================================================
-    --!Cipher
-    --==========================================================================
-    ------!Pre-Processor to Cipher (Key PISO)
+    ------!Pre-Processor to CryptoCore (Key PISO)
     signal key_cipher_in              : std_logic_vector(CCSW - 1 downto 0);
     signal key_valid_cipher_in        : std_logic;
     signal key_ready_cipher_in        : std_logic;
-    ------!Pre-Processor to Cipher (DATA PISO)
+    ------!Pre-Processor to CryptoCore (DATA PISO)
     signal bdi_cipher_in              : std_logic_vector(CCW - 1 downto 0);
     signal bdi_valid_cipher_in        : std_logic;
     signal bdi_ready_cipher_in        : std_logic;
@@ -89,30 +85,25 @@ architecture structure of LWC is
     signal decrypt_cipher_in          : std_logic;
     signal hash_cipher_in             : std_logic;
     signal key_update_cipher_in       : std_logic;
-    ------!Cipher(DATA SIPO) to Post-Processor
+    ------!CryptoCore(DATA SIPO) to Post-Processor
     signal bdo_cipher_out             : std_logic_vector(CCW - 1 downto 0);
     signal bdo_valid_cipher_out       : std_logic;
     signal bdo_ready_cipher_out       : std_logic;
-    ------!Cipher to Post-Processor
+    ------!CryptoCore to Post-Processor
     signal end_of_block_cipher_out    : std_logic;
     signal bdo_valid_bytes_cipher_out : std_logic_vector(CCWdiv8 - 1 downto 0);
     signal bdo_type_cipher_out        : std_logic_vector(4 - 1 downto 0);
     signal msg_auth_valid             : std_logic;
     signal msg_auth_ready             : std_logic;
     signal msg_auth                   : std_logic;
-    --==========================================================================
-
-    --==========================================================================
-    --!FIFO
-    --==========================================================================
     ------!Pre-Processor to FIFO
-    signal cmd_FIFO_in        : std_logic_vector(W - 1 downto 0);
-    signal cmd_valid_FIFO_in  : std_logic;
-    signal cmd_ready_FIFO_in  : std_logic;
+    signal cmd_FIFO_in                : std_logic_vector(W - 1 downto 0);
+    signal cmd_valid_FIFO_in          : std_logic;
+    signal cmd_ready_FIFO_in          : std_logic;
     ------!FIFO to Post_Processor
-    signal cmd_FIFO_out       : std_logic_vector(W - 1 downto 0);
-    signal cmd_valid_FIFO_out : std_logic;
-    signal cmd_ready_FIFO_out : std_logic;
+    signal cmd_FIFO_out               : std_logic_vector(W - 1 downto 0);
+    signal cmd_valid_FIFO_out         : std_logic;
+    signal cmd_ready_FIFO_out         : std_logic;
 
     --==========================================================================
 
@@ -146,25 +137,23 @@ architecture structure of LWC is
             msg_auth        : out STD_LOGIC
         );
     end component CryptoCore;
-begin
 
+begin
     -- synthesis translate_off
     assert false report "[LWC]" & LF & "  GW=" & integer'image(W) & "  SW=" & integer'image(SW) & LF & "  CCW=" & integer'image(CCW) & " CCSW=" & integer'image(CCSW) severity note;
     -- synthesis translate_on
 
-    -- Width parameters sanity checks
-    -- See 'Implementer’s Guide to Hardware Implementations Compliant with the Hardware API for LWC', sec. 4.3:
-    -- "The following combinations (w, ccw) are supported in the current version
-    --   of the Development Package: (32, 32), (32, 16), (32, 8), (16, 16), and (8, 8).
-    --   The following combinations (sw, ccsw) are supported: (32, 32), (32, 16),
-    --   (32, 8), (16, 16), and (8, 8). However, w and sw must be always the same."
+    -- The following combinations (W, CCW) are supported in the current version
+    -- of the Development Package: (32, 32), (32, 16), (32, 8), (16, 16), and (8, 8).
+    -- The following combinations (SW, CCSW) are supported: (32, 32), (32, 16),
+    -- (32, 8), (16, 16), and (8, 8). In addition, W and SW must be always the same.
 
     assert ((W = 32 and (CCW = 32 or CCW = 16 or CCW = 8)) or (W = 16 and CCW = 16) or (W = 8 and CCW = 8))
     report "[LWC] Invalid combination of (G_W, CCW)" severity failure;
-
+    --
     assert ((SW = 32 and (CCSW = 32 or CCSW = 16 or CCSW = 8)) or (SW = 16 and CCSW = 16) or (SW = 8 and CCSW = 8))
     report "[LWC] Invalid combination of (SW, CCSW)" severity failure;
-
+    --
     assert W = SW report "[LWC] SW /= W" severity failure;
 
     -- ASYNC_RSTN notification
@@ -174,33 +163,40 @@ begin
         port map(
             clk             => clk,
             rst             => rst,
+            --
             pdi_data        => pdi_data,
             pdi_valid       => pdi_valid,
             pdi_ready       => pdi_ready,
+            --
             sdi_data        => sdi_data,
             sdi_valid       => sdi_valid,
             sdi_ready       => sdi_ready,
+            --
             key_data        => key_cipher_in,
             key_valid       => key_valid_cipher_in,
             key_ready       => key_ready_cipher_in,
+            --
+            key_update      => key_update_cipher_in,
+            --
             bdi_data        => bdi_cipher_in,
-            bdi_valid       => bdi_valid_cipher_in,
-            bdi_ready       => bdi_ready_cipher_in,
-            bdi_pad_loc     => bdi_pad_loc_cipher_in,
             bdi_valid_bytes => bdi_valid_bytes_cipher_in,
+            bdi_pad_loc     => bdi_pad_loc_cipher_in,
             bdi_size        => bdi_size_cipher_in,
             bdi_eot         => bdi_eot_cipher_in,
             bdi_eoi         => bdi_eoi_cipher_in,
             bdi_type        => bdi_type_cipher_in,
+            bdi_valid       => bdi_valid_cipher_in,
+            bdi_ready       => bdi_ready_cipher_in,
+            --
             decrypt         => decrypt_cipher_in,
             hash            => hash_cipher_in,
-            key_update      => key_update_cipher_in,
+            --
             cmd_data        => cmd_FIFO_in,
             cmd_valid       => cmd_valid_FIFO_in,
             cmd_ready       => cmd_ready_FIFO_in
         );
 
-    Inst_Cipher : CryptoCore
+    Inst_CryptoCore : CryptoCore
         port map(
             clk             => clk,
             rst             => rst,
@@ -234,16 +230,16 @@ begin
         port map(
             clk             => clk,
             rst             => rst,
-            bdo             => bdo_cipher_out,
+            bdo_data        => bdo_cipher_out,
             bdo_valid       => bdo_valid_cipher_out,
             bdo_ready       => bdo_ready_cipher_out,
-            end_of_block    => end_of_block_cipher_out,
+            bdo_last        => end_of_block_cipher_out,
             bdo_type        => bdo_type_cipher_out,
             bdo_valid_bytes => bdo_valid_bytes_cipher_out,
-            msg_auth        => msg_auth,
-            msg_auth_ready  => msg_auth_ready,
-            msg_auth_valid  => msg_auth_valid,
-            cmd             => cmd_FIFO_out,
+            auth_success       => msg_auth,
+            auth_ready      => msg_auth_ready,
+            auth_valid      => msg_auth_valid,
+            cmd_data        => cmd_FIFO_out,
             cmd_valid       => cmd_valid_FIFO_out,
             cmd_ready       => cmd_ready_FIFO_out,
             do_data         => do_data,
@@ -252,7 +248,7 @@ begin
             do_ready        => do_ready
         );
 
-    Inst_HeaderFifo : entity work.fwft_fifo(structure)
+    Inst_HeaderFifo : entity work.fwft_fifo
         generic map(
             G_W         => W,
             G_LOG2DEPTH => 2
