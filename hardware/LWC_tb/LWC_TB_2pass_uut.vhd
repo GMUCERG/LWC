@@ -2,7 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 use work.NIST_LWAPI_pkg.all;
-use work.LWC_TB_pkg.all;
+use work.LWC_compatibility_pkg.all;
 
 entity LWC_TB_2pass_uut is
     generic (

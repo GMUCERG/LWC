@@ -18,8 +18,10 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-use work.NIST_LWAPI_pkg.all;
+
 use work.design_pkg.all;
+use work.LWC_pkg.all;
+use work.NIST_LWAPI_pkg.all;
 
 
 entity CryptoCore is
@@ -62,24 +64,24 @@ architecture behavioral of CryptoCore is
     --! Constant to check for empty hash
     constant EMPTY_HASH_SIZE_C  : std_logic_vector(2 downto 0)  := (others => '0');
     -- Counters are specified to be 64-Bit counters for AD/MSG-Bits. We only count
-    -- Bytes and prepend three zero bits afterwards to save FFs (thus max range is 61).
+    -- Bytes and prepend three zero bits afterwards to save FFs (thus maximum range is 61).
     --! Width of the ad byte-counter.
     constant AD_CNT_WIDTH_C     : integer range 1 to 61 := AD_CNT_WIDTH - 3;
     --! Width of msg byte-counter
     constant MSG_CNT_WIDTH_C    : integer range 1 to 61 := MSG_CNT_WIDTH - 3;
     --! Width for the msg block counter.
     -- Has to count up to (#MSG_BYTES + DBLK_SIZE/8 - 1) / (DBLK_SIZE/8) which is equal
-    -- to MSG_CNT_WIDTH_C - log2_ceil(DBLK_SIZE/8) bits. But at least use one bit.
-    constant BLOCK_CNT_WIDTH_C  : integer   := max(MSG_CNT_WIDTH_C - log2_ceil(DBLK_SIZE/8), 1);
+    -- to MSG_CNT_WIDTH_C - log2ceil(DBLK_SIZE/8) bits. But at least use one bit.
+    constant BLOCK_CNT_WIDTH_C  : integer   := maximum(MSG_CNT_WIDTH_C - log2ceil(DBLK_SIZE/8), 1);
 
     -- Number of words the respective blocks contain.
     constant NPUB_WORDS_C       : integer   := get_words(NPUB_SIZE, CCW);
     constant HASH_WORDS_C       : integer   := get_words(HASH_VALUE_SIZE, CCW);
     constant BLOCK_WORDS_C      : integer   := get_words(DBLK_SIZE, CCW);
     -- Number of address bits required to address the above blocks when stored as ram.
-    constant ADDR_BITS_96_C     : integer   := log2_ceil(NPUB_WORDS_C);
-    constant ADDR_BITS_128_C    : integer   := log2_ceil(BLOCK_WORDS_C);
-    constant ADDR_BITS_256_C    : integer   := log2_ceil(HASH_WORDS_C);
+    constant ADDR_BITS_96_C     : integer   := log2ceil(NPUB_WORDS_C);
+    constant ADDR_BITS_128_C    : integer   := log2ceil(BLOCK_WORDS_C);
+    constant ADDR_BITS_256_C    : integer   := log2ceil(HASH_WORDS_C);
 
     -- TAG Ram signals (also used for hash value)
     signal tag_wen_s    : std_logic;
@@ -172,16 +174,16 @@ begin
     ----------------------------------------------------------------------------
     -- I/O Mappings
     -- Algorithm is specified in Big Endian. However, this is a Little Endian
-    -- implementation so reverse_byte/bit functions are used to reorder affected signals.
+    -- implementation so reverse_bytes/bit functions are used to reorder affected signals.
     ----------------------------------------------------------------------------
-    key_s               <= reverse_byte(key);
-    bdi_s               <= reverse_byte(bdi);
-    bdi_valid_bytes_s   <= reverse_bit(bdi_valid_bytes);
-    bdi_pad_loc_s       <= reverse_bit(bdi_pad_loc);
+    key_s               <= reverse_bytes(key);
+    bdi_s               <= reverse_bytes(bdi);
+    bdi_valid_bytes_s   <= reverse_bits(bdi_valid_bytes);
+    bdi_pad_loc_s       <= reverse_bits(bdi_pad_loc);
     key_ready           <= key_ready_s;
     bdi_ready           <= bdi_ready_s;
-    bdo                 <= reverse_byte(bdo_s);
-    bdo_valid_bytes     <= reverse_bit(bdo_valid_bytes_s);
+    bdo                 <= reverse_bytes(bdo_s);
+    bdo_valid_bytes     <= reverse_bits(bdo_valid_bytes_s);
     bdo_valid           <= bdo_valid_s;
     bdo_type            <= bdo_type_s;
     end_of_block        <= end_of_block_s;
@@ -330,7 +332,7 @@ begin
     ----------------------------------------------------------------------------
     --! Registers for state and internal signals
     ----------------------------------------------------------------------------
-    GEN_p_reg_SYNC_RST: if (not ASYNC_RSTN) generate
+    GEN_p_reg_SYNC_RST: if not ASYNC_RSTN generate
         p_reg : process(clk)
         begin
             if rising_edge(clk) then
@@ -355,7 +357,7 @@ begin
         end process p_reg;
     end generate GEN_p_reg_SYNC_RST;
     
-    GEN_p_reg_ASYNC_RSTN: if (ASYNC_RSTN) generate
+    GEN_p_reg_ASYNC_RSTN: if ASYNC_RSTN generate
         p_reg : process(clk, rst)
         begin
             if (rst = '0') then
@@ -885,11 +887,11 @@ begin
 
     -- Concatenate the lengths (in bits) of ad and pt/ct for tag absorbtion. Reorder due to Endianess.
     -- Extract single word from len_s vector.
-    len_s <= reverse_byte(msg_bit_cnt_vec_s) & reverse_byte(ad_bit_cnt_vec_s);
+    len_s <= reverse_bytes(msg_bit_cnt_vec_s) & reverse_bytes(ad_bit_cnt_vec_s);
     len_word_s <= std_logic_vector(shift_right(unsigned(len_s), CCW*word_cnt_s)(CCW-1 downto 0));
     -- Convert the block counter to a std_logic vector. Reorder due to Endianess.
     -- and extract single word from block_num_s vector.
-    block_num_s <= reverse_byte(std_logic_vector(resize(block_cnt_s, block_num_s'length)));
+    block_num_s <= reverse_bytes(std_logic_vector(resize(block_cnt_s, block_num_s'length)));
 	block_num_word_s <= std_logic_vector(shift_right(unsigned(block_num_s), CCW*word_cnt_s)(CCW-1 downto 0));
 	
 end behavioral;

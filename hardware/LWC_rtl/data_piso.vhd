@@ -33,18 +33,18 @@ entity DATA_PISO is
     port(
         clk           : in  std_logic;
         rst           : in  std_logic;
-        data_size_p   : in  STD_LOGIC_VECTOR(3 - 1 downto 0);
-        data_size_s   : out STD_LOGIC_VECTOR(3 - 1 downto 0);
-        data_s        : out STD_LOGIC_VECTOR(CCW - 1 downto 0);
+        data_size_p   : in  STD_LOGIC_VECTOR(2 downto 0);
+        data_size_s   : out STD_LOGIC_VECTOR(2 downto 0);
+        data_s        : out STD_LOGIC_VECTOR(PDI_SHARES * CCW - 1 downto 0);
         data_valid_s  : out STD_LOGIC;
         data_ready_s  : in  STD_LOGIC;
-        data_p        : in  STD_LOGIC_VECTOR(W - 1 downto 0);
+        data_p        : in  STD_LOGIC_VECTOR(PDI_SHARES * W - 1 downto 0);
         data_valid_p  : in  STD_LOGIC;
         data_ready_p  : out STD_LOGIC;
-        valid_bytes_p : in  STD_LOGIC_VECTOR(Wdiv8 - 1 downto 0);
-        valid_bytes_s : out STD_LOGIC_VECTOR(CCWdiv8 - 1 downto 0);
-        pad_loc_p     : in  STD_LOGIC_VECTOR(Wdiv8 - 1 downto 0);
-        pad_loc_s     : out STD_LOGIC_VECTOR(CCWdiv8 - 1 downto 0);
+        valid_bytes_p : in  STD_LOGIC_VECTOR(W / 8 - 1 downto 0);
+        valid_bytes_s : out STD_LOGIC_VECTOR(CCW / 8 - 1 downto 0);
+        pad_loc_p     : in  STD_LOGIC_VECTOR(W / 8 - 1 downto 0);
+        pad_loc_s     : out STD_LOGIC_VECTOR(CCW / 8 - 1 downto 0);
         eoi_p         : in  std_logic;
         eoi_s         : out std_logic;
         eot_p         : in  std_logic;
@@ -238,19 +238,14 @@ begin
     end generate GEN_NONTRIVIAL;
 
     GEN_TRIVIAL : if CCW = W generate
-
-        data_s       <= data_p;
-        data_valid_s <= data_valid_p;
-        data_ready_p <= data_ready_s;
-
+        data_s        <= data_p;
+        data_valid_s  <= data_valid_p;
+        data_ready_p  <= data_ready_s;
         valid_bytes_s <= valid_bytes_p;
         pad_loc_s     <= pad_loc_p;
-
-        eoi_s <= eoi_p;
-        eot_s <= eot_p;
-
-        data_size_s <= data_size_p;
-
+        eoi_s         <= eoi_p;
+        eot_s         <= eot_p;
+        data_size_s   <= data_size_p;
     end generate GEN_TRIVIAL;
 
 end behavioral;

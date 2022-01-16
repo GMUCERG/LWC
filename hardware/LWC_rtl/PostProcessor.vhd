@@ -38,6 +38,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 use work.NIST_LWAPI_pkg.all;
+use work.LWC_pkg.all;
 use work.design_pkg.all;
 
 entity PostProcessor is
@@ -45,8 +46,8 @@ entity PostProcessor is
         clk             : in  std_logic;
         rst             : in  std_logic;
         --! Crypto Core =======================================================
-        bdo_data        : in  std_logic_vector(CCW - 1 downto 0);
-        bdo_valid_bytes : in  std_logic_vector(CCWdiv8 - 1 downto 0);
+        bdo_data        : in  std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
+        bdo_valid_bytes : in  std_logic_vector(CCW / 8 - 1 downto 0);
         bdo_last        : in  std_logic;
         bdo_type        : in  std_logic_vector(3 downto 0); -- not used ATM
         bdo_valid       : in  std_logic;
@@ -60,7 +61,7 @@ entity PostProcessor is
         cmd_valid       : in  std_logic;
         cmd_ready       : out std_logic;
         --! Data Output (DO) ==================================================
-        do_data         : out std_logic_vector(W - 1 downto 0);
+        do_data         : out std_logic_vector(PDI_SHARES * W - 1 downto 0);
         do_last         : out std_logic;
         do_valid        : out std_logic;
         do_ready        : in  std_logic
@@ -74,6 +75,8 @@ architecture RTL of PostProcessor is
     constant HDR_LEN_BITS : positive := minimum(W, SEGLEN_BITS);
     constant DIGEST_BYTES : integer  := HASH_VALUE_SIZE / 8;
     constant TAG_BYTES    : integer  := TAG_SIZE / 8;
+    constant W_S          : positive := PDI_SHARES * W;
+    constant CCW_S        : positive := PDI_SHARES * CCW;
 
     --==================================================== Types ====================================================--
     type t_state is (
@@ -87,9 +90,9 @@ architecture RTL of PostProcessor is
     --==================================================== Wires ====================================================--
     signal nx_state                                 : t_state; -- next state
     signal cmd_ready_o, do_valid_o                  : std_logic; -- for reading 'out' ports in VHDL < 2008
-    signal bdo_cleared                              : std_logic_vector(CCW - 1 downto 0);
+    signal bdo_cleared                              : std_logic_vector(CCW_S - 1 downto 0);
     signal bdo_valid_p, bdo_ready_p, bdo_last_p     : std_logic;
-    signal bdo_data_p                               : std_logic_vector(W - 1 downto 0);
+    signal bdo_data_p                               : std_logic_vector(W_S - 1 downto 0);
     signal nx_decrypt, nx_eot                       : std_logic;
     -- current header seglen part (8 bits for W=8) is zero
     signal cmd_hdr_seglen_is_zero                   : boolean;
@@ -101,23 +104,19 @@ architecture RTL of PostProcessor is
     signal sending_hdr                              : boolean;
 
     --=================================================== Aliases ===================================================--
-    alias cmd_hdr_opcode : std_logic_vector(3 downto 0) is cmd_data(W - 1 downto W - 4);
-    alias cmd_hdr_seglen : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is cmd_data(HDR_LEN_BITS - 1 downto 0);
-    -- alias cmd_hdr_eoi    : std_logic is cmd_data(W - 6);
-    alias cmd_hdr_eot    : std_logic is cmd_data(W - 7);
-    -- alias cmd_hdr_last   : std_logic is cmd_data(W - 8);
-    alias do_hdr_opcode  : std_logic_vector(3 downto 0) is do_data(W - 1 downto W - 4);
-    -- alias do_hdr_eoi     : std_logic is do_data(W - 6);
-    alias do_hdr_eot     : std_logic is do_data(W - 7);
-    alias do_hdr_last    : std_logic is do_data(W - 8);
-    alias do_hdr_seglen  : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is do_data(HDR_LEN_BITS - 1 downto 0);
+    alias cmd_hdr        : std_logic_vector(W - 1 downto 0) is cmd_data(W_S - 1 downto W_S - W);
+    alias cmd_hdr_opcode : std_logic_vector(3 downto 0) is cmd_hdr(W - 1 downto W - 4);
+    alias cmd_hdr_seglen : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is cmd_hdr(HDR_LEN_BITS - 1 downto 0);
+    alias cmd_hdr_eot    : std_logic is cmd_hdr(W - 7);
+    alias do_hdr         : std_logic_vector(W - 1 downto 0) is do_data(W_S - 1 downto W_S - W);
+    alias do_hdr_opcode  : std_logic_vector(3 downto 0) is do_hdr(W - 1 downto W - 4);
+    alias do_hdr_eot     : std_logic is do_hdr(W - 7);
+    alias do_hdr_last    : std_logic is do_hdr(W - 8);
+    alias do_hdr_seglen  : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is do_hdr(HDR_LEN_BITS - 1 downto 0);
 
 begin
     -- optimized out if CCW=W
     bdoSIPO : entity work.DATA_SIPO
-        generic map(
-            G_ASYNC_RSTN => ASYNC_RSTN
-        )
         port map(
             clk          => clk,
             rst          => rst,
@@ -132,6 +131,7 @@ begin
 
     -- old-comment: needs no delay as our last serial_in element is also the last parallel_out element
     -- FIXME !!! not true for a generic PISO as the input could be stored and out_fire happens after in_fire
+    -- works for current DATA_SIPO implementation as it directly passes the last input fragment
     bdo_last_p <= bdo_last;
 
     --===============================================================================================================--

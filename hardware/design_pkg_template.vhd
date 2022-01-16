@@ -1,4 +1,4 @@
---------------------------------------------------------------------------------
+--===============================================================================================--
 --! @file       design_pkg.vhd
 --! @brief      Template for CryptoCore design package
 --!
@@ -7,6 +7,7 @@
 --! @copyright  Copyright (c) 2019 Chair of Security in Information Technology
 --!             ECE Department, Technical University of Munich, GERMANY
 --!             All rights Reserved.
+--! @author     Kamyar Mohajerani
 --! @license    This project is released under the GNU Public License.
 --!             The license and distribution terms for this file may be
 --!             found in the file LICENSE in this distribution or at
@@ -18,38 +19,25 @@
 --! @note       Change the name of the file to design_pkg.vhd, and copy it
 --!             to your workspace containing all files required to synthesize
 --!             LWC, listed in source_list.txt.
---------------------------------------------------------------------------------
+--===============================================================================================--
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 
 package design_pkg is
 
-    --! user specific, algorithm indepent parameters 
-    -- place user specific constants like variant selectors here
-
-    --! design parameters needed by the PreProcessor, PostProcessor, and LWC; assigned in the package body below!
-
-    constant TAG_SIZE        : integer; --! Tag size
-    constant HASH_VALUE_SIZE : integer; --! Hash value size
-
-    constant CCSW            : integer; --! Internal key width. If SW = 8 or 16, CCSW = SW. If SW=32, CCSW = 8, 16, or 32.
-    constant CCW             : integer; --! Internal data width. If W = 8 or 16, CCW = W. If W=32, CCW = 8, 16, or 32.
-    constant CCWdiv8         : integer; --! derived from the parameters above, assigned in the package body below.
-
-    --! design parameters specific to the CryptoCore; assigned in the package body below!
-    --! place declarations of your types here
-
-    --! place declarations of your constants here
-
-    --! place declarations of your functions here
+    --! design parameters needed by the PreProcessor, PostProcessor, and LWC
+    --!
+    --! Tag size in bits
+    constant TAG_SIZE        : integer;
+    --! Hash digest size in bits
+    constant HASH_VALUE_SIZE : integer;
+    --! CryptoCore BDI data width in bits. Supported values: 32, 16, 8
+    constant CCW             : integer;
+    --!
+    --===========================================================================================--
+    --! CryptoCore key input width in bits
+    --! DO NOT CHANGE: Only CCSW = CCW is currently supported
+    constant CCSW            : integer := CCW;
 
 end design_pkg;
-
-package body design_pkg is
-
-  --! assign values to all constants and aliases here
-
-  --! define your functions here
-
-end package body design_pkg;

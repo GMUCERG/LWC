@@ -1,4 +1,4 @@
---===================================================================================================================--
+--===============================================================================================--
 --! @file       PreProcessor.vhd
 --! @brief      Pre-processor for NIST LWC API
 --!
@@ -24,11 +24,11 @@
 --! @note       This is publicly available encryption source code that falls
 --!             under the License Exception TSU (Technology and software-
 --!             unrestricted)
------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
 --! Description
 --!
 --!
---===================================================================================================================--
+--===============================================================================================--
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -36,29 +36,30 @@ use IEEE.NUMERIC_STD.ALL;
 
 use work.NIST_LWAPI_pkg.all;
 use work.design_pkg.all;
+use work.LWC_pkg.all;
 
 entity PreProcessor is
     port(
         clk             : in  std_logic;
         rst             : in  std_logic;
         --! Public Data input (pdi) ===========================================
-        pdi_data        : in  STD_LOGIC_VECTOR(W - 1 downto 0);
+        pdi_data        : in  STD_LOGIC_VECTOR(PDI_SHARES * W - 1 downto 0);
         pdi_valid       : in  std_logic;
         pdi_ready       : out std_logic;
         --! Secret Data input (sdi) ===========================================
-        sdi_data        : in  STD_LOGIC_VECTOR(SW - 1 downto 0);
+        sdi_data        : in  STD_LOGIC_VECTOR(PDI_SHARES * SW - 1 downto 0);
         sdi_valid       : in  std_logic;
         sdi_ready       : out std_logic;
         --! Crypto Core =======================================================
-        key_data        : out std_logic_vector(CCSW - 1 downto 0);
+        key_data        : out std_logic_vector(PDI_SHARES * CCSW - 1 downto 0);
         key_valid       : out std_logic;
         key_ready       : in  std_logic;
         --
         key_update      : out std_logic;
         --
-        bdi_data        : out std_logic_vector(CCW - 1 downto 0);
-        bdi_valid_bytes : out std_logic_vector(CCWdiv8 - 1 downto 0);
-        bdi_pad_loc     : out std_logic_vector(CCWdiv8 - 1 downto 0);
+        bdi_data        : out std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
+        bdi_valid_bytes : out std_logic_vector(CCW / 8 - 1 downto 0);
+        bdi_pad_loc     : out std_logic_vector(CCW / 8 - 1 downto 0);
         bdi_size        : out std_logic_vector(2 downto 0);
         bdi_eot         : out std_logic;
         bdi_eoi         : out std_logic;
@@ -77,28 +78,34 @@ entity PreProcessor is
 end entity PreProcessor;
 
 architecture PreProcessor of PreProcessor is
-    --================================================== Constants ==================================================--
-    constant LOG2_W_DIV_8 : natural  := log2ceil(W / 8);
+    --======================================== Constants ========================================--
     constant SEGLEN_BITS  : positive := 16;
+    constant LOG2_W_DIV_8 : natural  := log2ceil(W / 8);
     constant HDR_LEN_BITS : positive := minimum(W, SEGLEN_BITS);
+    constant W_S          : positive := PDI_SHARES * W;
+    constant SW_S         : positive := SDI_SHARES * SW;
+    constant CCW_S        : positive := PDI_SHARES * CCW;
+    constant CCSW_S       : positive := SDI_SHARES * CCSW;
 
-    --==================================================== Types ====================================================--
-    type t_state is (S_INST, S_INST_KEY, S_HDR_KEY, S_LD_KEY, S_HDR_LENGTH, S_LD_LENGTH, S_HDR_NPUB, S_LD_NPUB,
-                     S_HDR_AD, S_LD_AD, S_HDR_MSG, S_LD_MSG, S_HDR_TAG, S_LD_TAG, S_HDR_HASH, S_LD_HASHMSG, S_EMPTY_HASH);
+    --========================================== Types ==========================================--
+    type t_state is (S_INST, S_INST_KEY, S_HDR_KEY, S_LD_KEY, S_HDR_LENGTH, S_LD_LENGTH,
+                     S_HDR_NPUB, S_LD_NPUB, S_HDR_AD, S_LD_AD, S_HDR_MSG, S_LD_MSG, S_HDR_TAG,
+                     S_LD_TAG, S_HDR_HASH, S_LD_HASHMSG, S_EMPTY_HASH);
 
-    --================================================== Registers ==================================================--
+    --======================================= Registers =========================================--
     signal state                            : t_state; -- FSM state
     signal segment_counter                  : unsigned(SEGLEN_BITS - 1 downto 0);
     signal eoi_flag, eot_flag, decrypt_flag : std_logic; -- flags
 
-    --==================================================== Wires ====================================================--
+    --========================================= Wires ===========================================--
     signal nx_decrypt_flag                            : std_logic;
     signal bdi_eoi_p, bdi_eot_p                       : std_logic;
-    signal pdi_ready_o, sdi_ready_o                   : std_logic; -- for reading 'out' ports in VHDL < 2008
+    -- for reading 'out' ports in VHDL < 2008
+    signal pdi_ready_o, sdi_ready_o                   : std_logic;
     signal bdi_valid_p, bdi_ready_p                   : std_logic;
     signal key_valid_p, key_ready_p                   : std_logic;
     signal bdi_size_p                                 : std_logic_vector(2 downto 0);
-    signal bdi_pad_loc_p                              : std_logic_vector(Wdiv8 - 1 downto 0);
+    signal bdi_pad_loc_p                              : std_logic_vector(W / 8 - 1 downto 0);
     signal op_is_actkey, op_is_hash, op_is_enc_or_dec : boolean;
     signal reset_hdr_counter, hdr_first, hdr_last     : boolean;
     signal reading_pdi_hdr, reading_pdi_data          : boolean;
@@ -108,24 +115,26 @@ architecture PreProcessor of PreProcessor is
     signal hdr_seglen                                 : std_logic_vector(HDR_LEN_BITS - 1 downto 0);
     signal seglen_is_zero                             : boolean;
     signal last_flit_of_segment                       : boolean;
-    signal bdi_valid_bytes_p                          : std_logic_vector(Wdiv8 - 1 downto 0);
+    signal bdi_valid_bytes_p                          : std_logic_vector(W / 8 - 1 downto 0);
     signal nx_state                                   : t_state; -- next FSM state
     --! for simulation only
     signal received_wrong_header                      : boolean;
 
-    --=================================================== Aliases ===================================================--
-    alias pdi_hdr_opcode     : std_logic_vector(3 downto 0) is pdi_data(W - 1 downto W - 4);
-    alias pdi_hdr_eoi        : std_logic is pdi_data(W - 6);
-    alias pdi_hdr_eot       : std_logic is pdi_data(W - 7);
-    alias pdi_hdr_last       : std_logic is pdi_data(W - 8);
-    alias pdi_hdr_seglen     : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is pdi_data(HDR_LEN_BITS - 1 downto 0);
-    alias sdi_hdr_opcode     : std_logic_vector(3 downto 0) is sdi_data(W - 1 downto W - 4);
-    alias sdi_hdr_seglen     : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is sdi_data(HDR_LEN_BITS - 1 downto 0);
+    --========================================= Aliases =========================================--
+    alias pdi_hdr            : std_logic_vector(W - 1 downto 0) is pdi_data(W_S - 1 downto W_S - W);
+    alias pdi_hdr_opcode     : std_logic_vector(3 downto 0) is pdi_hdr(W - 1 downto W - 4);
+    alias pdi_hdr_eoi        : std_logic is pdi_hdr(W - 6);
+    alias pdi_hdr_eot        : std_logic is pdi_hdr(W - 7);
+    alias pdi_hdr_last       : std_logic is pdi_hdr(W - 8);
+    alias pdi_hdr_seglen     : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is pdi_hdr(HDR_LEN_BITS - 1 downto 0);
+    alias sdi_hdr            : std_logic_vector(W - 1 downto 0) is sdi_data(W_S - 1 downto W_S - W);
+    alias sdi_hdr_opcode     : std_logic_vector(3 downto 0) is sdi_hdr(W - 1 downto W - 4);
+    alias sdi_hdr_seglen     : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is sdi_hdr(HDR_LEN_BITS - 1 downto 0);
     alias segment_counter_hi : unsigned(SEGLEN_BITS - LOG2_W_DIV_8 - 1 downto 0) is segment_counter(SEGLEN_BITS - 1 downto LOG2_W_DIV_8);
-    alias segment_counter_lo : unsigned(LOG2_W_DIV_8-1 downto 0) is segment_counter(LOG2_W_DIV_8-1 downto 0);
+    alias segment_counter_lo : unsigned(LOG2_W_DIV_8 - 1 downto 0) is segment_counter(LOG2_W_DIV_8 - 1 downto 0);
 
 begin
-    --================================================== Instances ==================================================--
+    --======================================== Instances ========================================--
     keyPISO : entity work.KEY_PISO
         port map(
             clk          => clk,
@@ -164,8 +173,8 @@ begin
             data_ready_s  => bdi_ready
         );
 
-    --===============================================================================================================--
-    --========================================== Width-specific generation ==========================================--
+    --===========================================================================================--
+    --================================ Width-specific generation ================================--
     W32_GEN : if W = 32 generate
     begin
         hdr_first <= true;
@@ -207,7 +216,7 @@ begin
         seglen <= hdr_seglen;
     end generate;
 
-    --===============================================================================================================--
+    --============================================================================================--
     --! State register is the only register that requires reset
     GEN_SYNC_RST : if not ASYNC_RSTN generate
         process(clk)
@@ -245,26 +254,20 @@ begin
                 eoi_flag <= pdi_hdr_eoi;
                 eot_flag <= pdi_hdr_eot;
             end if;
-        end if;
-    end process;
-
-    --! for simulation only
-    -- synthesis translate_off
-    process(clk)
-    begin
-        if rising_edge(clk) then
+            --! for simulation only
+            -- synthesis translate_off
             assert not received_wrong_header report "Received unexpected header" severity failure;
+            -- synthesis translate_on
         end if;
     end process;
-    -- synthesis translate_on
 
-    --===============================================================================================================--
+    --===========================================================================================--
     last_flit_of_segment <= is_zero(segment_counter_hi(segment_counter_hi'length - 1 downto 1)) and --
                             (segment_counter_hi(0) = '0' or is_zero(segment_counter_lo));
 
     -- bdi number of valid bytes as a binary integer
     bdi_size_p <= std_logic_vector(resize(segment_counter_hi(0) & segment_counter_lo, bdi_size_p'length)) when last_flit_of_segment else --
-                  std_logic_vector(to_unsigned(Wdiv8, bdi_size_p'length));
+                  std_logic_vector(to_unsigned(W / 8, bdi_size_p'length));
     -- bdi padding location
     bdi_pad_loc_p     <= reverse_bits(to_1H(bdi_size_p, bdi_pad_loc_p'length));
     -- bdi valid bytes
@@ -287,12 +290,12 @@ begin
     sdi_ready <= sdi_ready_o;
     cmd_data  <= pdi_data;
 
-    --===============================================================================================================--
+    --===========================================================================================--
     --= When using VHDL 2008+ change to
     -- process(all)
     process(state, decrypt_flag, eot_flag, --
-        pdi_hdr_opcode, pdi_valid, pdi_fire, sdi_hdr_opcode, sdi_valid, sdi_fire, --
-        last_flit_of_segment, key_ready_p, cmd_ready, bdi_ready_p, reading_pdi_hdr, reading_sdi_hdr, --
+        pdi_hdr_opcode, pdi_valid, pdi_fire, sdi_hdr_opcode, sdi_valid, sdi_fire, key_ready_p, --
+        last_flit_of_segment, cmd_ready, bdi_ready_p, reading_pdi_hdr, reading_sdi_hdr, --
         seglen_is_zero, hdr_first, hdr_last, op_is_actkey, op_is_enc_or_dec, op_is_hash)
     begin
         -- Default Values
@@ -303,7 +306,8 @@ begin
         bdi_valid_p           <= '0';
         cmd_valid             <= '0';
         hash                  <= '0';
-        bdi_type              <= (others => '-'); -- let synthesis tool choose an optimized default value
+        -- let synthesis tool choose an optimized default value
+        bdi_type              <= (others => '-');
         reading_pdi_hdr       <= false;
         reading_pdi_data      <= false;
         reading_sdi_hdr       <= false;
@@ -314,7 +318,7 @@ begin
         -- for simulation only
         received_wrong_header <= false;
 
-        -- We don't allow for parallel key loading in a lightweight enviroment (TODO)
+        -- TODO: Parallel key loading not currently supported
         case state is
             -- receive PDI instruction
             when S_INST =>

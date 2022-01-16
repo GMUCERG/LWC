@@ -29,17 +29,15 @@ use work.design_pkg.all;
 use work.NIST_LWAPI_pkg.all;
 
 entity DATA_SIPO is
-    generic(
-        G_ASYNC_RSTN : boolean
-    );
+
     port(
         clk          : in  std_logic;
         rst          : in  std_logic;
         end_of_input : in  STD_LOGIC;
-        data_p       : out STD_LOGIC_VECTOR(W - 1 downto 0);
+        data_p       : out STD_LOGIC_VECTOR(PDI_SHARES * W - 1 downto 0);
         data_valid_p : out STD_LOGIC;
         data_ready_p : in  STD_LOGIC;
-        data_s       : in  STD_LOGIC_VECTOR(CCW - 1 downto 0);
+        data_s       : in  STD_LOGIC_VECTOR(PDI_SHARES * CCW - 1 downto 0);
         data_valid_s : in  STD_LOGIC;
         data_ready_s : out STD_LOGIC
     );
@@ -48,18 +46,17 @@ end entity DATA_SIPO;
 
 architecture behavioral of DATA_SIPO is
 
-    type t_state is (LD_1, LD_2, LD_3, LD_4);
-    signal nx_state, state : t_state;
-    signal mux             : integer range 1 to 4;
-    signal reg             : std_logic_vector(31 downto 8);
-
 begin
 
-    assert (CCW = 8) OR (CCW = 16) OR (CCW = 32) report "This module only supports CCW={8,16,32}!" severity failure;
-
     GEN_NONTRIVIAL : if W /= CCW generate
+        type t_state is (LD_1, LD_2, LD_3, LD_4);
+        signal nx_state, state : t_state;
+        signal mux             : integer range 1 to 4;
+        signal reg             : std_logic_vector(31 downto 8);
+    begin
+        assert PDI_SHARES = 1 and W = 32 and (CCW = 8 OR CCW = 16) report "This module only supports CCW={8,16,32}!" severity failure;
 
-        GEN_proc_SYNC_RST : if (not G_ASYNC_RSTN) generate
+        GEN_proc_SYNC_RST : if (not ASYNC_RSTN) generate
             process(clk)
             begin
                 if rising_edge(clk) then
@@ -71,7 +68,7 @@ begin
                 end if;
             end process;
         end generate GEN_proc_SYNC_RST;
-        GEN_proc_ASYNC_RSTN : if (G_ASYNC_RSTN) generate
+        GEN_proc_ASYNC_RSTN : if (ASYNC_RSTN) generate
             process(clk, rst)
             begin
                 if (rst = '0') then

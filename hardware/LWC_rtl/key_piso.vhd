@@ -33,10 +33,10 @@ entity KEY_PISO is
     port(
         clk          : in  std_logic;
         rst          : in  std_logic;
-        data_s       : out STD_LOGIC_VECTOR(CCSW - 1 downto 0);
+        data_s       : out STD_LOGIC_VECTOR(SDI_SHARES * CCSW - 1 downto 0);
         data_valid_s : out STD_LOGIC;
         data_ready_s : in  STD_LOGIC;
-        data_p       : in  STD_LOGIC_VECTOR(SW - 1 downto 0);
+        data_p       : in  STD_LOGIC_VECTOR(SDI_SHARES * SW - 1 downto 0);
         data_valid_p : in  STD_LOGIC;
         data_ready_p : out STD_LOGIC
     );
