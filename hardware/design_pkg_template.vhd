@@ -34,10 +34,7 @@ package design_pkg is
     constant HASH_VALUE_SIZE : integer;
     --! CryptoCore BDI data width in bits. Supported values: 32, 16, 8
     constant CCW             : integer;
-    --!
-    --===========================================================================================--
     --! CryptoCore key input width in bits
-    --! DO NOT CHANGE: Only CCSW = CCW is currently supported
     constant CCSW            : integer := CCW;
 
 end design_pkg;

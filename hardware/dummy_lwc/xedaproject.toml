@@ -14,7 +14,7 @@ rtl.sources = [
     "src_rtl/LWC/data_sipo.vhd",
     "src_rtl/LWC/key_piso.vhd",
     "src_rtl/LWC/data_piso.vhd",
-    "src_rtl/LWC/fwft_fifo.vhd",
+    "src_rtl/LWC/fifo.vhd",
     "src_rtl/LWC/PreProcessor.vhd",
     "src_rtl/LWC/PostProcessor.vhd",
     "src_rtl/LWC/LWC.vhd",
@@ -34,8 +34,9 @@ language.vhdl.synopsys = false
 G_FNAME_PDI.file = "KAT/32/pdi.txt"
 G_FNAME_SDI.file = "KAT/32/sdi.txt"
 G_FNAME_DO.file = "KAT/32/do.txt"
-G_TEST_MODE = 0
+G_TEST_MODE = 0 # stall both inputs and output
 G_MAX_FAILURES = 0
+G_TIMEOUT_CYCLES = 100
 
 ##################################################
 
@@ -50,7 +51,7 @@ rtl.sources = [
     "src_rtl/LWC/data_sipo.vhd",
     "src_rtl/LWC/key_piso.vhd",
     "src_rtl/LWC/data_piso.vhd",
-    "src_rtl/LWC/fwft_fifo.vhd",
+    "src_rtl/LWC/fifo.vhd",
     "src_rtl/LWC/PreProcessor.vhd",
     "src_rtl/LWC/PostProcessor.vhd",
     "src_rtl/LWC/LWC.vhd",
@@ -84,7 +85,7 @@ rtl.sources = [
     "src_rtl/LWC/data_sipo.vhd",
     "src_rtl/LWC/key_piso.vhd",
     "src_rtl/LWC/data_piso.vhd",
-    "src_rtl/LWC/fwft_fifo.vhd",
+    "src_rtl/LWC/fifo.vhd",
     "src_rtl/LWC/PreProcessor.vhd",
     "src_rtl/LWC/PostProcessor.vhd",
     "src_rtl/LWC/LWC.vhd",
@@ -118,7 +119,7 @@ rtl.sources = [
     "src_rtl/LWC/data_sipo.vhd",
     "src_rtl/LWC/key_piso.vhd",
     "src_rtl/LWC/data_piso.vhd",
-    "src_rtl/LWC/fwft_fifo.vhd",
+    "src_rtl/LWC/fifo.vhd",
     "src_rtl/LWC/PreProcessor.vhd",
     "src_rtl/LWC/PostProcessor.vhd",
     "src_rtl/LWC/LWC.vhd"
@@ -154,7 +155,7 @@ rtl.sources = [
     "src_rtl/LWC/data_sipo.vhd",
     "src_rtl/LWC/key_piso.vhd",
     "src_rtl/LWC/data_piso.vhd",
-    "src_rtl/LWC/fwft_fifo.vhd",
+    "src_rtl/LWC/fifo.vhd",
     "src_rtl/LWC/PreProcessor.vhd",
     "src_rtl/LWC/PostProcessor.vhd",
     "src_rtl/LWC/LWC.vhd"

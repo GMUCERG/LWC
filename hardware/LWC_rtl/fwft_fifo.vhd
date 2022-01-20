@@ -36,9 +36,6 @@ entity fwft_fifo is
         dout        : out   std_logic_vector(G_W - 1 downto 0);
         dout_valid  : out   std_logic;
         dout_ready  : in    std_logic
-
-        --prog_full_th    : in    std_logic_vector(G_LOG2DEPTH - 1 downto 0);
-        --prog_full       : out   std_logic
     );
 end entity fwft_fifo;
 
@@ -49,7 +46,7 @@ architecture structure of fwft_fifo is
 
     -- Memory type and signal definition
     type mem_t is array (0 to DEPTH_C - 1) of std_logic_vector(G_W - 1 downto 0);
-    signal mem_s            : mem_t := (others => (others => '0'));
+    signal mem_s            : mem_t;
     signal mem_s_next       : mem_t;
 
     -- Internal handshake signals

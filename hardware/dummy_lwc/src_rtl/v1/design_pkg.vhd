@@ -25,10 +25,7 @@ package design_pkg is
     constant HASH_VALUE_SIZE : integer := 256;
     --! CryptoCore BDI data width in bits. Supported values: 32, 16, 8
     constant CCW             : integer := 32;
-    --!
-    --===========================================================================================--
     --! CryptoCore key input width in bits
-    --! DO NOT CHANGE: Only CCSW = CCW is currently supported
     constant CCSW            : integer := CCW;
 
     --===========================================================================================--
@@ -64,10 +61,6 @@ end package;
 
 package body design_pkg is
 
-
-
-
-
     --! design parameters specific to the CryptoCore
     constant NPUB_SIZE       : integer := 96;  --! Npub size
     constant DBLK_SIZE       : integer := 128; --! Block size
@@ -84,8 +77,6 @@ package body design_pkg is
             return size/iowidth;
         end if;
     end function get_words;
-
-
 
     --! Padd the data with 0x80 Byte if pad_loc is set.
     function padd( bdi, bdi_valid_bytes, bdi_pad_loc : std_logic_vector) return std_logic_vector is

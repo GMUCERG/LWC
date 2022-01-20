@@ -3,8 +3,9 @@
 --!
 --! @brief      LWC top level file
 --!
---! @author     Panasayya Yalla & Ekawat (ice) Homsirikamol
---!             Edited by Kamyar Mohajerani
+--! @author     Panasayya Yalla
+--!             Ekawat (ice) Homsirikamol
+--!             Kamyar Mohajerani
 --!
 --! @copyright  Copyright (c) 2022 Cryptographic Engineering Research Group
 --!             ECE Department, George Mason University Fairfax, VA, U.S.A.
@@ -50,17 +51,17 @@ entity LWC is
         clk       : in  std_logic;
         rst       : in  std_logic;
         --! Public data input
-        pdi_data  : in  std_logic_vector(W - 1 downto 0);
+        pdi_data  : in  std_logic_vector(PDI_SHARES * W - 1 downto 0);
         pdi_valid : in  std_logic;
         pdi_ready : out std_logic;
         --! Secret data input
-        sdi_data  : in  std_logic_vector(SW - 1 downto 0);
+        sdi_data  : in  std_logic_vector(SDI_SHARES * SW - 1 downto 0);
         sdi_valid : in  std_logic;
         sdi_ready : out std_logic;
         --! Data out ports
-        do_data   : out std_logic_vector(W - 1 downto 0);
-        do_ready  : in  std_logic;
+        do_data   : out std_logic_vector(PDI_SHARES * W - 1 downto 0);
         do_valid  : out std_logic;
+        do_ready  : in  std_logic;
         do_last   : out std_logic
     );
 end LWC;
@@ -103,6 +104,12 @@ architecture structure of LWC is
     signal cmd_FIFO_out               : std_logic_vector(W - 1 downto 0);
     signal cmd_valid_FIFO_out         : std_logic;
     signal cmd_ready_FIFO_out         : std_logic;
+    -- DO FIFO
+    signal do_fifo_in_valid           : std_logic;
+    signal do_fifo_in_ready           : std_logic;
+    signal do_fifo_in_data            : std_logic_vector(do_data'length - 1 downto 0);
+    signal do_fifo_in_last            : std_logic;
+    signal do_fifo_in, do_fifo_out    : std_logic_vector(do_data'length downto 0); -- data + last
 
     --============================================ Component Declarations ===========================================--
 
@@ -140,8 +147,8 @@ architecture structure of LWC is
 begin
     -- synthesis translate_off
     assert false report "[LWC]" & LF & "  GW=" & integer'image(W) & "  SW=" & --
-        integer'image(SW) & LF & "  CCW=" & integer'image(CCW) & " CCSW=" & integer'image(CCSW) --
-        severity note;
+    integer'image(SW) & LF & "  CCW=" & integer'image(CCW) & " CCSW=" & integer'image(CCSW) --
+    severity note;
     -- synthesis translate_on
 
     -- The following combinations (W, CCW) are supported in the current version
@@ -232,27 +239,27 @@ begin
             clk             => clk,
             rst             => rst,
             bdo_data        => bdo_cipher_out,
-            bdo_valid       => bdo_valid_cipher_out,
-            bdo_ready       => bdo_ready_cipher_out,
+            bdo_valid_bytes => bdo_valid_bytes_cipher_out,
             bdo_last        => end_of_block_cipher_out,
             bdo_type        => bdo_type_cipher_out,
-            bdo_valid_bytes => bdo_valid_bytes_cipher_out,
+            bdo_valid       => bdo_valid_cipher_out,
+            bdo_ready       => bdo_ready_cipher_out,
             auth_success    => msg_auth,
-            auth_ready      => msg_auth_ready,
             auth_valid      => msg_auth_valid,
+            auth_ready      => msg_auth_ready,
             cmd_data        => cmd_FIFO_out,
             cmd_valid       => cmd_valid_FIFO_out,
             cmd_ready       => cmd_ready_FIFO_out,
-            do_data         => do_data,
-            do_valid        => do_valid,
-            do_last         => do_last,
-            do_ready        => do_ready
+            do_data         => do_fifo_in_data,
+            do_last         => do_fifo_in_last,
+            do_valid        => do_fifo_in_valid,
+            do_ready        => do_fifo_in_ready
         );
 
-    Inst_HeaderFifo : entity work.fwft_fifo
+    Inst_HeaderFifo : entity work.FIFO
         generic map(
-            G_W         => W,
-            G_LOG2DEPTH => 2
+            G_W     => W,
+            G_DEPTH => 1
         )
         port map(
             clk        => clk,
@@ -264,5 +271,25 @@ begin
             dout_valid => cmd_valid_FIFO_out,
             dout_ready => cmd_ready_FIFO_out
         );
+
+    Inst_DoutFifo : entity work.FIFO
+        generic map(
+            G_W     => (do_data'length + 1),
+            G_DEPTH => 2                -- elastic fifo
+        )
+        port map(
+            clk        => clk,
+            rst        => rst,
+            din        => do_fifo_in,
+            din_valid  => do_fifo_in_valid,
+            din_ready  => do_fifo_in_ready,
+            dout       => do_fifo_out,
+            dout_valid => do_valid,
+            dout_ready => do_ready
+        );
+
+    do_fifo_in <= do_fifo_in_last & do_fifo_in_data;
+    do_data    <= do_fifo_out(do_data'length - 1 downto 0);
+    do_last    <= do_fifo_out(do_data'length);
 
 end architecture;

@@ -33,13 +33,15 @@ entity DATA_SIPO is
     port(
         clk          : in  std_logic;
         rst          : in  std_logic;
-        end_of_input : in  STD_LOGIC;
+        -- Serial (width=CCW) input
+        data_s       : in  STD_LOGIC_VECTOR(PDI_SHARES * CCW - 1 downto 0);
+        end_of_input : in  STD_LOGIC; -- last input word
+        data_valid_s : in  STD_LOGIC;
+        data_ready_s : out STD_LOGIC;
+        -- Parallel (width=W) output (W >= CCW)
         data_p       : out STD_LOGIC_VECTOR(PDI_SHARES * W - 1 downto 0);
         data_valid_p : out STD_LOGIC;
-        data_ready_p : in  STD_LOGIC;
-        data_s       : in  STD_LOGIC_VECTOR(PDI_SHARES * CCW - 1 downto 0);
-        data_valid_s : in  STD_LOGIC;
-        data_ready_s : out STD_LOGIC
+        data_ready_p : in  STD_LOGIC
     );
 
 end entity DATA_SIPO;

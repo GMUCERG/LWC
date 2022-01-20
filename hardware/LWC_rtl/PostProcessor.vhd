@@ -75,8 +75,6 @@ architecture RTL of PostProcessor is
     constant HDR_LEN_BITS : positive := minimum(W, SEGLEN_BITS);
     constant DIGEST_BYTES : integer  := HASH_VALUE_SIZE / 8;
     constant TAG_BYTES    : integer  := TAG_SIZE / 8;
-    constant W_S          : positive := PDI_SHARES * W;
-    constant CCW_S        : positive := PDI_SHARES * CCW;
 
     --==================================================== Types ====================================================--
     type t_state is (
@@ -84,31 +82,35 @@ architecture RTL of PostProcessor is
     );
 
     --================================================== Registers ==================================================--
-    signal state                                  : t_state; -- FSM state
-    signal eot_flag, decrypt_flag, status_success : std_logic; -- flags
+    -- FSM state
+    signal state                                  : t_state;
+    -- flags
+    signal eot_flag, decrypt_flag, status_success : std_logic;
 
     --==================================================== Wires ====================================================--
-    signal nx_state                                 : t_state; -- next state
-    signal cmd_ready_o, do_valid_o                  : std_logic; -- for reading 'out' ports in VHDL < 2008
-    signal bdo_cleared                              : std_logic_vector(CCW_S - 1 downto 0);
+    -- next state
+    signal nx_state                                 : t_state;
+    -- PRE VHDL-2008 COMPATIBILITY: readable temporaries assigned to output ports
+    signal cmd_ready_o, do_valid_o                  : std_logic;
+    signal bdo_cleared                              : std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
     signal bdo_valid_p, bdo_ready_p, bdo_last_p     : std_logic;
-    signal bdo_data_p                               : std_logic_vector(W_S - 1 downto 0);
+    signal bdo_data_p                               : std_logic_vector(PDI_SHARES * W - 1 downto 0);
     signal nx_decrypt, nx_eot                       : std_logic;
     -- current header seglen part (8 bits for W=8) is zero
     signal cmd_hdr_seglen_is_zero                   : boolean;
     -- full header seglen is zero 
     signal seglen_is_zero                           : boolean;
-    signal do_fire, cmd_fire, bdo_p_fire, auth_fire : boolean; -- fire = valid AND ready
+    -- x_fire := x_valid AND x_ready
+    signal do_fire, cmd_fire, bdo_p_fire, auth_fire : boolean;
     signal op_is_hash, op_is_decrypt                : boolean;
     signal reset_hdr_counter, hdr_first, hdr_last   : boolean;
     signal sending_hdr                              : boolean;
 
     --=================================================== Aliases ===================================================--
-    alias cmd_hdr        : std_logic_vector(W - 1 downto 0) is cmd_data(W_S - 1 downto W_S - W);
-    alias cmd_hdr_opcode : std_logic_vector(3 downto 0) is cmd_hdr(W - 1 downto W - 4);
-    alias cmd_hdr_seglen : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is cmd_hdr(HDR_LEN_BITS - 1 downto 0);
-    alias cmd_hdr_eot    : std_logic is cmd_hdr(W - 7);
-    alias do_hdr         : std_logic_vector(W - 1 downto 0) is do_data(W_S - 1 downto W_S - W);
+    alias cmd_hdr_opcode : std_logic_vector(3 downto 0) is cmd_data(W - 1 downto W - 4);
+    alias cmd_hdr_seglen : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is cmd_data(HDR_LEN_BITS - 1 downto 0);
+    alias cmd_hdr_eot    : std_logic is cmd_data(W - 7);
+    alias do_hdr         : std_logic_vector(W - 1 downto 0) is do_data(do_data'length - 1 downto do_data'length - W);
     alias do_hdr_opcode  : std_logic_vector(3 downto 0) is do_hdr(W - 1 downto W - 4);
     alias do_hdr_eot     : std_logic is do_hdr(W - 7);
     alias do_hdr_last    : std_logic is do_hdr(W - 8);
@@ -120,13 +122,15 @@ begin
         port map(
             clk          => clk,
             rst          => rst,
+            -- serial input (CCW)
+            data_s       => bdo_cleared,
             end_of_input => bdo_last,
+            data_valid_s => bdo_valid,
+            data_ready_s => bdo_ready,
+            -- parallel output (W)
             data_p       => bdo_data_p,
             data_valid_p => bdo_valid_p,
-            data_ready_p => bdo_ready_p,
-            data_s       => bdo_cleared,
-            data_valid_s => bdo_valid,
-            data_ready_s => bdo_ready
+            data_ready_p => bdo_ready_p
         );
 
     -- old-comment: needs no delay as our last serial_in element is also the last parallel_out element
@@ -219,7 +223,7 @@ begin
     cmd_fire               <= cmd_valid = '1' and cmd_ready_o = '1';
     bdo_p_fire             <= bdo_valid_p = '1' and bdo_ready_p = '1';
     -- set non-valid bytes to zero
-    bdo_cleared            <= bdo_data and Byte_To_Bits_EXP(bdo_valid_bytes);
+    bdo_cleared            <= clear_invalid_bytes(bdo_data, bdo_valid_bytes);
     -- TODO avoid recomparison to zero by including a seglen_is_zero in cmd from PreProcessor
     cmd_hdr_seglen_is_zero <= is_zero(cmd_hdr_seglen);
     op_is_hash             <= cmd_hdr_opcode(3) = '1'; -- INST_HASH

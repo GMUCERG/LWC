@@ -2,6 +2,7 @@
 --! @file       NIST_LWAPI_pkg.vhd 
 --! @brief      NIST lightweight API package
 --! @author     Panasayya Yalla & Ekawat (ice) Homsirikamol
+--! @author     Kamyar Mohajerani
 --! @copyright  Copyright (c) 2016 Cryptographic Engineering Research Group
 --!             ECE Department, George Mason University Fairfax, VA, U.S.A.
 --!             All rights Reserved.

@@ -72,42 +72,47 @@ end LWC_SCA;
 
 architecture structure of LWC_SCA is
     ------!Pre-Processor to CryptoCore (Key PISO)
-    signal key_cipher_in              : std_logic_vector(SDI_SHARES * CCSW - 1 downto 0);
-    signal key_valid_cipher_in        : std_logic;
-    signal key_ready_cipher_in        : std_logic;
+    signal key_cipher_in                      : std_logic_vector(SDI_SHARES * CCSW - 1 downto 0);
+    signal key_valid_cipher_in                : std_logic;
+    signal key_ready_cipher_in                : std_logic;
     ------!Pre-Processor to CryptoCore (DATA PISO)
-    signal bdi_cipher_in              : std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
-    signal bdi_valid_cipher_in        : std_logic;
-    signal bdi_ready_cipher_in        : std_logic;
+    signal bdi_cipher_in                      : std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
+    signal bdi_valid_cipher_in                : std_logic;
+    signal bdi_ready_cipher_in                : std_logic;
     --
-    signal bdi_pad_loc_cipher_in      : std_logic_vector(CCW / 8 - 1 downto 0);
-    signal bdi_valid_bytes_cipher_in  : std_logic_vector(CCW / 8 - 1 downto 0);
-    signal bdi_size_cipher_in         : std_logic_vector(3 - 1 downto 0);
-    signal bdi_eot_cipher_in          : std_logic;
-    signal bdi_eoi_cipher_in          : std_logic;
-    signal bdi_type_cipher_in         : std_logic_vector(4 - 1 downto 0);
-    signal decrypt_cipher_in          : std_logic;
-    signal hash_cipher_in             : std_logic;
-    signal key_update_cipher_in       : std_logic;
+    signal bdi_pad_loc_cipher_in              : std_logic_vector(CCW / 8 - 1 downto 0);
+    signal bdi_valid_bytes_cipher_in          : std_logic_vector(CCW / 8 - 1 downto 0);
+    signal bdi_size_cipher_in                 : std_logic_vector(3 - 1 downto 0);
+    signal bdi_eot_cipher_in                  : std_logic;
+    signal bdi_eoi_cipher_in                  : std_logic;
+    signal bdi_type_cipher_in                 : std_logic_vector(4 - 1 downto 0);
+    signal decrypt_cipher_in                  : std_logic;
+    signal hash_cipher_in                     : std_logic;
+    signal key_update_cipher_in               : std_logic;
     ------!CryptoCore(DATA SIPO) to Post-Processor
-    signal bdo_cipher_out             : std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
-    signal bdo_valid_cipher_out       : std_logic;
-    signal bdo_ready_cipher_out       : std_logic;
+    signal bdo_cipher_out                     : std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
+    signal bdo_valid_cipher_out               : std_logic;
+    signal bdo_ready_cipher_out               : std_logic;
     ------!CryptoCore to Post-Processor
-    signal end_of_block_cipher_out    : std_logic;
-    signal bdo_valid_bytes_cipher_out : std_logic_vector(CCW / 8 - 1 downto 0);
-    signal bdo_type_cipher_out        : std_logic_vector(4 - 1 downto 0);
-    signal msg_auth_valid             : std_logic;
-    signal msg_auth_ready             : std_logic;
-    signal msg_auth                   : std_logic;
+    signal end_of_block_cipher_out            : std_logic;
+    signal bdo_valid_bytes_cipher_out         : std_logic_vector(CCW / 8 - 1 downto 0);
+    signal bdo_type_cipher_out                : std_logic_vector(4 - 1 downto 0);
+    signal msg_auth_valid                     : std_logic;
+    signal msg_auth_ready                     : std_logic;
+    signal msg_auth                           : std_logic;
     ------!Pre-Processor to FIFO
-    signal cmd_FIFO_in                : std_logic_vector(W - 1 downto 0);
-    signal cmd_valid_FIFO_in          : std_logic;
-    signal cmd_ready_FIFO_in          : std_logic;
+    signal cmd_FIFO_in                        : std_logic_vector(W - 1 downto 0);
+    signal cmd_valid_FIFO_in                  : std_logic;
+    signal cmd_ready_FIFO_in                  : std_logic;
     ------!FIFO to Post_Processor
-    signal cmd_FIFO_out               : std_logic_vector(W - 1 downto 0);
-    signal cmd_valid_FIFO_out         : std_logic;
-    signal cmd_ready_FIFO_out         : std_logic;
+    signal cmd_FIFO_out                       : std_logic_vector(W - 1 downto 0);
+    signal cmd_valid_FIFO_out                 : std_logic;
+    signal cmd_ready_FIFO_out                 : std_logic;
+    -- DO FIFO
+    signal do_fifo_in_valid, do_fifo_in_ready : std_logic;
+    signal do_fifo_in_data                    : std_logic_vector(do_data'length - 1 downto 0);
+    signal do_fifo_in_last                    : std_logic;
+    signal do_fifo_in, do_fifo_out            : std_logic_vector(do_data'length downto 0); -- data + last
 
     --==========================================================================
 
@@ -243,27 +248,27 @@ begin
             clk             => clk,
             rst             => rst,
             bdo_data        => bdo_cipher_out,
-            bdo_valid       => bdo_valid_cipher_out,
-            bdo_ready       => bdo_ready_cipher_out,
+            bdo_valid_bytes => bdo_valid_bytes_cipher_out,
             bdo_last        => end_of_block_cipher_out,
             bdo_type        => bdo_type_cipher_out,
-            bdo_valid_bytes => bdo_valid_bytes_cipher_out,
+            bdo_valid       => bdo_valid_cipher_out,
+            bdo_ready       => bdo_ready_cipher_out,
             auth_success    => msg_auth,
-            auth_ready      => msg_auth_ready,
             auth_valid      => msg_auth_valid,
+            auth_ready      => msg_auth_ready,
             cmd_data        => cmd_FIFO_out,
             cmd_valid       => cmd_valid_FIFO_out,
             cmd_ready       => cmd_ready_FIFO_out,
-            do_data         => do_data,
-            do_valid        => do_valid,
-            do_last         => do_last,
-            do_ready        => do_ready
+            do_data         => do_fifo_in_data,
+            do_last         => do_fifo_in_last,
+            do_valid        => do_fifo_in_valid,
+            do_ready        => do_fifo_in_ready
         );
 
-    Inst_HeaderFifo : entity work.fwft_fifo
+    Inst_HeaderFifo : entity work.FIFO
         generic map(
-            G_W         => W,
-            G_LOG2DEPTH => 2
+            G_W     => W,
+            G_DEPTH => 1
         )
         port map(
             clk        => clk,
@@ -275,5 +280,25 @@ begin
             dout_valid => cmd_valid_FIFO_out,
             dout_ready => cmd_ready_FIFO_out
         );
+
+    Inst_DoutFifo : entity work.FIFO
+        generic map(
+            G_W     => (do_data'length + 1),
+            G_DEPTH => 2                -- elastic fifo
+        )
+        port map(
+            clk        => clk,
+            rst        => rst,
+            din        => do_fifo_in,
+            din_valid  => do_fifo_in_valid,
+            din_ready  => do_fifo_in_ready,
+            dout       => do_fifo_out,
+            dout_valid => do_valid,
+            dout_ready => do_ready
+        );
+
+        do_fifo_in <= do_fifo_in_last & do_fifo_in_data;
+        do_data <= do_fifo_out(do_data'length - 1 downto 0);
+        do_last <= do_fifo_out(do_data'length);
 
 end architecture;

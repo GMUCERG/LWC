@@ -256,7 +256,9 @@ begin
             end if;
             --! for simulation only
             -- synthesis translate_off
-            assert not received_wrong_header report "Received unexpected header" severity failure;
+            assert not received_wrong_header
+            report "[PreProcessor] Received unexpected header at state: " & t_state'image(state)
+            severity failure;
             -- synthesis translate_on
         end if;
     end process;
@@ -288,7 +290,7 @@ begin
     decrypt   <= decrypt_flag;
     pdi_ready <= pdi_ready_o;
     sdi_ready <= sdi_ready_o;
-    cmd_data  <= pdi_data;
+    cmd_data  <= pdi_hdr;
 
     --===========================================================================================--
     --= When using VHDL 2008+ change to
