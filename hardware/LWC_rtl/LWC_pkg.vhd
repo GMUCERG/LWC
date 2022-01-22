@@ -125,7 +125,8 @@ package LWC_pkg is
 
     --! Returns the number of bits required to represet positive integers strictly less than `n` (0 to n - 1 inclusive)
     --! Output is equal to ceil(log2(n))
-    function log2ceil(n : positive) return natural;
+    --! log2ceil(0) -> 0
+    function log2ceil(n : natural) return natural;
 
     --! convert boolean to std_logic
     function to_std_logic(a : boolean) return std_logic;
@@ -287,7 +288,7 @@ package body LWC_pkg is
     end function;
 
     --! Returns the number of bits required to represet values less than n (0 to n - 1 inclusive)
-    function log2ceil(n : positive) return natural is
+    function log2ceil(n : natural) return natural is
         variable pow2 : positive := 1;
         variable r    : natural  := 0;
     begin

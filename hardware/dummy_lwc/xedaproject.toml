@@ -27,16 +27,20 @@ rtl.clock_port = "clk"
 tb.top = 'LWC_TB'
 tb.sources = ["../LWC_tb/LWC_TB.vhd"]
 
-language.vhdl.standard = "02"
+language.vhdl.standard = "2008"
 language.vhdl.synopsys = false
 
 [design.tb.generics]
 G_FNAME_PDI.file = "KAT/32/pdi.txt"
 G_FNAME_SDI.file = "KAT/32/sdi.txt"
 G_FNAME_DO.file = "KAT/32/do.txt"
-G_TEST_MODE = 0 # stall both inputs and output
+G_TEST_MODE = 1 # stall both inputs and output
 G_MAX_FAILURES = 0
-G_TIMEOUT_CYCLES = 100
+G_TIMEOUT_CYCLES = 1000
+G_PDI_STALLS = 7
+G_SDI_STALLS = 13
+G_DO_STALLS = 21
+G_RANDOM_STALL = false # true
 
 ##################################################
 

@@ -1,4 +1,4 @@
---------------------------------------------------------------------------------
+--===============================================================================================--
 --! @file       LWC.vhd (CAESAR API for Lightweight)
 --!
 --! @brief      LWC top level file
@@ -19,25 +19,27 @@
 --! @note       This is publicly available encryption source code that falls
 --!             under the License Exception TSU (Technology and software-
 --!             unrestricted)
---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
 --! Description
 --!
+--!             TOP-level RTL module of an LWC implementation
 --!
---!   
---!                               ┌────────────┐
---!                            ┌─►│ HeaderFifo ├──┐
---!          ┌──────────────┐  │  └────────────┘  │  ┌───────────────┐
---!          │              ├──┘                  └─►│               │
---!    PDI──►│              │     ┌────────────┐     │               │
---!          │ PreProcessor ├────►│            │     │ PostProcessor ├─►DO
---!    SDI──►│              │     │ CryptoCore ├────►│               │
---!          │              ├────►│            │     │               │
---!          └──────────────┘     └────────────┘     └───────────────┘
---!       
---!
+--!                               .------------.
+--!                            .->| HeaderFifo |--.
+--!          .--------------.  |  '------------'  |  .---------------.
+--!          |              |--'                  '->|               |
+--!    PDI-->|              |     .------------.     |               |  .----.
+--!          | PreProcessor |---->|            |     | PostProcessor |--|FIFO|->DO
+--!    SDI-->|              |     | CryptoCore |---->|               |  '----'
+--!          |              |---->|            |     |               | optional
+--!          '--------------'     '------------'     '---------------'
 --!
 --!
---------------------------------------------------------------------------------
+--!           The optional (but recommended) output (DO) FIFO serves to ease timing closure and
+--!                to prevent any glitch-induced leakage of the internal state.
+--!           It is enabled if G_DO_FIFO_DEPTH is greater than 0.
+--!
+--===============================================================================================--
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -46,6 +48,9 @@ use work.design_pkg.all;
 use work.NIST_LWAPI_pkg.all;
 
 entity LWC is
+    generic(
+        G_DO_FIFO_DEPTH : natural := 1  -- 0: disable output FIFO, 1 or 2 (elastic FIFO)
+    );
     port(
         --! Global ports
         clk       : in  std_logic;
@@ -104,7 +109,7 @@ architecture structure of LWC is
     signal cmd_FIFO_out               : std_logic_vector(W - 1 downto 0);
     signal cmd_valid_FIFO_out         : std_logic;
     signal cmd_ready_FIFO_out         : std_logic;
-    -- DO FIFO
+    ------! Optional output FIFO
     signal do_fifo_in_valid           : std_logic;
     signal do_fifo_in_ready           : std_logic;
     signal do_fifo_in_data            : std_logic_vector(do_data'length - 1 downto 0);
@@ -115,32 +120,32 @@ architecture structure of LWC is
 
     component CryptoCore
         port(
-            clk             : in  STD_LOGIC;
-            rst             : in  STD_LOGIC;
-            key             : in  STD_LOGIC_VECTOR(SDI_SHARES * CCSW - 1 downto 0);
-            key_update      : in  STD_LOGIC;
-            key_valid       : in  STD_LOGIC;
-            key_ready       : out STD_LOGIC;
-            bdi             : in  STD_LOGIC_VECTOR(PDI_SHARES * CCW - 1 downto 0);
-            bdi_valid       : in  STD_LOGIC;
-            bdi_ready       : out STD_LOGIC;
-            bdi_pad_loc     : in  STD_LOGIC_VECTOR(CCW / 8 - 1 downto 0);
-            bdi_valid_bytes : in  STD_LOGIC_VECTOR(CCW / 8 - 1 downto 0);
-            bdi_size        : in  STD_LOGIC_VECTOR(3 - 1 downto 0);
-            bdi_eot         : in  STD_LOGIC;
-            bdi_eoi         : in  STD_LOGIC;
-            bdi_type        : in  STD_LOGIC_VECTOR(4 - 1 downto 0);
-            decrypt_in      : in  STD_LOGIC;
+            clk             : in  std_logic;
+            rst             : in  std_logic;
+            key             : in  std_logic_vector(SDI_SHARES * CCSW - 1 downto 0);
+            key_valid       : in  std_logic;
+            key_ready       : out std_logic;
+            key_update      : in  std_logic;
+            bdi             : in  std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
+            bdi_valid       : in  std_logic;
+            bdi_ready       : out std_logic;
+            bdi_pad_loc     : in  std_logic_vector(CCW / 8 - 1 downto 0);
+            bdi_valid_bytes : in  std_logic_vector(CCW / 8 - 1 downto 0);
+            bdi_size        : in  std_logic_vector(3 - 1 downto 0);
+            bdi_eot         : in  std_logic;
+            bdi_eoi         : in  std_logic;
+            bdi_type        : in  std_logic_vector(4 - 1 downto 0);
+            decrypt_in      : in  std_logic;
             hash_in         : in  std_logic;
-            bdo             : out STD_LOGIC_VECTOR(PDI_SHARES * CCW - 1 downto 0);
-            bdo_valid       : out STD_LOGIC;
-            bdo_ready       : in  STD_LOGIC;
-            bdo_type        : out STD_LOGIC_VECTOR(4 - 1 downto 0);
-            bdo_valid_bytes : out STD_LOGIC_VECTOR(CCW / 8 - 1 downto 0);
-            end_of_block    : out STD_LOGIC;
-            msg_auth_valid  : out STD_LOGIC;
-            msg_auth_ready  : in  STD_LOGIC;
-            msg_auth        : out STD_LOGIC
+            bdo             : out std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
+            bdo_valid       : out std_logic;
+            bdo_ready       : in  std_logic;
+            bdo_type        : out std_logic_vector(4 - 1 downto 0);
+            bdo_valid_bytes : out std_logic_vector(CCW / 8 - 1 downto 0);
+            end_of_block    : out std_logic; -- last word of BDO. Should be named bdo_last
+            msg_auth_valid  : out std_logic;
+            msg_auth_ready  : in  std_logic;
+            msg_auth        : out std_logic
         );
     end component;
 
@@ -274,8 +279,9 @@ begin
 
     Inst_DoutFifo : entity work.FIFO
         generic map(
-            G_W     => (do_data'length + 1),
-            G_DEPTH => 2                -- elastic fifo
+            G_W         => (do_data'length + 1),
+            G_DEPTH     => G_DO_FIFO_DEPTH,
+            G_ELASTIC_2 => TRUE
         )
         port map(
             clk        => clk,

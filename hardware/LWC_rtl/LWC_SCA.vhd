@@ -46,6 +46,9 @@ use work.NIST_LWAPI_pkg.all;
 use work.LWC_pkg.all;
 
 entity LWC_SCA is
+    generic(
+        G_DO_FIFO_DEPTH : natural := 0 -- 0: disable output FIFO, 1 or 2 (elastic FIFO)
+    );
     port(
         --! Global ports
         clk       : in  std_logic;
@@ -284,7 +287,7 @@ begin
     Inst_DoutFifo : entity work.FIFO
         generic map(
             G_W     => (do_data'length + 1),
-            G_DEPTH => 2                -- elastic fifo
+            G_DEPTH => G_DO_FIFO_DEPTH
         )
         port map(
             clk        => clk,

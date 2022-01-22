@@ -27,25 +27,27 @@ use work.LWC_pkg.all;
 
 entity LWC_TB IS
     generic(
-        G_MAX_FAILURES     : integer  := 0; --! Maximum number of failures before stopping the simulation
-        G_TEST_MODE        : integer  := 0; --! 0: normal, 1: stall both sdi/pdi_valid and do_ready, 2: stall sdi/pdi_valid, 3: stall do_ready, 4: Timing (cycle) measurement 
-        G_PDI_STALLS       : integer  := 3; --! Number of cycles to stall pdi_valid
-        G_SDI_STALLS       : integer  := 3; --! Number of cycles to stall sdi_valid
-        G_RDI_STALLS       : integer  := 3; --! Number of cycles to stall sdi_valid
-        G_DO_STALLS        : integer  := 3; --! Number of cycles to stall do_ready
-        G_RANDOM_STALL     : boolean  := True; --! Randomized stalls
-        G_CLK_PERIOD_PS    : integer  := 10_000; --! Simulation clock period in picoseconds
-        G_FNAME_PDI        : string   := "../KAT/v1/pdi.txt"; --! Path to the input file containing cryptotvgen PDI testvector data
-        G_FNAME_SDI        : string   := "../KAT/v1/sdi.txt"; --! Path to the input file containing cryptotvgen SDI testvector data
-        G_FNAME_RDI        : string   := "../KAT/v1/rdi.txt"; --! Path to the input file containing random data
-        G_FNAME_DO         : string   := "../KAT/v1/do.txt"; --! Path to the input file containing cryptotvgen DO testvector data
-        G_FNAME_LOG        : string   := "log.txt"; --! Path to the generated log file
-        G_FNAME_TIMING     : string   := "timing.txt"; --! Path to the generated timing measurements (when G_TEST_MODE=4)
-        G_FNAME_FAILED_TVS : string   := "failed_testvectors.txt"; --! Path to the generated log of failed testvector words
-        G_FNAME_RESULT     : string   := "result.txt"; --! Path to the generated result file containing 0 or 1  -- REDUNDANT / NOT USED
-        G_PRERESET_WAIT_NS : integer  := 0; --! Time (in nanoseconds) to wait before reseting UUT. Xilinx GSR takes 100ns, required for post-synth simulation
-        G_INPUT_DELAY_NS   : integer  := 0; --! Input delay in nanoseconds
-        G_TIMEOUT_CYCLES   : positive := 1_000_000 --! Fail simulation after this many consecutive cycles of data I/O inactivity
+        G_MAX_FAILURES     : integer := 0; --! Maximum number of failures before stopping the simulation
+        G_TEST_MODE        : integer := 0; --! 0: normal, 1: stall both sdi/pdi_valid and do_ready, 2: stall sdi/pdi_valid, 3: stall do_ready, 4: Timing (cycle) measurement 
+        G_PDI_STALLS       : integer := 3; --! Number of cycles to stall pdi_valid
+        G_SDI_STALLS       : integer := 3; --! Number of cycles to stall sdi_valid
+        G_DO_STALLS        : integer := 3; --! Number of cycles to stall do_ready
+        G_RDI_STALLS       : integer := 3; --! Number of cycles to stall rdi_valid
+        G_RANDOM_STALL     : boolean := FALSE; --! Randomized stalls
+        G_RANDOM_SEED      : integer := 1; --! Seed used for all random generation, must be positive
+        G_CLK_PERIOD_PS    : integer := 10_000; --! Simulation clock period in picoseconds
+        G_FNAME_PDI        : string  := "../KAT/v1/pdi.txt"; --! Path to the input file containing cryptotvgen PDI testvector data
+        G_FNAME_SDI        : string  := "../KAT/v1/sdi.txt"; --! Path to the input file containing cryptotvgen SDI testvector data
+        G_FNAME_RDI        : string  := "../KAT/v1/rdi.txt"; --! Path to the input file containing random data
+        G_FNAME_DO         : string  := "../KAT/v1/do.txt"; --! Path to the input file containing cryptotvgen DO testvector data
+        G_FNAME_LOG        : string  := "log.txt"; --! Path to the generated log file
+        G_FNAME_TIMING     : string  := "timing.txt"; --! Path to the generated timing measurements (when G_TEST_MODE=4)
+        G_FNAME_FAILED_TVS : string  := "failed_testvectors.txt"; --! Path to the generated log of failed testvector words
+        G_FNAME_RESULT     : string  := "result.txt"; --! Path to the generated result file containing 0 or 1  -- REDUNDANT / NOT USED
+        G_PRERESET_WAIT_NS : integer := 0; --! Time (in nanoseconds) to wait before reseting UUT. Xilinx GSR takes 100ns, required for post-synth simulation
+        G_INPUT_DELAY_NS   : integer := 0; --! Input delay in nanoseconds
+        G_TIMEOUT_CYCLES   : integer := 0; --! Fail simulation after this many consecutive cycles of data I/O inactivity, 0: disable timeout
+        G_VERBOSE_LEVEL    : integer := 0 --! verbosity level
     );
 end LWC_TB;
 
@@ -101,29 +103,31 @@ architecture TB of LWC_TB is
     -- Counters
     signal pdi_operation_count : integer                             := 0;
     signal cycle_counter       : natural                             := 0;
-    signal watchdog_counter    : natural                             := 0;
+    signal idle_counter    : natural                             := 0;
     signal num_rand_vectors    : natural                             := 0;
     --
     signal start_cycle         : natural;
     signal timing_started      : boolean                             := False;
     signal timing_stopped      : boolean                             := False;
     -- random number generation (requires VHDL 2000+)
-    -- from from VHDL-extras (http://github.com/kevinpt/vhdl-extras)
+    -- based on random package from VHDL-extras (http://github.com/kevinpt/vhdl-extras)
     use ieee.math_real.all;
     type rand_state is protected
-        procedure seed(s1, s2 : in positive);
+        procedure seed(s : in positive);
         impure function random return real;
     end protected;
     type rand_state is protected body
         variable seed1 : positive;
         variable seed2 : positive;
-
-        procedure seed(s1, s2 : in positive) is
+        procedure seed(s : in positive) is
         begin
-            seed1 := s1;
-            seed2 := s2;
+            seed1 := s;
+            if s > 1 then
+                seed2 := s - 1;
+            else
+                seed2 := s + 42;
+            end if;
         end procedure;
-
         impure function random return real is
             variable result : real;
         begin
@@ -131,27 +135,26 @@ architecture TB of LWC_TB is
             return result;
         end function;
     end protected body;
+    --
     shared variable prng       : rand_state;
     --
     impure function random return real is
     begin
         return prng.random;
     end function;
-    -- End VHDL 2000+
-    --
+    procedure seed(s : positive) is
+    begin
+        prng.seed(s);
+    end procedure;
+    ----- End VHDL 2000+
+    -----
     impure function random(min, max : integer) return integer is
     begin
         return integer(trunc(real(max - min + 1) * random)) + min;
     end function;
-
-    impure function random return boolean is
-    begin
-        return random(0, 1) = 1;
-    end function;
-
+    --
     impure function random(size : natural) return std_logic_vector is
-        -- Populate vector in 30-bit chunks to avoid exceeding the
-        -- range of integer
+        -- 30-bit chunks to stay within integer range limit
         constant seg_size  : natural := 30;
         constant segments  : natural := size / seg_size;
         constant remainder : natural := size - segments * seg_size;
@@ -183,7 +186,7 @@ architecture TB of LWC_TB is
     --================================================== functions ==================================================--
     -- compare received word against expected word
     -- returns true if they match or if the unmatched bit was a don't-care
-    function word_pass(actual, expected : std_logic_vector) return boolean is
+    function words_match(actual, expected : std_logic_vector) return boolean is
     begin
         for i in expected'range loop
             if actual(i) /= expected(i) and expected(i) /= 'X' and expected(i) /= '-' then
@@ -206,10 +209,13 @@ architecture TB of LWC_TB is
 
     impure function get_stalls(max_stalls : natural) return natural is
     begin
-        if G_RANDOM_STALL then
+        if G_TEST_MODE = 0 or TIMING_MODE then
+            return 0;
+        elsif G_RANDOM_STALL then
             return random(0, 1) * random(1, max_stalls); -- 50%: no stall. 50%: 1..max_stalls
+        else
+            return max_stalls;
         end if;
-        return max_stalls;
     end function;
 
 begin
@@ -231,10 +237,15 @@ begin
     Reset_PROCESS : process
     begin
         report LF & " -- Testvectors:  " & G_FNAME_PDI & " " & G_FNAME_SDI & " " & G_FNAME_DO & LF &
-        " -- Clock Period: " & integer'image(G_CLK_PERIOD_PS) & " ps" & LF &
-        " -- Test Mode:    " & integer'image(G_TEST_MODE) & LF &
-        " -- Max Failures: " & integer'image(G_MAX_FAILURES) & LF & CR severity note;
+        " -- Clock Period:  " & integer'image(G_CLK_PERIOD_PS) & " ps" & LF &
+        " -- Max Failures:  " & integer'image(G_MAX_FAILURES) & LF & 
+        " -- Timout Cycles: " & integer'image(G_TIMEOUT_CYCLES) & LF &
+        " -- Test Mode:     " & integer'image(G_TEST_MODE) & LF &
+        " -- Random Seed:   " & integer'image(G_RANDOM_SEED) & LF &
+        " -- Test Mode:     " & integer'image(G_TEST_MODE) & LF &
+        CR severity note;
 
+        seed(G_RANDOM_SEED);
         wait for G_PRERESET_WAIT_NS * ns;
         if ASYNC_RSTN then
             rst <= '0';
@@ -264,11 +275,11 @@ begin
         if G_TIMEOUT_CYCLES > 0 and reset_done and rising_edge(clk) then
             if (pdi_valid and pdi_ready) = '1' --
                 or (sdi_valid and sdi_ready) = '1' or (do_valid and do_ready) = '1' then
-                watchdog_counter <= 0;
+                idle_counter <= 0;
             else
-                watchdog_counter <= watchdog_counter + 1;
-                assert watchdog_counter < G_TIMEOUT_CYCLES --
-                report "[FAIL] Timeout after " & integer'image(watchdog_counter) & " cycles!"
+                idle_counter <= idle_counter + 1;
+                assert idle_counter < G_TIMEOUT_CYCLES --
+                report "[FAIL] Timeout after " & integer'image(idle_counter) & " cycles!"
                 severity failure;
             end if;
         end if;
@@ -475,26 +486,26 @@ begin
     --===========================================================================================--
     --=================================== DO Verification =======================================--
     tb_verify_do : process
-        variable line_no    : integer := 0;
-        variable line_data  : LINE;
-        variable logMsg     : LINE;
-        variable failMsg    : LINE;
-        variable tb_block   : std_logic_vector(20 - 1 downto 0);
-        variable word_block : std_logic_vector(W - 1 downto 0);
-        variable read_ok    : boolean;
-        variable preamble   : string(1 to 6);
-        variable word_count : integer := 1;
-        variable force_exit : boolean := False;
-        variable failed     : boolean := False;
-        variable msgid      : integer;
-        variable keyid      : integer;
-        variable opcode     : std_logic_vector(3 downto 0);
-        variable num_fails  : integer := 0;
-        variable testcase   : integer := 0;
-        variable cycles     : integer;
-        variable end_cycle  : natural;
-        variable end_time   : TIME;
-        variable do_sum     : std_logic_vector(W - 1 downto 0);
+        variable line_no      : integer := 0;
+        variable line_data    : LINE;
+        variable logMsg       : LINE;
+        variable failMsg      : LINE;
+        variable tb_block     : std_logic_vector(20 - 1 downto 0);
+        variable golden_word   : std_logic_vector(W - 1 downto 0);
+        variable read_ok      : boolean;
+        variable preamble     : string(1 to 6);
+        variable word_count   : integer := 1;
+        variable force_exit   : boolean := FALSE;
+        variable msgid        : integer;
+        variable keyid        : integer;
+        variable opcode       : std_logic_vector(3 downto 0);
+        variable num_failures : integer := 0;
+        variable current_fail : boolean := FALSE;
+        variable testcase     : integer := 0;
+        variable cycles       : integer;
+        variable end_cycle    : natural;
+        variable end_time     : TIME;
+        variable do_sum       : std_logic_vector(W - 1 downto 0);
     begin
         wait until reset_done;
         wait until rising_edge(clk);
@@ -525,9 +536,10 @@ begin
                 report "Reached EOF marker in " & G_FNAME_DO severity warning;
                 force_exit := True;
                 exit;
-            elsif preamble = STT_HEAD or preamble = HDR_HEAD or preamble = DAT_HEAD then --valid  do.txt lines are: header, data, and status
+            elsif preamble = HDR_HEAD or preamble = DAT_HEAD or preamble = STT_HEAD then -- header, data, or status lines
                 loop                    -- processing single line
-                    lwc_hread(line_data, word_block, read_ok); -- read the rest of the line to word_block
+                    lwc_hread(line_data, golden_word, read_ok); -- read the rest of the line to word_block
+                    word_count := 1;
                     if not read_ok then
                         exit;
                     end if;
@@ -545,31 +557,34 @@ begin
                     wait until rising_edge(clk) and do_valid = '1';
                     assert preamble /= STT_HEAD or do_last = '1' report "Status word received, but do_last was not '1'" severity error;
                     do_sum   := xor_shares(do_data, PDI_SHARES);
-                    if not word_pass(do_sum, word_block) then
-                        failed    := True;
-                        write(logMsg, string'("[Error]  " & " Msg ID #") & integer'image(msgid) & string'(" failed at line #") & integer'image(line_no) & string'(" word #") & integer'image(word_count));
-                        writeline(log_file, logMsg);
-                        write(logMsg, string'("     Expected: ") & lwc_to_hstring(word_block) & string'(" Received: ") & lwc_to_hstring(do_sum));
-                        report logMsg.all severity error;
-                        writeline(log_file, logMsg);
-                        num_fails := num_fails + 1;
-                        write(failMsg, string'("Failure #") & integer'image(num_fails) & " MsgID: " & integer'image(testcase)); -- & " Operation: ");
-                        write(failMsg, string'(" Line: ") & integer'image(line_no) & " Word: " & integer'image(word_count));
-                        write(failMsg, " Expected: " & lwc_to_hstring(word_block) & " Received: " & lwc_to_hstring(do_data));
+                    if not words_match(do_sum, golden_word) then
+                        write(failMsg, string'("Test #") &  integer'image(testcase) & " MsgID: " & integer'image(msgid) & " Line: " & integer'image(line_no) & " Word: " & integer'image(word_count));
+                        write(failMsg, string'(" Expected: ") & lwc_to_hstring(golden_word) & "   Received: " & lwc_to_hstring(do_data));
                         if PDI_SHARES > 1 then
-                            write(failMsg, " Received sum: " & lwc_to_hstring(do_sum));
+                            write(failMsg, "   Received sum: " & lwc_to_hstring(do_sum));
                         end if;
+                        write(logMsg, string'("[Error] ") & failMsg.all);
+                        report LF & logMsg.all & LF severity error;
+                        writeline(log_file, logMsg);
                         writeline(failures_file, failMsg);
-                        if num_fails >= G_MAX_FAILURES then
+                        num_failures := num_failures + 1;
+                        current_fail := True;
+                        if num_failures >= G_MAX_FAILURES then
                             force_exit := True;
                             exit;
                         end if;
                     else
-                        write(logMsg, string'("[Log]     Expected: ") & lwc_to_hstring(word_block) & string'(" Received: ") & lwc_to_hstring(do_data) & string'(" Matched!"));
+                        write(logMsg, string'("[Log]     Expected: ") & lwc_to_hstring(golden_word) & string'(" Received: ") & lwc_to_hstring(do_data) & string'(" Matched!"));
                         writeline(log_file, logMsg);
                     end if;
                     word_count := word_count + 1;
                     if preamble = STT_HEAD then -- last line of this testcase
+                        if current_fail then
+                            report " [FAILED] Testcase #" & integer'image(testcase) & " failed!" severity error;
+                            current_fail := False;
+                        elsif G_VERBOSE_LEVEL > 0 then
+                            report " [OK]" severity note;
+                        end if;
                         if TIMING_MODE then
                             assert timing_started;
                             cycles         := cycle_counter - start_cycle;
@@ -583,13 +598,14 @@ begin
                     end if;
                 end loop;               -- end of this line
             elsif preamble = TB_HEAD then
-                testcase := testcase + 1;
+                current_fail := False;
+                testcase     := testcase + 1;
                 lwc_hread(line_data, tb_block, read_ok);
                 if not read_ok then
                     exit;
                 end if;
-                opcode   := tb_block(19 downto 16);
-                msgid    := to_integer(unsigned(tb_block(7 downto 0)));
+                opcode       := tb_block(19 downto 16);
+                msgid        := to_integer(unsigned(tb_block(7 downto 0)));
                 write(logMsg, "Testcase #" & integer'image(testcase) & " MsgID:" & integer'image(testcase) & " Op:");
                 if (opcode = INST_HASH) then
                     write(logMsg, string'("HASH"));
@@ -617,7 +633,7 @@ begin
             report "Number of consumed random words: " & integer'image(num_rand_vectors) severity note;
         end if;
         --
-        if failed then
+        if num_failures > 0 then
             write(logMsg, string'("[FAIL] "));
         else
             write(logMsg, string'("[PASS] "));
@@ -632,7 +648,7 @@ begin
         end if;
         file_close(log_file);
         --
-        if failed then
+        if num_failures > 0 then
             write(result_file, "1");
             report LF & LF & logMsg.all & LF severity failure;
         else

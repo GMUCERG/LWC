@@ -1,4 +1,4 @@
---===================================================================================================================--
+--===============================================================================================--
 --! @file       PostProcessor.vhd
 --! @brief      Post-processor for NIST LWC API
 --!
@@ -24,14 +24,14 @@
 --!             under the License Exception TSU (Technology and software-
 --!             unrestricted)
 --!
------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
 --! Description
 --!
 --!  bdo_type is not used at the moment.
 --!
 --!
 --!
---===================================================================================================================--
+--===============================================================================================--
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -70,24 +70,23 @@ entity PostProcessor is
 end PostProcessor;
 
 architecture RTL of PostProcessor is
-    --================================================== Constants ==================================================--
+    --======================================== Constants ========================================--
     constant SEGLEN_BITS  : positive := 16;
     constant HDR_LEN_BITS : positive := minimum(W, SEGLEN_BITS);
     constant DIGEST_BYTES : integer  := HASH_VALUE_SIZE / 8;
     constant TAG_BYTES    : integer  := TAG_SIZE / 8;
 
-    --==================================================== Types ====================================================--
-    type t_state is (
-        S_INIT, S_HDR_DIGEST, S_OUT_DIGEST, S_HDR_MSG, S_OUT_MSG, S_HDR_TAG, S_OUT_TAG, S_VERIFY_TAG, S_STATUS
-    );
+    --========================================== Types ==========================================--
+    type t_state is (S_INIT, S_HDR_DIGEST, S_OUT_DIGEST, S_HDR_MSG, S_OUT_MSG,
+                     S_HDR_TAG, S_OUT_TAG, S_VERIFY_TAG, S_STATUS);
 
-    --================================================== Registers ==================================================--
+    --======================================== Registers ========================================--
     -- FSM state
     signal state                                  : t_state;
     -- flags
     signal eot_flag, decrypt_flag, status_success : std_logic;
 
-    --==================================================== Wires ====================================================--
+    --========================================== Wires ==========================================--
     -- next state
     signal nx_state                                 : t_state;
     -- PRE VHDL-2008 COMPATIBILITY: readable temporaries assigned to output ports
@@ -106,7 +105,7 @@ architecture RTL of PostProcessor is
     signal reset_hdr_counter, hdr_first, hdr_last   : boolean;
     signal sending_hdr                              : boolean;
 
-    --=================================================== Aliases ===================================================--
+    --========================================= Aliases =========================================--
     alias cmd_hdr_opcode : std_logic_vector(3 downto 0) is cmd_data(W - 1 downto W - 4);
     alias cmd_hdr_seglen : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is cmd_data(HDR_LEN_BITS - 1 downto 0);
     alias cmd_hdr_eot    : std_logic is cmd_data(W - 7);
@@ -114,7 +113,8 @@ architecture RTL of PostProcessor is
     alias do_hdr_opcode  : std_logic_vector(3 downto 0) is do_hdr(W - 1 downto W - 4);
     alias do_hdr_eot     : std_logic is do_hdr(W - 7);
     alias do_hdr_last    : std_logic is do_hdr(W - 8);
-    alias do_hdr_seglen  : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is do_hdr(HDR_LEN_BITS - 1 downto 0);
+    -- alias do_hdr_seglen  : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is do_hdr(HDR_LEN_BITS - 1 downto 0);
+    alias do_hdr_seglen  : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is do_data(do_data'length - W + HDR_LEN_BITS - 1 downto do_data'length - W);
 
 begin
     -- optimized out if CCW=W
@@ -133,13 +133,13 @@ begin
             data_ready_p => bdo_ready_p
         );
 
-    -- old-comment: needs no delay as our last serial_in element is also the last parallel_out element
+    -- ??? needs no delay as our last serial_in element is also the last parallel_out element ???
     -- FIXME !!! not true for a generic PISO as the input could be stored and out_fire happens after in_fire
     -- works for current DATA_SIPO implementation as it directly passes the last input fragment
     bdo_last_p <= bdo_last;
 
-    --===============================================================================================================--
-    --========================================== Width-specific generation ==========================================--
+    --===========================================================================================--
+    --================================ Width-specific generation ================================--
     W32_GEN : if W = 32 generate
     begin
         hdr_first <= true;
@@ -179,10 +179,11 @@ begin
         seglen_is_zero <= cmd_hdr_seglen_is_zero;
     end generate;
 
-    --===============================================================================================================--
-    --=============================================== register updates ==============================================--
+    --===========================================================================================--
+    --===================================== register updates ====================================--
     --! State register is the only register that requires reset
-    GEN_SYNC_RST : if not ASYNC_RSTN generate -- synchronous reset with positive polarity (active high)
+    -- synchronous reset with positive polarity (active high)
+    GEN_SYNC_RST : if not ASYNC_RSTN generate
         process(clk)
         begin
             if rising_edge(clk) then
@@ -194,7 +195,8 @@ begin
             end if;
         end process;
     end generate GEN_SYNC_RST;
-    GEN_ASYNC_RSTN : if ASYNC_RSTN generate -- asynchronous reset with negative polarity (active low)
+    -- asynchronous reset with negative polarity (active low)
+    GEN_ASYNC_RSTN : if ASYNC_RSTN generate
         process(clk, rst)
         begin
             if rst = '0' then
@@ -218,7 +220,7 @@ begin
         end if;
     end process;
 
-    --===============================================================================================================--
+    --===========================================================================================--
     do_fire                <= do_valid_o = '1' and do_ready = '1';
     cmd_fire               <= cmd_valid = '1' and cmd_ready_o = '1';
     bdo_p_fire             <= bdo_valid_p = '1' and bdo_ready_p = '1';
@@ -226,18 +228,20 @@ begin
     bdo_cleared            <= clear_invalid_bytes(bdo_data, bdo_valid_bytes);
     -- TODO avoid recomparison to zero by including a seglen_is_zero in cmd from PreProcessor
     cmd_hdr_seglen_is_zero <= is_zero(cmd_hdr_seglen);
+    -- NOTE: The following optimization needs to be changed if other operations are added
+    -- possibilities: INST_HASH ("1000"), INST_DEC  ("0011"), or INST_DEC ("0010")
     op_is_hash             <= cmd_hdr_opcode(3) = '1'; -- INST_HASH
     op_is_decrypt          <= cmd_hdr_opcode(0) = '1'; -- INST_DEC
     -- temporary outputs
     do_valid               <= do_valid_o;
     cmd_ready              <= cmd_ready_o;
 
-    --===============================================================================================================--
+    --===========================================================================================--
     --= When using VHDL 2008+ change to
     -- process(all)
-    process(state, op_is_hash, op_is_decrypt, do_ready, do_fire, decrypt_flag, eot_flag, cmd_valid, cmd_fire, --
-        auth_valid, status_success, cmd_hdr_opcode, bdo_valid_p, bdo_data_p, bdo_p_fire, bdo_last_p, seglen_is_zero, --
-        hdr_first, hdr_last)
+    process(state, op_is_hash, op_is_decrypt, do_ready, do_fire, decrypt_flag, seglen_is_zero, --
+        eot_flag, cmd_valid, cmd_fire, hdr_first, hdr_last, auth_valid, status_success, --
+        cmd_hdr_opcode, bdo_valid_p, bdo_data_p, bdo_p_fire, bdo_last_p)
     begin
         -- make sure we do not output intermediate data
         do_data           <= (others => '0');
@@ -251,7 +255,7 @@ begin
         sending_hdr       <= false;
         reset_hdr_counter <= false;
         -- default input of registers: feedback of their current values
-        -- bad good coding style, but used to avoid duplicate state transition code for ASYNC_RSTN=1
+        -- bad good coding style, but used to avoid duplicate state transition code for ASYNC_RSTN
         nx_state          <= state;
         nx_decrypt        <= decrypt_flag;
         nx_eot            <= eot_flag;
