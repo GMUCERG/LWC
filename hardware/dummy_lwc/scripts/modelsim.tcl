@@ -9,7 +9,6 @@ set src_vhdl [subst {
     "../src_rtl/design_pkg.vhd"
     "$INTERFACE_REPO/NIST_LWAPI_pkg.vhd"
     "../src_rtl/SPDRam.vhd"
-    "$INTERFACE_REPO/StepDownCountLd.vhd"
     "../src_rtl/CryptoCore.vhd"
     "$INTERFACE_REPO/data_piso.vhd"
     "$INTERFACE_REPO/key_piso.vhd"

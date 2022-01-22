@@ -1,1 +1,0 @@
-../../../../LWC_rtl/NIST_LWAPI_pkg.vhd

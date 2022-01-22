@@ -2,7 +2,7 @@
 --! @file       elastic_reg_fifo.vhd
 --! @brief      Reg-based 2-level elastic FIFO for breaking combinational paths
 --!                while maintaining full data rate
---! @author     Kamyar Mohajerani (kamyar <at> ieee.org)
+--! @author     Kamyar Mohajerani
 --! @copyright  Copyright (c) 2020 Cryptographic Engineering Research Group
 --!             ECE Department, George Mason University Fairfax, VA, U.S.A.
 --!             All rights Reserved.
@@ -15,8 +15,8 @@
 --! Description
 --!  Minimal FIFO with no combinational path from inputs to outputs
 --!   composed of a pipelined FIFO (fifo0) and a bypassing FIFO (fifo1).
---!   The pipelined FIFO can enque incoming data when full but can't deque while empty
---!   The bypassing FIFO can deque incoming data when empty but can't enque while full
+--!   The pipelined FIFO can enqueue incoming data when full but can't dequeue while empty
+--!   The bypassing FIFO can dequeue incoming data when empty but can't enqueue while full
 --------------------------------------------------------------------------------
 
 library ieee;
@@ -48,7 +48,7 @@ architecture rtl of elastic_reg_fifo is
 begin
 
     
-    -- FIFO_0: pipelined (can enque even when full and output is ready)
+    -- FIFO_0: pipelined (can enqueue even when full and output is ready)
     in_ready <= fifo0_in_ready;
     fifo0_in_ready <= (not fifo0_is_full) or fifo1_can_enq; -- either not full or out is ready
     -- fifo0_out_valid <= v0; -- but can dequeue only when not empty
@@ -73,7 +73,7 @@ begin
     -- FIFO_1: bypassing (can dequeue even if empty and input is valid)
     out_data  <= fifo1_data when fifo1_is_full = '1' else fifo0_data;
     out_valid <= fifo0_is_full or fifo1_is_full; -- can dequeue input valid or full
-    fifo1_can_enq <= not fifo1_is_full;          -- can enque only when not full
+    fifo1_can_enq <= not fifo1_is_full;          -- can enqueue only when not full
 
     process (clk)
     begin
@@ -86,7 +86,7 @@ begin
                         fifo1_data <= fifo0_data;
                         fifo1_is_full <= '1';
                     end if;
-                else -- deque
+                else -- dequeue
                     fifo1_is_full <= '0';
                 end if;
             end if;

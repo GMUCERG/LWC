@@ -34,18 +34,19 @@ package design_pkg is
 ------------------------- DO NOT CHANGE ANYTHING BELOW -------------------------
 --------------------------------------------------------------------------------
     --! design parameters needed by the PreProcessor, PostProcessor, and LWC; assigned in the package body below!
-    constant TAG_SIZE        : integer; --! Tag size
-    constant HASH_VALUE_SIZE : integer; --! Hash value size
     
     constant CCSW            : integer; --! variant dependent design parameter!
     constant CCW             : integer; --! variant dependent design parameter!
-    constant CCWdiv8         : integer; --! derived from parameters above, assigned in body.
-
+    
     --! design parameters specific to the CryptoCore; assigned in the package body below!
     --! place declarations of your constants here
     constant NPUB_SIZE       : integer; --! Npub size
     constant DBLK_SIZE       : integer; --! Block size
-
+    constant TAG_SIZE        : integer; --! Tag size
+    constant HASH_VALUE_SIZE : integer; --! Hash value size
+    
+    constant CCWdiv8         : integer; --! derived from parameters above, assigned in body.
+    
     --! place declarations of your functions here
     --! Calculate the number of I/O words for a particular size
     function get_words(size: integer; iowidth:integer) return integer; 

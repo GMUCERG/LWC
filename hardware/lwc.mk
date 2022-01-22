@@ -11,7 +11,7 @@ endif
 MAKE_VERSION_OK ?= $(filter $(MIN_MAKE_VERSION),$(firstword $(sort $(MAKE_VERSION) $(MIN_MAKE_VERSION))))
 
 ifeq ($(MAKE_VERSION_OK),)
-$(error Make version is not supported! Use GNU make >= $(MIN_MAKE_VERSION))
+# $(warning Detected `make` version ($(MAKE_VERSION)) is not fully supported! Please use GNU make >= $(MIN_MAKE_VERSION))
 endif
 
 LWC_ROOT := $(realpath $(LWC_ROOT))

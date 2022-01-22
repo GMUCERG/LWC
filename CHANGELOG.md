@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0]
+### Added
+- Support for SCA protected implementations
+### Changed
+- Simplification, fixes, and cleanup for PreProcessor and PostProcessor
+  - PreProcessor.vhd:  1500 solc -> 526 solc
+  - PostProcessor.vhd:  991 solc -> 370 solc
+  - Improvements in synthesis result (...)
+
 ## [1.1.0]
 ### Added
 - Support for configurable asynchronous active-low reset (`ASYNC_RSTN`) in the LWC package and testbench.

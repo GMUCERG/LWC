@@ -3,7 +3,7 @@
 --! @brief      NIST lightweight API package
 --! @author     Panasayya Yalla & Ekawat (ice) Homsirikamol
 --! @author     Kamyar Mohajerani
---! @copyright  Copyright (c) 2022 Cryptographic Engineering Research Group
+--! @copyright  Copyright (c) 2016 Cryptographic Engineering Research Group
 --!             ECE Department, George Mason University Fairfax, VA, U.S.A.
 --!             All rights Reserved.
 --! @license    This project is released under the GNU Public License.
@@ -34,8 +34,7 @@ package NIST_LWAPI_pkg is
     --===========================================================================================--
 
     --! External bus: supported values are 8, 16 and 32 bits
-    constant W          : positive := 32;
-    --! currently only W=SW is supported
+    constant W          : positive := 16;
     constant SW         : positive := W;
     --! Implementation of an "offline" algorithm
     constant G_OFFLINE  : boolean  := False;

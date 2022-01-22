@@ -1,1 +1,0 @@
-../../../../LWC_rtl/LWC_wrapper.vhd

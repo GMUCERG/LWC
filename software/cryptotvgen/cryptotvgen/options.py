@@ -12,7 +12,6 @@ options extraction.
 import argparse
 import textwrap
 import sys
-import os
 from enum import Enum
 import pathlib
 

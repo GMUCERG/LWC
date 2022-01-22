@@ -1,1 +1,0 @@
-../../../../LWC_rtl/elastic_reg_fifo.vhd
