@@ -1101,9 +1101,11 @@ def gen_hash(opts, start_msg_no):
 def gen_test_routine(opts, start_msg_no, start_key_no):
     if (opts.verbose):
         print('gen_test_routine')
-    bsa = opts.block_size_ad if opts.block_size_ad != None else opts.block_size
+    if not opts.block_size:
+        opts.block_size = 8
+    bsa = opts.block_size_ad if opts.block_size_ad else opts.block_size
     bsd = opts.block_size
-    bsa, bsd = int(bsa/8), int(bsd/8)
+    bsa, bsd = bsa // 8, bsd // 8
     (start, stop, mode) = opts.gen_test_routine
     routine =  [[True ,     False,      0,         0        , False],
                 [False,     True,       0,         0        , False],

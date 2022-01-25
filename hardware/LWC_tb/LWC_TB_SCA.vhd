@@ -288,11 +288,7 @@ begin
 
     --===========================================================================================--
     -- LWC is instantiated as a component to enable mixed language simulation
-    --*** SCA ***--
-    --/+
-    -- uut : LWC_SCA
-    --/-
-    uut : LWC
+    uut : LWC_SCA
         port map(
             clk       => clk,
             rst       => rst,
@@ -305,13 +301,10 @@ begin
             do_data   => do_data,
             do_last   => do_last,
             do_valid  => do_valid,
-            do_ready  => do_ready_delayed
-            --/+++
-            -- , rdi_data  => rdi_data_delayed,
-            -- rdi_valid => rdi_valid_delayed,
-            -- rdi_ready => rdi_ready
+            do_ready  => do_ready_delayed, rdi_data => rdi_data_delayed,
+            rdi_valid => rdi_valid_delayed,
+            rdi_ready => rdi_ready
         );
-    --***********--
 
     --===========================================================================================--
 

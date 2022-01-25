@@ -47,6 +47,10 @@ use ieee.std_logic_1164.all;
 use work.design_pkg.all;
 use work.NIST_LWAPI_pkg.all;
 
+--*** SCA ***--
+--/+
+-- entity LWC_SCA is
+--/-
 entity LWC is
     generic(
         G_DO_FIFO_DEPTH : natural := 1  -- 0: disable output FIFO, 1 or 2 (elastic FIFO)
@@ -68,9 +72,17 @@ entity LWC is
         do_valid  : out std_logic;
         do_ready  : in  std_logic;
         do_last   : out std_logic
+        --/++++
+        --! Random Input
+        -- ;rdi_data  : in  std_logic_vector(RW - 1 downto 0);
+        -- rdi_valid : in  std_logic;
+        -- rdi_ready : out std_logic
     );
-end LWC;
+end entity;
 
+--/+
+-- architecture structure of LWC_SCA is
+--/-
 architecture structure of LWC is
     ------!Pre-Processor to CryptoCore (Key PISO)
     signal key_cipher_in              : std_logic_vector(SDI_SHARES * CCSW - 1 downto 0);
@@ -122,11 +134,11 @@ architecture structure of LWC is
         port(
             clk             : in  std_logic;
             rst             : in  std_logic;
-            key             : in  std_logic_vector(SDI_SHARES * CCSW - 1 downto 0);
+            key             : in  std_logic_vector(CCSW - 1 downto 0);
             key_valid       : in  std_logic;
             key_ready       : out std_logic;
             key_update      : in  std_logic;
-            bdi             : in  std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
+            bdi             : in  std_logic_vector(CCW - 1 downto 0);
             bdi_valid       : in  std_logic;
             bdi_ready       : out std_logic;
             bdi_pad_loc     : in  std_logic_vector(CCW / 8 - 1 downto 0);
@@ -137,7 +149,7 @@ architecture structure of LWC is
             bdi_type        : in  std_logic_vector(4 - 1 downto 0);
             decrypt_in      : in  std_logic;
             hash_in         : in  std_logic;
-            bdo             : out std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
+            bdo             : out std_logic_vector(CCW - 1 downto 0);
             bdo_valid       : out std_logic;
             bdo_ready       : in  std_logic;
             bdo_type        : out std_logic_vector(4 - 1 downto 0);
@@ -146,6 +158,42 @@ architecture structure of LWC is
             msg_auth_valid  : out std_logic;
             msg_auth_ready  : in  std_logic;
             msg_auth        : out std_logic
+        );
+    end component;
+
+    component CryptoCore_SCA
+        port(
+            clk             : in  STD_LOGIC;
+            rst             : in  STD_LOGIC;
+            key             : in  STD_LOGIC_VECTOR(SDI_SHARES * CCSW - 1 downto 0);
+            key_update      : in  STD_LOGIC;
+            key_valid       : in  STD_LOGIC;
+            key_ready       : out STD_LOGIC;
+            bdi             : in  STD_LOGIC_VECTOR(PDI_SHARES * CCW - 1 downto 0);
+            bdi_valid       : in  STD_LOGIC;
+            bdi_ready       : out STD_LOGIC;
+            bdi_pad_loc     : in  STD_LOGIC_VECTOR(CCW / 8 - 1 downto 0);
+            bdi_valid_bytes : in  STD_LOGIC_VECTOR(CCW / 8 - 1 downto 0);
+            bdi_size        : in  STD_LOGIC_VECTOR(3 - 1 downto 0);
+            bdi_eot         : in  STD_LOGIC;
+            bdi_eoi         : in  STD_LOGIC;
+            bdi_type        : in  STD_LOGIC_VECTOR(4 - 1 downto 0);
+            decrypt_in      : in  STD_LOGIC;
+            hash_in         : in  std_logic;
+            bdo             : out STD_LOGIC_VECTOR(PDI_SHARES * CCW - 1 downto 0);
+            bdo_valid       : out STD_LOGIC;
+            bdo_ready       : in  STD_LOGIC;
+            bdo_type        : out STD_LOGIC_VECTOR(4 - 1 downto 0);
+            bdo_valid_bytes : out STD_LOGIC_VECTOR(CCW / 8 - 1 downto 0);
+            end_of_block    : out STD_LOGIC;
+            --
+            msg_auth_valid  : out STD_LOGIC;
+            msg_auth_ready  : in  STD_LOGIC;
+            msg_auth        : out STD_LOGIC;
+            --! Random Input
+            rdi_data        : in  std_logic_vector(RW - 1 downto 0);
+            rdi_valid       : in  std_logic;
+            rdi_ready       : out std_logic
         );
     end component;
 
@@ -171,6 +219,9 @@ begin
 
     -- ASYNC_RSTN notification
     assert not ASYNC_RSTN report "[LWC] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
+
+    --/-
+    assert PDI_SHARES = 1 and SDI_SHARES = 1 report "For non-protected LWC instance PDI/SDI_SHARES should be 1" severity failure;
 
     Inst_PreProcessor : entity work.PreProcessor
         port map(
@@ -208,7 +259,9 @@ begin
             cmd_valid       => cmd_valid_FIFO_in,
             cmd_ready       => cmd_ready_FIFO_in
         );
-
+    --/+
+    -- Inst_CryptoCore : CryptoCore_SCA
+    --/-
     Inst_CryptoCore : CryptoCore
         port map(
             clk             => clk,
@@ -237,6 +290,11 @@ begin
             msg_auth_valid  => msg_auth_valid,
             msg_auth_ready  => msg_auth_ready,
             msg_auth        => msg_auth
+            --/++++
+            -- ,
+            -- rdi_data        => rdi_data,
+            -- rdi_valid       => rdi_valid,
+            -- rdi_ready       => rdi_ready
         );
 
     Inst_PostProcessor : entity work.PostProcessor
@@ -299,3 +357,4 @@ begin
     do_last    <= do_fifo_out(do_data'length);
 
 end architecture;
+--***********--
