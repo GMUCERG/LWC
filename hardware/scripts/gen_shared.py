@@ -40,7 +40,7 @@ def gen_shares(in_file, num_shares, w_nbytes=0):
                             w_nbytes) for _ in range(num_shares - 1)]
                         shares.append(reduce(xor, shares + [word]))
                         # assert reduce(xor, shares) == word
-                        data_str += "".join([x.hex() for x in shares])
+                        data_str += "".join([x.hex().upper() for x in shares])
                     line = preamble + data_str + "\n"
             o.write(line)
 
@@ -79,7 +79,7 @@ if args.rdi_file:
         exit(1)
     rw_bytes = (args.rdi_width + 7) // 8  # round to bytes
     for i in range(args.rdi_words):
-        args.rdi_file.write(secrets.token_hex(rw_bytes) + '\n')
+        args.rdi_file.write(secrets.token_hex(rw_bytes).upper() + '\n')
     print(
         f"Generated RDI file: {args.rdi_file.name} RW={args.rdi_width} words={args.rdi_words}")
 

@@ -69,7 +69,7 @@ entity LWC_SCA is
         do_ready  : in  std_logic;
         do_last   : out std_logic;
         --! Random Input
-        rdi_data : in std_logic_vector(RW - 1 downto 0);
+        rdi_data  : in  std_logic_vector(RW - 1 downto 0);
         rdi_valid : in  std_logic;
         rdi_ready : out std_logic
     );
@@ -183,7 +183,7 @@ architecture structure of LWC_SCA is
             msg_auth_ready  : in  STD_LOGIC;
             msg_auth        : out STD_LOGIC;
             --! Random Input
-            rdi_data        : in  std_logic_vector(RW - 1 downto 0);
+            rdi             : in  std_logic_vector(RW - 1 downto 0);
             rdi_valid       : in  std_logic;
             rdi_ready       : out std_logic
         );
@@ -276,7 +276,7 @@ begin
             msg_auth_valid  => msg_auth_valid,
             msg_auth_ready  => msg_auth_ready,
             msg_auth        => msg_auth,
-            rdi_data        => rdi_data,
+            rdi             => rdi_data,
             rdi_valid       => rdi_valid,
             rdi_ready       => rdi_ready
         );

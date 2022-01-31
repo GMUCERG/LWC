@@ -3,6 +3,8 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import toml ## need to install
+
 
 script_dir = Path(__file__).parent.resolve()
 

@@ -20,7 +20,6 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 use work.design_pkg.all;
-use work.LWC_pkg.all;
 use work.NIST_LWAPI_pkg.all;
 
 

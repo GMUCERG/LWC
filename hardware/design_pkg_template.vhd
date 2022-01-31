@@ -16,25 +16,23 @@
 --! @note       Assign values to all constants in the package body. Add any
 --!             constants, types, and functions used only by your CryptoCore.
 --!
---! @note       Change the name of the file to design_pkg.vhd, and copy it
---!             to your workspace containing all files required to synthesize
---!             LWC, listed in source_list.txt.
+--! @note       Copy this file into your implementation's source directory
+--!              and make any required changes to the design-specific copy.
+--!
 --===============================================================================================--
 
-library IEEE;
-use IEEE.STD_LOGIC_1164.all;
-
 package design_pkg is
-
-    --! design parameters needed by the PreProcessor, PostProcessor, and LWC
+    --!
+    --! These parameters are needed by the LWC package implementation.
     --!
     --! Tag size in bits
-    constant TAG_SIZE        : integer;
+    constant TAG_SIZE        : natural := 128;
     --! Hash digest size in bits
-    constant HASH_VALUE_SIZE : integer;
+    constant HASH_VALUE_SIZE : natural := 256;
     --! CryptoCore BDI data width in bits. Supported values: 32, 16, 8
-    constant CCW             : integer;
+    constant CCW             : natural := 32;
     --! CryptoCore key input width in bits
-    constant CCSW            : integer := CCW;
+    constant CCSW            : natural := CCW;
+    constant CCRW            : natural := 0;
 
 end design_pkg;

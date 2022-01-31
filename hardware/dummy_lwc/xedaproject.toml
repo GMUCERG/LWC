@@ -3,44 +3,7 @@ description = "Implementation of the dummy_lwc cipher and hash"
 author = "[Patrick Karl](patrick.karl@tum.de)"
 url = "https://github.com/GMUCERG/LWC"
 
-[[design]]
-name = "dummy_lwc_w32_ccw32"
-rtl.sources = [
-    "src_rtl/v1/design_pkg.vhd",
-    "src_rtl/LWC/NIST_LWAPI_pkg.vhd",
-    "src_rtl/LWC/LWC_pkg.vhd",
-    "src_rtl/SPDRam.vhd",
-    "src_rtl/CryptoCore.vhd",
-    "src_rtl/LWC/data_sipo.vhd",
-    "src_rtl/LWC/key_piso.vhd",
-    "src_rtl/LWC/data_piso.vhd",
-    "src_rtl/LWC/fifo.vhd",
-    "src_rtl/LWC/PreProcessor.vhd",
-    "src_rtl/LWC/PostProcessor.vhd",
-    "src_rtl/LWC/LWC.vhd",
-    # "src_rtl/LWC/elastic_reg_fifo.vhd",
-    # "src_rtl/LWC_wrapper.vhd",
-]
-rtl.top = 'LWC'
-rtl.clock_port = "clk"
 
-tb.top = 'LWC_TB'
-tb.sources = ["../LWC_tb/LWC_TB.vhd"]
-
-language.vhdl.standard = "2008"
-language.vhdl.synopsys = false
-
-[design.tb.generics]
-G_FNAME_PDI.file = "KAT/32/pdi.txt"
-G_FNAME_SDI.file = "KAT/32/sdi.txt"
-G_FNAME_DO.file = "KAT/32/do.txt"
-G_TEST_MODE = 1 # stall both inputs and output
-G_MAX_FAILURES = 0
-G_TIMEOUT_CYCLES = 1000
-G_PDI_STALLS = 7
-G_SDI_STALLS = 13
-G_DO_STALLS = 21
-G_RANDOM_STALL = false # true
 
 ##################################################
 
@@ -49,7 +12,6 @@ name = "dummy_lwc_w32_ccw16"
 rtl.sources = [
     "src_rtl/v2/design_pkg.vhd",
     "src_rtl/LWC/NIST_LWAPI_pkg.vhd",
-    "src_rtl/LWC/LWC_pkg.vhd",
     "src_rtl/SPDRam.vhd",
     "src_rtl/CryptoCore.vhd",
     "src_rtl/LWC/data_sipo.vhd",
@@ -83,7 +45,6 @@ name = "dummy_lwc_w32_ccw8"
 rtl.sources = [
     "src_rtl/v3/design_pkg.vhd",
     "src_rtl/LWC/NIST_LWAPI_pkg.vhd",
-    "src_rtl/LWC/LWC_pkg.vhd",
     "src_rtl/SPDRam.vhd",
     "src_rtl/CryptoCore.vhd",
     "src_rtl/LWC/data_sipo.vhd",
@@ -117,7 +78,6 @@ name = "dummy_lwc_w16_ccw16"
 rtl.sources = [
     "src_rtl/v2/design_pkg.vhd",
     "src_rtl/NIST_LWAPI_pkg_W16.vhd",
-    "src_rtl/LWC/LWC_pkg.vhd",
     "src_rtl/SPDRam.vhd",
     "src_rtl/CryptoCore.vhd",
     "src_rtl/LWC/data_sipo.vhd",
@@ -153,7 +113,6 @@ description = "W=SW=8 CCW=CCSW=8"
 rtl.sources = [
     "src_rtl/v3/design_pkg.vhd",
     "src_rtl/NIST_LWAPI_pkg_W8.vhd",
-    "src_rtl/LWC/LWC_pkg.vhd",
     "src_rtl/SPDRam.vhd",
     "src_rtl/CryptoCore.vhd",
     "src_rtl/LWC/data_sipo.vhd",

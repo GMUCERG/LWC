@@ -23,7 +23,6 @@ use ieee.numeric_std.all;
 use std.textio.all;
 
 use work.NIST_LWAPI_pkg.all;
-use work.LWC_pkg.all;
 
 entity LWC_TB IS
     generic(
@@ -33,13 +32,13 @@ entity LWC_TB IS
         G_SDI_STALLS       : integer := 3; --! Number of cycles to stall sdi_valid
         G_DO_STALLS        : integer := 3; --! Number of cycles to stall do_ready
         G_RDI_STALLS       : integer := 3; --! Number of cycles to stall rdi_valid
-        G_RANDOM_STALL     : boolean := FALSE; --! Randomized stalls
+        G_RANDOM_STALL     : boolean := false; --! Randomized stalls
         G_RANDOM_SEED      : integer := 1; --! Seed used for all random generation, must be positive
         G_CLK_PERIOD_PS    : integer := 10_000; --! Simulation clock period in picoseconds
         G_FNAME_PDI        : string  := "../KAT/v1/pdi.txt"; --! Path to the input file containing cryptotvgen PDI testvector data
         G_FNAME_SDI        : string  := "../KAT/v1/sdi.txt"; --! Path to the input file containing cryptotvgen SDI testvector data
         G_FNAME_RDI        : string  := "../KAT/v1/rdi.txt"; --! Path to the input file containing random data
-        G_PRNG_RDI         : boolean := TRUE; -- use testbench PRNG to generate RDI input instead of the file `G_FNAME_RDI`
+        G_PRNG_RDI         : boolean := false; -- use testbench PRNG to generate RDI input instead of the file `G_FNAME_RDI`
         G_FNAME_DO         : string  := "../KAT/v1/do.txt"; --! Path to the input file containing cryptotvgen DO testvector data
         G_FNAME_LOG        : string  := "log.txt"; --! Path to the generated log file
         G_FNAME_TIMING     : string  := "timing.txt"; --! Path to the generated timing measurements (when G_TEST_MODE=4)
@@ -96,8 +95,8 @@ architecture TB of LWC_TB is
     signal do_ready_delayed    : std_logic                           := '0';
     -- Used only for protected implementations:
     --   RDI
-    signal rdi_data            : std_logic_vector(RW - 1 downto 0)   := (others => '0');
-    signal rdi_data_delayed    : std_logic_vector(RW - 1 downto 0)   := (others => '0');
+    signal rdi                 : std_logic_vector(RW - 1 downto 0)   := (others => '0');
+    signal rdi_delayed         : std_logic_vector(RW - 1 downto 0)   := (others => '0');
     signal rdi_valid           : std_logic                           := '0';
     signal rdi_valid_delayed   : std_logic                           := '0';
     signal rdi_ready           : std_logic;
@@ -301,7 +300,8 @@ begin
             do_data   => do_data,
             do_last   => do_last,
             do_valid  => do_valid,
-            do_ready  => do_ready_delayed, rdi_data => rdi_data_delayed,
+            do_ready  => do_ready_delayed,
+            rdi_data  => rdi_delayed,
             rdi_valid => rdi_valid_delayed,
             rdi_ready => rdi_ready
         );
@@ -316,7 +316,7 @@ begin
 
     GEN_RDI : if RW > 0 generate
     begin
-        rdi_data_delayed  <= transport rdi_data after input_delay;
+        rdi_delayed       <= transport rdi after input_delay;
         rdi_valid_delayed <= transport rdi_valid after input_delay;
         rdi_proc : process
             variable rdi_line : line;
@@ -331,7 +331,7 @@ begin
                         rdi_valid <= '0';
                         wait until rising_edge(clk);
                     end loop;
-                    rdi_data  <= random(RW);
+                    rdi       <= random(RW);
                     rdi_valid <= '1';
                     wait until rising_edge(clk) and rdi_ready = '1' and rdi_valid_delayed = '1';
                 end loop;
@@ -366,7 +366,7 @@ begin
                         rdi_valid <= '0';
                         wait until rising_edge(clk);
                     end loop;
-                    rdi_data         <= rdi_vec;
+                    rdi              <= rdi_vec;
                     rdi_valid        <= '1';
                     wait until rising_edge(clk) and rdi_ready = '1' and rdi_valid_delayed = '1';
                     num_rand_vectors <= num_rand_vectors + 1;
