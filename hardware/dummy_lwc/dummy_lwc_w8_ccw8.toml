@@ -16,7 +16,7 @@ sources = [
     "src_rtl/LWC/data_sipo.vhd",
     "src_rtl/LWC/key_piso.vhd",
     "src_rtl/LWC/data_piso.vhd",
-    "src_rtl/LWC/fifo.vhd",
+    "src_rtl/LWC/FIFO.vhd",
     "src_rtl/LWC/PreProcessor.vhd",
     "src_rtl/LWC/PostProcessor.vhd",
     "src_rtl/LWC/LWC.vhd",
