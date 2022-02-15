@@ -8,7 +8,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     steps:
     - uses: ghdl/setup-ghdl-ci@nightly
@@ -16,10 +15,6 @@ jobs:
         backend: gcc
     - run: ghdl --version
     - uses: actions/checkout@v2
-#     - name: Set up Python 3.8
-#       uses: actions/setup-python@v2
-#       with:
-#         python-version: 3.8
     - name: Install dependencies
       run: |
         python3 -m pip install --upgrade setuptools

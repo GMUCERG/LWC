@@ -142,7 +142,7 @@ def test_all():
         for ms in [False]:
             replace_files_map = {}
             for w, ccw in param_variants:
-                for async_rstn in [False]:
+                for async_rstn in [False, True]:
                     replaced_lwc_config = (
                         generated_sources /
                         f'LWC_config_W{w}{"_ASYNC_RSTN" if async_rstn else ""}.vhd'
