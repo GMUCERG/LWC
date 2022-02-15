@@ -90,7 +90,7 @@ architecture PreProcessor of PreProcessor is
 
    --======================================= Registers =========================================--
    signal state                         : t_state; -- FSM state
-   signal segment_counter               : unsigned(SEGLEN_BITS - 1 downto 0);
+   signal seglen_counter                : unsigned(SEGLEN_BITS - 1 downto 0);
    signal eoi_flag, eot_flag, last_flag : std_logic;
    signal decrypt_op, hash_op           : boolean;
    signal hdr_type                      : std_logic_vector(bdi_type'range);
@@ -122,17 +122,17 @@ architecture PreProcessor of PreProcessor is
    signal received_wrong_header    : boolean;
 
    --========================================= Aliases =========================================--
-   alias pdi_hdr            : std_logic_vector(W - 1 downto 0) is pdi_data(W_S - 1 downto W_S - W);
-   alias pdi_hdr_type       : std_logic_vector(3 downto 0) is pdi_hdr(W - 1 downto W - 4);
-   alias pdi_hdr_eoi        : std_logic is pdi_hdr(W - 6);
-   alias pdi_hdr_eot        : std_logic is pdi_hdr(W - 7);
-   alias pdi_hdr_last       : std_logic is pdi_hdr(W - 8);
-   alias pdi_hdr_seglen     : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is pdi_hdr(HDR_LEN_BITS - 1 downto 0);
-   alias sdi_hdr            : std_logic_vector(W - 1 downto 0) is sdi_data(SW_S - 1 downto SW_S - SW);
-   alias sdi_hdr_type       : std_logic_vector(3 downto 0) is sdi_hdr(SW - 1 downto SW - 4);
-   alias sdi_hdr_seglen     : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is sdi_hdr(HDR_LEN_BITS - 1 downto 0);
-   alias segment_counter_hi : unsigned(SEGLEN_BITS - LOG2_W_DIV_8 - 1 downto 0) is segment_counter(SEGLEN_BITS - 1 downto LOG2_W_DIV_8);
-   alias segment_counter_lo : unsigned(LOG2_W_DIV_8 - 1 downto 0) is segment_counter(LOG2_W_DIV_8 - 1 downto 0);
+   alias pdi_hdr           : std_logic_vector(W - 1 downto 0) is pdi_data(W_S - 1 downto W_S - W);
+   alias pdi_hdr_type      : std_logic_vector(3 downto 0) is pdi_hdr(W - 1 downto W - 4);
+   alias pdi_hdr_eoi       : std_logic is pdi_hdr(W - 6);
+   alias pdi_hdr_eot       : std_logic is pdi_hdr(W - 7);
+   alias pdi_hdr_last      : std_logic is pdi_hdr(W - 8);
+   alias pdi_hdr_seglen    : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is pdi_hdr(HDR_LEN_BITS - 1 downto 0);
+   alias sdi_hdr           : std_logic_vector(W - 1 downto 0) is sdi_data(SW_S - 1 downto SW_S - SW);
+   alias sdi_hdr_type      : std_logic_vector(3 downto 0) is sdi_hdr(SW - 1 downto SW - 4);
+   alias sdi_hdr_seglen    : std_logic_vector(HDR_LEN_BITS - 1 downto 0) is sdi_hdr(HDR_LEN_BITS - 1 downto 0);
+   alias seglen_counter_hi : unsigned(SEGLEN_BITS - LOG2_W_DIV_8 - 1 downto 0) is seglen_counter(SEGLEN_BITS - 1 downto LOG2_W_DIV_8);
+   alias seglen_counter_lo : unsigned(LOG2_W_DIV_8 - 1 downto 0) is seglen_counter(LOG2_W_DIV_8 - 1 downto 0);
 
 begin
    --======================================== Instances ========================================--
@@ -282,13 +282,13 @@ begin
             when S_HDR_KEY =>
                if sdi_fire then
                   if hdr_last then
-                     segment_counter <= unsigned(seglen);
+                     seglen_counter <= unsigned(seglen);
                   end if;
                end if;
 
             when S_LD_KEY =>
                if sdi_fire then
-                  segment_counter_hi <= segment_counter_hi - 1;
+                  seglen_counter_hi <= seglen_counter_hi - 1;
                end if;
 
             when S_HDR =>
@@ -300,13 +300,13 @@ begin
                      hdr_type  <= pdi_hdr_type;
                   end if;
                   if hdr_last then
-                     segment_counter <= unsigned(seglen);
+                     seglen_counter <= unsigned(seglen);
                   end if;
                end if;
 
             when S_LD =>
                if pdi_fire then
-                  segment_counter_hi <= segment_counter_hi - 1;
+                  seglen_counter_hi <= seglen_counter_hi - 1;
                end if;
 
             when others =>
@@ -322,11 +322,11 @@ begin
    end process;
 
    --===========================================================================================--
-   last_flit_of_segment <= is_zero(segment_counter_hi(segment_counter_hi'length - 1 downto 1)) and --
-                           (segment_counter_hi(0) = '0' or is_zero(segment_counter_lo));
+   last_flit_of_segment <= is_zero(seglen_counter_hi(seglen_counter_hi'length - 1 downto 1)) and --
+                           (seglen_counter_hi(0) = '0' or is_zero(seglen_counter_lo));
 
    -- bdi number of valid bytes as a binary integer
-   bdi_size_p <= std_logic_vector(resize(segment_counter_hi(0) & segment_counter_lo, bdi_size_p'length)) when last_flit_of_segment else --
+   bdi_size_p <= std_logic_vector(resize(seglen_counter_hi(0) & seglen_counter_lo, bdi_size_p'length)) when last_flit_of_segment else --
                  std_logic_vector(to_unsigned(W / 8, bdi_size_p'length));
    -- bdi padding location
    bdi_pad_loc_p     <= reverse_bits(to_1H(bdi_size_p, bdi_pad_loc_p'length));

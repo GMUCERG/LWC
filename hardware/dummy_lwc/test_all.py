@@ -63,7 +63,7 @@ gen_configs_subfolder = Path('generated_config').resolve()
 gen_configs_subfolder.mkdir(exist_ok=True)
 
 
-def gen_tv(ccw, blocks_per_segment, dest_dir):
+def gen_tv(ccw, blocks_per_segment, dest_dir, bench=False):
     args = [
         '--lib_path', str(tvgen_cand_dir / 'lib'),
         '--aead', 'dummy_lwc',
@@ -76,6 +76,7 @@ def gen_tv(ccw, blocks_per_segment, dest_dir):
         '--tag_size', '128',
         '--block_size', '128',
         '--block_size_ad', '128',
+        '--block_size_msg_digest', '128',
         '--dest', str(dest_dir),
         '--max_ad', '80',
         '--max_d', '80',
@@ -90,7 +91,10 @@ def gen_tv(ccw, blocks_per_segment, dest_dir):
 
     # gen_hash = '--gen_hash 1 20 2'.split()
     args += msg_format
-    args += ['--gen_test_combined', '1', '33', str(0)] # 0: all random
+    if bench:
+        args += ['--gen_benchmark']  # 0: all random
+    else:
+        args += ['--gen_test_combined', '1', '33', str(0)]  # 0: all random
 
     # TODO
     # args += gen_hash
@@ -138,8 +142,13 @@ def test_all():
 
     orig_parameters = copy(design.tb.parameters)
 
-    for vhdl_std in ['02', '08']:
-        for ms in [False]:
+    # first try with original settings
+    xeda_runner.run_flow(
+        GhdlSim, design
+    )
+
+    for vhdl_std in ['08', '02']:
+        for ms in [False, True]:
             replace_files_map = {}
             for w, ccw in param_variants:
                 for async_rstn in [False, True]:
@@ -160,8 +169,9 @@ def test_all():
 
                     replace_files_map[orig_lwc_config] = replaced_lwc_config
 
+                    bench = w == ccw and not async_rstn and vhdl_std == "08"
                     print(
-                        f'\n\n{"="*12}- Testing vhdl_std={vhdl_std} multi-segment={ms} W={w} CCW={ccw} ASYNC_RSTN={async_rstn} -{"="*12}\n'
+                        f'\n\n{"="*12}- Testing VHDL:20{vhdl_std} multi-segment:{ms} W:{w} CCW:{ccw} ASYNC_RSTN:{async_rstn} benchmark-KATs:{bench} -{"="*12}\n'
                     )
                     kat_dir = gen_tv_subfolder / \
                         f'TV{"_MS" if ms else ""}_{w}'
@@ -185,20 +195,24 @@ def test_all():
                             if f.file.resolve().samefile(orig):
                                 return replace_files_map[orig]
                         return f
-
-                    gen_tv(w, 2 if ms else None, kat_dir)
+                    gen_tv(w, 2 if ms else None, kat_dir, bench)
 
                     design.rtl.sources = [str(replace_file(f))
                                           for f in vhdl_files]
 
                     design.language.vhdl.standard = vhdl_std
                     design.name = f"generated_dummy_{vhdl_std}_W{w}_CCW{ccw}{'_ASYNC_RSTN' if async_rstn else ''}"
-
+                    if bench:
+                        kat_dir = kat_dir / 'kats_for_verification'
                     design.tb.parameters = {
                         **orig_parameters,
                         'G_FNAME_PDI': {'file': kat_dir / 'pdi.txt'},
                         'G_FNAME_SDI': {'file': kat_dir / 'sdi.txt'},
-                        'G_FNAME_DO': {'file': kat_dir / 'do.txt'}
+                        'G_FNAME_DO': {'file': kat_dir / 'do.txt'},
+                        'G_TEST_MODE': 1 if bench else 0,
+                        'G_MAX_FAILURES': 0,
+                        'G_TIMEOUT_CYCLES': 1000,
+                        'G_RANDOM_STALL': True,
                     }
 
                     xeda_runner.run_flow(
