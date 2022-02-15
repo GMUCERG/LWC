@@ -143,10 +143,10 @@ begin
         signal filled_nxt  : unsigned(0 to G_DEPTH - 1);
         signal din_ready_o : std_logic;
     begin
-        din_ready_o <= not lwc_and_reduce(filled);
+        din_ready_o <= not (filled(0) and filled(1));
         din_ready   <= din_ready_o;
         dout        <= storage(1) when filled(1) = '1' else storage(0);
-        dout_valid  <= lwc_or_reduce(filled); -- can dequeue input valid or full
+        dout_valid  <= filled(0) or filled(1); -- can dequeue input valid or full
 
         assert false report "Isolating FIFO of depth 2" severity note; -- print information
 

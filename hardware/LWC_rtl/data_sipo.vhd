@@ -35,7 +35,7 @@ entity DATA_SIPO is
         rst          : in  std_logic;
         -- Serial (width=CCW) input
         data_s       : in  STD_LOGIC_VECTOR(PDI_SHARES * CCW - 1 downto 0);
-        end_of_input : in  STD_LOGIC; -- last input word
+        end_of_input : in  STD_LOGIC;   -- last input word
         data_valid_s : in  STD_LOGIC;
         data_ready_s : out STD_LOGIC;
         -- Parallel (width=W) output (W >= CCW)
@@ -56,7 +56,9 @@ begin
         signal mux             : integer range 1 to 4;
         signal reg             : std_logic_vector(31 downto 8);
     begin
-        assert PDI_SHARES = 1 and W = 32 and (CCW = 8 OR CCW = 16) report "This module only supports CCW={8,16,32}!" severity failure;
+        assert PDI_SHARES = 1 and ((W = 32 and (CCW = 8 OR CCW = 16)) or (W = 16 and CCW = 8))
+        report "[ERROR] Configuration is not supported! PDI_SHARES=" & integer'image(PDI_SHARES) & " W=" & integer'image(W) & " CCW=" & integer'image(CCW)
+        severity failure;
 
         GEN_proc_SYNC_RST : if (not ASYNC_RSTN) generate
             process(clk)

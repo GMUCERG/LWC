@@ -208,10 +208,10 @@ begin
             auth_ready      => msg_auth_ready,
             auth_success    => msg_auth
         );
-    Inst_Header_Fifo : entity work.fwft_fifo
+    Inst_Header_Fifo : entity work.FIFO
         generic map(
-            G_W         => W,
-            G_LOG2DEPTH => 2
+            G_W     => W,
+            G_DEPTH => 1
         )
         port map(
             clk        => clk,

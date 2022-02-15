@@ -5,6 +5,7 @@ from .generator import gen_dataset, gen_hash, gen_random, gen_single, gen_test_c
          gen_test_routine, print_header, gen_benchmark_routine, gen_tv_and_write_files, determine_params
 from .options import get_parser
 from .prepare_libs import prepare_libs, ctgen_get_supercop_dir
+from .log import setup_logger
 import textwrap
 import os
 import sys
@@ -14,10 +15,12 @@ import pathlib
 
 ## validation can only be safely done when all args are parsed and stored!
 
-def run_cryptotvgen(args=sys.argv[1:]):
+def run_cryptotvgen(args=sys.argv[1:], logfile='cryptotvgen.log'):
     # Parse options
     parser = get_parser()
     opts = parser.parse_args(args)
+
+    setup_logger(logfile=logfile)
     
     if opts.prepare_libs:
         prepare_libs(sc_version=opts.supercop_version, libs=opts.prepare_libs,
@@ -37,8 +40,8 @@ def run_cryptotvgen(args=sys.argv[1:]):
     if not opts.candidates_dir:
         opts.candidates_dir = ctgen_get_supercop_dir()
 
-    # Update parameters based on api.h
-    determine_params(opts, opts.candidates_dir)
+    # Automatically fill in any missing parameters from 'api.h'
+    determine_params(opts)
         
     # Additional error checking
     opts.msg_format = list(opts.msg_format)

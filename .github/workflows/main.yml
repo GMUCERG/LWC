@@ -23,7 +23,8 @@ jobs:
     - name: Install dependencies
       run: |
         python3 -m pip install --upgrade setuptools
-        cd software/cryptotvgen && python3 -m pip install .
+        cd software/cryptotvgen && python3 -m pip install --upgrade .
+        python3 -m pip install --upgrade git+https://github.com/XedaHQ/xeda.git@dev
     - name: dummy core test_all
       run: |
         python3 hardware/dummy_lwc/test_all.py

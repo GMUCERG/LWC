@@ -40,8 +40,6 @@ package design_pkg is
 --------------------------------------------------------------------------------
 ------------------------- DO NOT CHANGE ANYTHING BELOW -------------------------
 --------------------------------------------------------------------------------
-    --! design parameters needed by the PreProcessor, PostProcessor, and LWC; assigned in the package body below!
-    
     
     --! design parameters specific to the CryptoCore; assigned in the package body below!
     --! place declarations of your constants here

@@ -53,7 +53,7 @@ use work.NIST_LWAPI_pkg.all;
 --/-
 entity LWC is
     generic(
-        G_DO_FIFO_DEPTH : natural := 1  -- 0: disable output FIFO, 1 or 2 (elastic FIFO)
+        G_DO_FIFO_DEPTH : natural := 0  -- 0: disable output FIFO, 1 or 2 (elastic FIFO)
     );
     port(
         --! Global ports
@@ -69,9 +69,9 @@ entity LWC is
         sdi_ready : out std_logic;
         --! Data out ports
         do_data   : out std_logic_vector(PDI_SHARES * W - 1 downto 0);
+        do_last   : out std_logic;
         do_valid  : out std_logic;
-        do_ready  : in  std_logic;
-        do_last   : out std_logic
+        do_ready  : in  std_logic
         --/++++
         --! Random Input
         -- ;rdi       : in  std_logic_vector(RW - 1 downto 0);
