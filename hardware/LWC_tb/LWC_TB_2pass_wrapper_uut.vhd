@@ -82,10 +82,10 @@ begin
             fdo_ready    => fdo_ready
         );
 
-    twoPassFIFO : entity work.fwft_fifo_tb
+    twoPassFIFO : entity work.FIFO
         generic map(
             G_W              => W,
-            G_LOG2DEPTH      => log2_ceil(8*G_MAX_SEGMENT_BYTES/W)
+            G_DEPTH          => G_MAX_SEGMENT_BYTES / (W/8)
         )
         port map(
             clk              => clk,
