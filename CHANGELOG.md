@@ -2,14 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.2.0]
 ### Added
 - Support for SCA protected implementations
+  - LWC top entity: [LWC_SCA.vhd](./hardware/LWC_rtl/LWC_SCA.vhd)
+  - Testbench: [LWC_TB_SCA.vhd](./hardware/LWC_tb/LWC_TB_SCA.vhd)
 ### Changed
-- Simplification, fixes, and cleanup for PreProcessor and PostProcessor
-  - PreProcessor.vhd:  1500 solc -> 526 solc
-  - PostProcessor.vhd:  991 solc -> 370 solc
-  - Improvements in synthesis result (...)
+- LWC package parameters are now set in the user-provided [`LWC_config`](hardware/LWC_config_template.vhd) VHDL package and [`NIST_LWAPI_pkg.vhd`](./hardware/LWC_rtl/NIST_LWAPI_pkg.vhd) should not be directly modified.
+- Simplification, fixes, and cleanup for PreProcessor and PostProcessor.
+  - Cleaner, more efficient code in fewer source lines of code (SLOC):
+    |   Source File     | v1.0.2  | v1.1.1  | v1.2.0 |
+    | ----------------- |:-------:|:-------:|:------:|
+    |`PreProcessor.vhd` |1305 SLOC|1352 SLOC|351 SLOC|
+    |`PostProcessor.vhd`|801  SLOC|838  SLOC|308 SLOC|
+  - Improved synthesis result.
+- The FIFO implementation has been renamed to `FIFO` (file renamed to [`FIFO.vhd`](./hardware/LWC_rtl/FIFO.vhd)) and now contains 3 different implementations, selected based on the generic parameters.
 
 ## [1.1.0]
 ### Added

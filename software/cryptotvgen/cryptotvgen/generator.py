@@ -1232,10 +1232,15 @@ def determine_params(opts):
                         opts[opt_attr] = v
 
 
-def blanket_message_hash_test(block_size_msg_digest):
-    routine = []
-    for hash_size in range(4*block_size_msg_digest//8):
-        routine.append([False, False, False, hash_size, True])
+def blanket_message_hash_test(hm_bs):
+    sizes = list(range(10)) + [15, 16, 17, 29, 61, 63, 64, 65, 67, 97, 127, 128, 129,
+                               hm_bs - 1, hm_bs, hm_bs + 1,
+                               hm_bs // 2 - 1, hm_bs // 2,
+                               2*hm_bs - 1, 2*hm_bs, 2*hm_bs + 1,
+                               ]
+    sizes = list(set(sizes)) + [0] * 5
+    random.shuffle(sizes)
+    routine = [(True, False, 0, mess_size, True) for mess_size in sizes]
     return routine
 
 
@@ -1252,20 +1257,27 @@ def basic_hash_sizes(block_size_msg_digest):
 def blanket_message_aead_test(opts):
     ad_bs = opts.block_size_ad//8
     xt_bs = opts.block_size//8
-    sizes = list(range(10)) + [15, 16, 17, 29, 61, 63, 64, 65, 67, 97, 127, 128, 129,
-                               ad_bs // 2 - 1, ad_bs // 2,
-                               ad_bs - 1, ad_bs, ad_bs + 1,
-                               2*ad_bs - 1, 2*ad_bs, 2*ad_bs + 1,
-                               xt_bs - 1, xt_bs, xt_bs + 1,
-                               xt_bs // 2 - 1, xt_bs // 2,
-                               2*xt_bs - 1, 2*xt_bs, 2*xt_bs + 1,
-                               ]
-    sizes = list(set(sizes))
-    routine = []
-    for ad_size in sizes:
-        for mess_size in sizes:
-            routine.extend([True, dec, ad_size, mess_size, False]
-                           for dec in [False, True])
+    msg_sizes = list(range(10)) + [15, 16, 17, 29, 61, 63, 64, 65, 67, 97, 127, 128, 129,
+                                   xt_bs - 1, xt_bs, xt_bs + 1,
+                                   xt_bs // 2 - 1, xt_bs // 2,
+                                   2*xt_bs - 1, 2*xt_bs, 2*xt_bs + 1,
+                                   ]
+    ad_sizes = list(range(10)) + [15, 16, 17, 29, 61, 63,
+                                 ad_bs // 2 - 1, ad_bs // 2,
+                                 ad_bs - 1, ad_bs, ad_bs + 1,
+                                 2*ad_bs - 1, 2*ad_bs, 2*ad_bs + 1
+                                 ]
+    msg_sizes = list(set(msg_sizes)) + [0] * 5 + [1] * 2
+    random.shuffle(msg_sizes)
+    ad_sizes = list(set(ad_sizes)) + [0] * 5 + [1] * 2
+    random.shuffle(ad_sizes)
+    routine = [
+        [True, dec, ad_size, mess_size, False]
+        for dec in [False, True]
+        for mess_size in msg_sizes
+        for ad_size in ad_sizes
+    ]
+
     print(
         f"blanket_message_aead_test: generating testvectors with {len(routine)} messages")
     return routine
