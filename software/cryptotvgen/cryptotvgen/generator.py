@@ -1232,18 +1232,6 @@ def determine_params(opts):
                         opts[opt_attr] = v
 
 
-def blanket_message_hash_test(hm_bs):
-    sizes = list(range(10)) + [15, 16, 17, 29, 61, 63, 64, 65, 67, 97, 127, 128, 129,
-                               hm_bs - 1, hm_bs, hm_bs + 1,
-                               hm_bs // 2 - 1, hm_bs // 2,
-                               2*hm_bs - 1, 2*hm_bs, 2*hm_bs + 1,
-                               ]
-    sizes = list(set(sizes)) + [0] * 5
-    random.shuffle(sizes)
-    routine = [(True, False, 0, mess_size, True) for mess_size in sizes]
-    return routine
-
-
 def basic_hash_sizes(block_size_msg_digest):
     routine = [[False, False, 0,                          0, True],
                [False, False, 0, 5*block_size_msg_digest//8, True],
@@ -1254,7 +1242,9 @@ def basic_hash_sizes(block_size_msg_digest):
     return routine
 
 
-def blanket_message_aead_test(opts):
+def blanket_tests(opts, reuse_key=None):
+    if reuse_key is None:
+        reuse_key = opts.with_key_reuse
     ad_bs = opts.block_size_ad//8
     xt_bs = opts.block_size//8
     msg_sizes = list(range(10)) + [15, 16, 17, 29, 61, 63, 64, 65, 67, 97, 127, 128, 129,
@@ -1263,23 +1253,37 @@ def blanket_message_aead_test(opts):
                                    2*xt_bs - 1, 2*xt_bs, 2*xt_bs + 1,
                                    ]
     ad_sizes = list(range(10)) + [15, 16, 17, 29, 61, 63,
-                                 ad_bs // 2 - 1, ad_bs // 2,
-                                 ad_bs - 1, ad_bs, ad_bs + 1,
-                                 2*ad_bs - 1, 2*ad_bs, 2*ad_bs + 1
-                                 ]
+                                  ad_bs // 2 - 1, ad_bs // 2,
+                                  ad_bs - 1, ad_bs, ad_bs + 1,
+                                  2*ad_bs - 1, 2*ad_bs, 2*ad_bs + 1
+                                  ]
     msg_sizes = list(set(msg_sizes)) + [0] * 5 + [1] * 2
-    random.shuffle(msg_sizes)
     ad_sizes = list(set(ad_sizes)) + [0] * 5 + [1] * 2
-    random.shuffle(ad_sizes)
     routine = [
         [True, dec, ad_size, mess_size, False]
         for dec in [False, True]
         for mess_size in msg_sizes
         for ad_size in ad_sizes
     ]
+    if opts.hash:
+        hm_bs = opts.block_size_msg_digest
+        hm_sizes = list(range(10)) + [15, 16, 17, 29, 61, 63, 64, 65, 67, 97, 127, 128, 129,
+                                      hm_bs - 1, hm_bs, hm_bs + 1,
+                                      hm_bs // 2 - 1, hm_bs // 2,
+                                      2*hm_bs - 1, 2*hm_bs, 2*hm_bs + 1,
+                                      ]
+        hm_sizes = list(set(hm_sizes)) + [0] * 5
+        random.shuffle(hm_sizes)
+        routine += [(True, False, 0, mess_size, True)
+                    for mess_size in hm_sizes]
 
+    random.shuffle(routine)
+    if reuse_key:
+        for i in range(1, len(routine)):
+            if routine[i][4] == False and routine[i-1][4] == False: # consequetive enc/dec
+                routine[i][4] = bool(random.randint(0, 1))
     print(
-        f"blanket_message_aead_test: generating testvectors with {len(routine)} messages")
+        f"blanket_tests: generating testvectors with {len(routine)} messages")
     return routine
 
 
@@ -1327,33 +1331,27 @@ def gen_benchmark_routine(opts):
 
     orig_dest = opts.dest
     if opts.hash:
-        opts.dest = os.path.join(orig_dest, 'blanket_hash_test')
-        print(f'Generating {os.path.abspath(opts.dest)}')
-        data = gen_dataset(opts, blanket_message_hash_test(
-            opts.block_size_msg_digest), 1, 1)
-        gen_tv_and_write_files(opts, data[0])
-
         opts.dest = os.path.join(orig_dest, 'basic_hash_sizes')
         print(f'Generating {os.path.abspath(opts.dest)}')
-        data = gen_dataset(opts, basic_hash_sizes(
+        data, _, _ = gen_dataset(opts, basic_hash_sizes(
             opts.block_size_msg_digest), 1, 1)
-        gen_tv_and_write_files(opts, data[0])
+        gen_tv_and_write_files(opts, data)
 
     opts.dest = os.path.join(orig_dest, 'kats_for_verification')
     print(f'Generating {os.path.abspath(opts.dest)}')
-    data = gen_dataset(opts, blanket_message_aead_test(opts), 1, 1)
-    gen_tv_and_write_files(opts, data[0])
+    data, _, _ = gen_dataset(opts, blanket_tests(opts), 1, 1)
+    gen_tv_and_write_files(opts, data)
 
-    # Ensure new key
-    opts.dest = os.path.join(orig_dest, 'generic_aead_sizes_new_key')
-    print(f'Generating {os.path.abspath(opts.dest)}')
-    routine_new_key = [[True, False, 0, 0, False]]
-    routine_new_key += basic_aead_sizes(True,
-                                        False, opts.block_size_ad, opts.block_size)
-    routine_new_key += basic_aead_sizes(True,
-                                        True, opts.block_size_ad, opts.block_size)
-    data_enc = gen_dataset(opts, routine_new_key, 1, 1)
-    gen_tv_and_write_files(opts, data_enc[0])
+    if False:  # already covered by blanket_tests
+        opts.dest = os.path.join(orig_dest, 'generic_aead_sizes_new_key')
+        print(f'Generating {os.path.abspath(opts.dest)}')
+        routine_new_key = [[True, False, 0, 0, False]]
+        routine_new_key += basic_aead_sizes(True,
+                                            False, opts.block_size_ad, opts.block_size)
+        routine_new_key += basic_aead_sizes(True,
+                                            True, opts.block_size_ad, opts.block_size)
+        data_enc = gen_dataset(opts, routine_new_key, 1, 1)
+        gen_tv_and_write_files(opts, data_enc[0])
 
     # Ensure at least one new key
     opts.dest = os.path.join(orig_dest, 'generic_aead_sizes_reuse_key')

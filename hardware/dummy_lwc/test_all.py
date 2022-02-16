@@ -12,11 +12,11 @@ from xeda.flows import GhdlSim
 from xeda import load_design_from_toml
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
 
 xeda_runner = DefaultRunner()
 
+
+logger.setLevel(logging.WARNING)
 
 script_dir = Path(__file__).parent.resolve()
 print(f'script_dir={script_dir}')
@@ -36,7 +36,7 @@ ghdl_setting_overrides = {'warn_flags': [
     '--warn-unused',
     '--warn-parenthesis'
 ],
-    'wave': True
+    'wave': False
 }
 
 # TODO use pytest?
@@ -92,14 +92,14 @@ def gen_tv(ccw, blocks_per_segment, dest_dir, bench=False):
     # gen_hash = '--gen_hash 1 20 2'.split()
     args += msg_format
     if bench:
-        args += ['--gen_benchmark']  # 0: all random
+        args += ['--gen_benchmark', '--with_key_reuse']
     else:
         args += ['--gen_test_combined', '1', '33', str(0)]  # 0: all random
 
     # TODO
     # args += gen_hash
 
-    return cli.run_cryptotvgen(args)
+    return cli.run_cryptotvgen(args, logfile=None)
 
 
 def get_lang(file: str):

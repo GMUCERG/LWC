@@ -15,20 +15,25 @@ import sys
 from enum import Enum
 import pathlib
 
+
 class AlgorithmClass(Enum):
     AEAD = 0
     HASH = 1
 
+
 class UseDebugLibrary(argparse.Action):
     ''' Validate block_size_ad '''
+
     def __call__(self, parser, args, values, option_string=None):
         # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
         for algorithm_class, path in args.algorithm_class_paths:
             new_path = path
             args.algorithm_class_paths[algorithm_class] = new_path
 
+
 class ValidateMsgFormat(argparse.Action):
     ''' Validate message format '''
+
     def __call__(self, parser, args, values, option_string=None):
         # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
 
@@ -53,8 +58,10 @@ class ValidateMsgFormat(argparse.Action):
 routines = ('gen_random', 'gen_custom', 'gen_test_routine', 'gen_single',
             'gen_hash', 'gen_test_combined', 'gen_benchmark', 'prepare_libs')
 
+
 class ValidateGenRandom(argparse.Action):
     ''' Validate gen_random option '''
+
     def __call__(self, parser, args, values, option_string=None):
         if args.hash is not None:
             sys.exit('`--gen_random` can only be used in for AEAD test vectors')
@@ -63,7 +70,7 @@ class ValidateGenRandom(argparse.Action):
             raise argparse.ArgumentError(
                 self, textwrap.dedent('''\
                 Number of test has to between 1 and 1000: {s!r}'''
-                .format(s=values)))
+                                      .format(s=values)))
         try:
             routine = getattr(args, 'routines')
             routine.append(routines.index(self.dest))
@@ -75,24 +82,31 @@ class ValidateGenRandom(argparse.Action):
 
 class ValidatePrepareLibs(argparse.Action):
     def __init__(self, option_strings, dest, nargs, **kwargs):
-        super(ValidatePrepareLibs, self).__init__(option_strings, dest, nargs, **kwargs)
+        super(ValidatePrepareLibs, self).__init__(
+            option_strings, dest, nargs, **kwargs)
+
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, values if values else 'all')
-        
+
+
 class ValidateCandidatesDir(argparse.Action):
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
         if nargs:
             raise ValueError("nargs not allowed")
-        super(ValidateCandidatesDir, self).__init__(option_strings, dest, nargs, **kwargs)
+        super(ValidateCandidatesDir, self).__init__(
+            option_strings, dest, nargs, **kwargs)
 
     def __call__(self, parser, namespace, value, option_string=None):
         value = pathlib.Path(value)
         if not (value.exists() and value.is_dir()):
-            sys.exit(f"candidate_dir {value} does not exist or is not a directory!")
+            sys.exit(
+                f"candidate_dir {value} does not exist or is not a directory!")
         setattr(namespace, self.dest, value)
+
 
 class ValidateGenCustom(argparse.Action):
     ''' Validate gen_custom option '''
+
     def __call__(self, parser, args, values, option_string=None):
         # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
 
@@ -120,9 +134,9 @@ class ValidateGenCustom(argparse.Action):
                         list[list_ind][item_ind] = 0
                 elif (item_ind < 4):
                     if val.lower() == 'true':
-                        list[list_ind][item_ind] = 0^inv_data
+                        list[list_ind][item_ind] = 0 ^ inv_data
                     elif val.lower() == 'false':
-                        list[list_ind][item_ind] = 1^inv_data
+                        list[list_ind][item_ind] = 1 ^ inv_data
                 else:
                     raise argparse.ArgumentError(
                         self, textwrap.dedent('''\
@@ -136,8 +150,10 @@ class ValidateGenCustom(argparse.Action):
         setattr(args, 'routines', routine)
         setattr(args, self.dest, list)
 
+
 class ValidateGenTestRoutine(argparse.Action):
     ''' Validate gen_test_routine option '''
+
     def __call__(self, parser, args, values, option_string=None):
         # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
 
@@ -163,8 +179,10 @@ class ValidateGenTestRoutine(argparse.Action):
         setattr(args, 'routines', routine)
         setattr(args, self.dest, values)
 
+
 class ValidateGenTestCombinedRoutine(argparse.Action):
     ''' Validate gen_test_routine option '''
+
     def __call__(self, parser, args, values, option_string=None):
         # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
 
@@ -190,8 +208,10 @@ class ValidateGenTestCombinedRoutine(argparse.Action):
         setattr(args, 'routines', routine)
         setattr(args, self.dest, values)
 
+
 class ValidateHash(argparse.Action):
     ''' Validate gen_hash_routine option '''
+
     def __call__(self, parser, args, values, option_string=None):
         #print ( '{n} {v} {o}'.format(n=args, v=values, o=option_string))
 
@@ -217,8 +237,10 @@ class ValidateHash(argparse.Action):
         setattr(args, 'routines', routine)
         setattr(args, self.dest, values)
 
+
 class ValidateGenSingle(argparse.Action):
     ''' Validate gen_single option '''
+
     def __call__(self, parser, args, values, option_string=None):
         # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
 
@@ -228,37 +250,40 @@ class ValidateGenSingle(argparse.Action):
             values[0] = 1
         elif values[0].lower() == 'false':
             values[0] = 0
-                   
+
         # Check hex
         for val in values[1:]:
             if len(val) == 0:
                 continue
             int(val, 16)
-            
-        if (values[0] == 0 or values[0] == 1): # Only validate these parameters for AEAD encrypt/decrypt
+
+        # Only validate these parameters for AEAD encrypt/decrypt
+        if (values[0] == 0 or values[0] == 1):
             txt = ['KEY', 'NPUB', 'NSEC']
             exp = [args.key_size, args.npub_size, args.nsec_size]
             for j, val in enumerate(exp):
-                i = j+1 # offset to KEY
+                i = j+1  # offset to KEY
                 if (val > 0 and len(values[i])*4 != val):
                     raise argparse.ArgumentError(
                         self, '{}:{}(size={}) must have the size of {}'
                         .format(txt[j], values[i], len(values[i])*4, val))
-        
+
         # Check
         try:
             routine = getattr(args, 'routines')
             routine.append(routines.index(self.dest))
-            input   = getattr(args, 'gen_single')            
-            input.append(values)            
+            input = getattr(args, 'gen_single')
+            input.append(values)
         except AttributeError:
             routine = [routines.index(self.dest), ]
-            input   = [values, ]
+            input = [values, ]
         setattr(args, 'routines', routine)
         setattr(args, self.dest, input)
 
+
 class ValidateGenBenchmarkRoutine(argparse.Action):
     ''' Validate gen_benchmark_routine option '''
+
     def __call__(self, parser, args, values, option_string=None):
         try:
             routine = getattr(args, 'routines')
@@ -266,6 +291,7 @@ class ValidateGenBenchmarkRoutine(argparse.Action):
         except AttributeError:
             routine = [routines.index(self.dest), ]
         setattr(args, 'routines', routine)
+
 
 class InvalidateArgument(argparse.Action):
     def __call__(self, parser, args, values, option_string=None):
@@ -278,13 +304,14 @@ class InvalidateArgument(argparse.Action):
 class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
                       argparse.RawTextHelpFormatter):
     ''' RawTextHelpFromatter + ArgumentDefaultsHelpFormatter class'''
+
     def _get_help_string(self, action):
         help = action.help
         if '%(default)' not in action.help:
             if action.default is not argparse.SUPPRESS:
                 defaulting_nargs = [argparse.OPTIONAL, argparse.ZERO_OR_MORE]
                 if action.option_strings or action.nargs in defaulting_nargs:
-                    if type(action.default)==type(sys.stdin):
+                    if type(action.default) == type(sys.stdin):
                         print(action.default.name)
                         help += ' (default: '+str(action.default.name)+')'
                     else:
@@ -294,19 +321,21 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
 # ============================================================================
 # Argument parsing
 # ============================================================================
+
+
 def get_parser():
     parser = argparse.ArgumentParser(
         add_help=False,
         formatter_class=CustomFormatter,
         prog='cryptotvgen',
-        description = textwrap.dedent('''\
+        description=textwrap.dedent('''\
             Test vectors generator for NIST Lightweight Cryptography candidates.\n\n'''))
 
     mainop = parser.add_argument_group(
         textwrap.dedent('''\
             :::::Path specifiers:::'''),
         'Not required if using `--prepare_libs` in automatic mode (see below and README)')
-    
+
     mainop.add_argument(
         '--candidates_dir',
         action=ValidateCandidatesDir,
@@ -346,7 +375,7 @@ def get_parser():
             Note: The library should have been be generated previously by running in `--prepare_libs`.'''))
 
     test = parser.add_argument_group(':::::Test Generation Parameters:::',
-            textwrap.dedent('''\
+                                     textwrap.dedent('''\
             Test vectors generation modes (use at least one from the list
             below)::
             Common notation and convetions:
@@ -414,8 +443,7 @@ def get_parser():
             3) kats_for_verification: for i in range 0 to (2*--block_size_ad//8)-1
                                           for x in range 0 to 2*--block_size//8)-1
                                               tests += (i,x)
-                                Encryption only
-            4) blanket_hash_test: 0 to (4*--block_size_msg_digest//8) -1
+                  covers Encryption, Decryption, and optionally Hash (if --hash argument is provided)
             5) pow_*: Several sets of test vectors that are only one message for
                       for each combination of possible values for basic sizes
 
@@ -424,6 +452,9 @@ def get_parser():
             Optional arguments --hash and --block_size_msg_digest allow for the generation
             of the hash test vectors
         '''))
+    test.add_argument('--with_key_reuse', default=False, action='store_true',
+                      help="'--gen_benchmark' blanket will tests include key-reuse test cases"
+                      )
     test.add_argument(
         '--gen_custom_mode', type=int, default=0, choices=range(3),
         metavar='MODE', help=textwrap.dedent('''\
@@ -458,7 +489,7 @@ def get_parser():
             second vector performs a HASH on a message with HASH_LEN of 24
             bytes.'''))
     test.add_argument(
-        '--gen_hash', type=int, nargs=3, default=None, metavar=('BEGIN','END','MODE'),action=ValidateHash,help=textwrap.dedent('''\
+        '--gen_hash', type=int, nargs=3, default=None, metavar=('BEGIN', 'END', 'MODE'), action=ValidateHash, help=textwrap.dedent('''\
             This mode generates 20 test vectors for HASH only.
             The test vectors are specified using the following array:
                [NEW_KEY (boolean),  # Ignored due to hash operation
@@ -517,9 +548,9 @@ def get_parser():
             --gen_hash 5 5 1
 
             Generates test 5 with MODE=1.''')
-        )
+    )
     test.add_argument(
-        '--gen_test_combined', type=int, nargs=3, default=None, metavar=('BEGIN','END','MODE'),action=ValidateGenTestCombinedRoutine,help=textwrap.dedent('''
+        '--gen_test_combined', type=int, nargs=3, default=None, metavar=('BEGIN', 'END', 'MODE'), action=ValidateGenTestCombinedRoutine, help=textwrap.dedent('''
             This mode generates 33 test vectors for the common sizes of AD and
             PT that the hardware designer should, at a minimum, verify. It also
             combines AEAD and hash test vectors into one set of test
@@ -591,7 +622,7 @@ def get_parser():
             --gen_test_combined 5 5 1
 
             Generates test 5 with MODE=1.''')
-        )
+    )
 
     test.add_argument(
         '--gen_test_routine', type=int, nargs=3, default=None,
@@ -657,7 +688,7 @@ def get_parser():
             '''))
     test.add_argument(
         '--gen_single', nargs=6,
-        metavar=('MODE', 'KEY', 'NPUB','NSEC','AD','PT'),
+        metavar=('MODE', 'KEY', 'NPUB', 'NSEC', 'AD', 'PT'),
         action=ValidateGenSingle,
         help=textwrap.dedent('''\
             Generate a single test vector based on the provided values of
@@ -678,9 +709,9 @@ def get_parser():
             '''))
 
     optops = parser.add_argument_group(':::::Optional Parameters::::',
-        'Debugging options::')
+                                       'Debugging options::')
     optops.add_argument("-h", "--help", action="help",
-        help="Show this help message and exit.")
+                        help="Show this help message and exit.")
 
     optops.add_argument(
         '--verify_lib', default=False, action='store_true',
@@ -694,9 +725,9 @@ def get_parser():
             '''))
 
     optops.add_argument('-V', '--version', action="version",
-        version="%(prog)s 1.0")
+                        version="%(prog)s 1.0")
     optops.add_argument('-v', '--verbose', default=False, action='store_true',
-        help=('Verbose for script debugging purposes.'))
+                        help=('Verbose for script debugging purposes.'))
 
     impops = parser.add_argument_group(
         '', 'Algorithm and implementation specific options::')
@@ -762,7 +793,7 @@ def get_parser():
             Note: This option is required for algorithms such as AES_COPA
             '''))
 
-###### Not supported in this version
+# Not supported in this version
 #    impops.add_argument(
 #        '--reverse_ciph', default=False,
 #        #action='store_true',
