@@ -2,17 +2,15 @@
 
 import logging
 
+
 def setup_logger(logfile):
     '''
     Setup logging infrastructure
 
     Reference Source: https://realpython.com/python-logging/
     '''
-    #logging.basicConfig(level=logging.DEBUG)
-    
-    # Create a custom logger
     logger = logging.getLogger() # root logger
-    
+
     if logfile:
         # Create handlers
         # All messages goes to a log file
