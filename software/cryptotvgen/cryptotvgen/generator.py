@@ -5,6 +5,7 @@
 #
 # Based on aeadtvgen 2.0.0 by Ekawat Homsirikamol (GMU CERG)
 
+from .__init__ import __version__
 import binascii
 import cffi
 import math
@@ -13,42 +14,21 @@ import random
 import math
 import sys
 from pathlib import Path
-from pkg_resources import get_distribution, DistributionNotFound
 from enum import Enum
 import logging
-
 from .options import routines
-from .prepare_libs import ctgen_get_supercop_dir
+from .prepare_libs import ctgen_get_supercop_dir, AEAD_HEADER, HASH_HEADER
+
+
+log = logging.getLogger(__name__)
 
 
 __all__ = ['gen_random', 'gen_dataset', 'gen_test_routine',
            'gen_single', 'print_header', 'gen_hash', 'gen_test_combined']
 
-from .__init__ import __version__
-
 
 ffi = cffi.FFI()
-ffi.cdef('''
-    int crypto_aead_encrypt(
-        unsigned char *c,unsigned long long *clen,
-        const unsigned char *m,unsigned long long mlen,
-        const unsigned char *ad,unsigned long long adlen,
-        const unsigned char *nsec,
-        const unsigned char *npub,
-        const unsigned char *k
-    );
-    int crypto_aead_decrypt(
-        unsigned char *m,unsigned long long *mlen,
-        unsigned char *nsec,
-        const unsigned char *c,unsigned long long clen,
-        const unsigned char *ad,unsigned long long adlen,
-        const unsigned char *npub,
-        const unsigned char *k
-    );
-    int crypto_hash(unsigned char *out, const unsigned char *in, unsigned long long hlen);
-    ''')
-
-log = logging.getLogger(__name__)
+ffi.cdef(AEAD_HEADER + HASH_HEADER)
 
 HUMAN_READABLE_FILE = 'test_vectors.txt'
 HLS_CC_DI_FILE = 'cc_di.txt'
@@ -466,31 +446,27 @@ class TestVector(object):
 
     def crypto_hash(self):
         ''' Compute aead algorithm '''
-        pt_len = lenbytes(self.pt)
+        msg_len = lenbytes(self.pt)
         buf_len = lenbytes(self.BUFFER)
         # Prepare input to C function (add buffer to prevent overflow)
         m = ffi.new("const unsigned char[]",
                     binascii.unhexlify(self.pt + self.BUFFER))
-        mlen = ffi.cast("unsigned long long", pt_len)
+        mlen = ffi.cast("unsigned long long", msg_len)
         c = ffi.new("unsigned char[]", binascii.unhexlify(
-            '00'*(pt_len+buf_len)))
-        clen = ffi.new("unsigned long long *",
-                       int(2*self.hash_tag_size)+buf_len)
+            '00'*(msg_len+buf_len)))
         # ABI level, in-line call
         self.lib.crypto_hash(c, m, mlen)
 
         # Convert output to Hexadecimal
         output = "".join("{:0>2}".format(
             hex(c[i])[2:].upper()) for i in range(0, int(self.hash_tag_size)))
-        ct_len = 2*int(self.hash_tag_size)
+        digest_len = 2*int(self.hash_tag_size)
         partial = 0
         # Partial bit is located in the last byte
         # if (self.opts.add_partial):
         #    ct_len = ct_len-2
         #    partial = output[-2:]
-
-        ct = output[0:ct_len]
-        return (ct)
+        return output[0:digest_len]
 
     def aead_decrypt(self):
         ''' Compute aead algorithm '''
@@ -969,7 +945,7 @@ def gen_dataset(opts, routine, start_msg_no, start_key_no, mode=0):
         return "".join(a)
 
     # print(routine)
-    assert opts.key_size and opts.npub_size is not None and opts.nsec_size is not None, "key_size npub_size nsec_size should be set"
+    assert opts.key_size and opts.npub_size is not None, "key_size and npub_size should be set"
     for i, tv in enumerate(routine):
         hashop = tv[4]
 
@@ -1194,6 +1170,8 @@ def determine_params(opts):
     implementation api.h file and update the opts dict
     '''
     candidates_dir = opts.candidates_dir
+    assert candidates_dir.exists(
+    ), f"candidates_dir: {candidates_dir} does not exist!"
     api_map = {"CRYPTO_KEYBYTES": 'key_size', "CRYPTO_NPUBBYTES": 'npub_size', "CRYPTO_NSECBYTES": 'nsec_size', "CRYPTO_NSECBYTES": 'nsec_size',
                "CRYPTO_ABYTES": 'tag_size', "CRYPTO_BYTES": 'message_digest_size'
                }
@@ -1202,19 +1180,25 @@ def determine_params(opts):
         alg = opts.get(op)
         if not alg:
             continue
-        log.warning('Determining parameters from api.h header files')
+        log.info('Determining parameters from api.h header files')
         impl_path = candidates_dir / f'crypto_{op}' / alg
+        if not impl_path.exists():
+            log.critical(f"{impl_path} does not exist!")
+            exit(f"\n\n{impl_path} does not exist!\n\n  Make sure algorithm name is correct \n   or\n  use --candidates_dir (currently set to {candidates_dir}) to select a different root path")
         api_h_files = list(impl_path.glob('**/api.h'))
         if not api_h_files or len(api_h_files) < 1:
             log.warning(f"No 'api.h' file found in {impl_path}.")
             return
         if len(api_h_files) > 1:
-            log.warning(
-                f"Multiple api.h files found in the implementation folder: {api_h_files}.")
+            log.info(
+                f"Multiple api.h files were found in the implementation folder: {[(str(f)) for f in api_h_files]}"
+            )
         api_h = api_h_files[0]
         if not os.path.exists(api_h):
             log.warning(f"{api_h} does not exist!")
             return
+
+        log.info(f"Using {api_h}")
 
         with open(api_h, 'r') as f:
             api_h_content = f.read()
@@ -1277,13 +1261,15 @@ def blanket_tests(opts, reuse_key=None):
         routine += [(True, False, 0, mess_size, True)
                     for mess_size in hm_sizes]
 
-    random.shuffle(routine)
+    if opts.random_shuffle:
+        random.shuffle(routine)
     if reuse_key:
         for i in range(1, len(routine)):
-            if routine[i][4] == False and routine[i-1][4] == False: # consequetive enc/dec
+            if routine[i][4] == False and routine[i-1][4] == False:  # consequetive enc/dec
                 routine[i][4] = bool(random.randint(0, 1))
-    print(
-        f"blanket_tests: generating testvectors with {len(routine)} messages")
+    log.debug(
+        f"blanket_tests: generated {len(routine)} testvectors"
+    )
     return routine
 
 
@@ -1338,8 +1324,8 @@ def gen_benchmark_routine(opts):
         gen_tv_and_write_files(opts, data)
 
     opts.dest = os.path.join(orig_dest, 'kats_for_verification')
-    print(f'Generating {os.path.abspath(opts.dest)}')
     data, _, _ = gen_dataset(opts, blanket_tests(opts), 1, 1)
+    print(f'Generating {os.path.abspath(opts.dest)}')
     gen_tv_and_write_files(opts, data)
 
     if False:  # already covered by blanket_tests
