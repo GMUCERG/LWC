@@ -2,6 +2,7 @@
 
 import logging
 
+
 class CustomFormatter(logging.Formatter):
     """Logging colored formatter, adapted from https://stackoverflow.com/a/56944256/3638629"""
 
@@ -35,15 +36,19 @@ def setup_logger(logfile):
 
     Reference Source: https://realpython.com/python-logging/
     '''
-    logger = logging.getLogger() # root logger
-    
-    if logfile:
+    logger = logging.getLogger()  # root logger
+
+    # add handlers only if no handlers where previously added (e.g. from a calling script)
+    if not len(logger.handlers):
         stdout_handler = logging.StreamHandler()
         stdout_handler.setLevel(logging.INFO)
-        stdout_handler.setFormatter(CustomFormatter("[%(levelname)s] %(message)s"))
+        stdout_handler.setFormatter(
+            CustomFormatter("[%(levelname)s] %(message)s"))
         logger.addHandler(stdout_handler)
 
-        file_handler = logging.FileHandler(logfile)
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(logging.Formatter("%(asctime).23s [%(levelname)-8s] %(message)s"))
-        logger.addHandler(file_handler)
+        if logfile:
+            file_handler = logging.FileHandler(logfile)
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(logging.Formatter(
+                "%(asctime).23s [%(levelname)-8s] %(message)s"))
+            logger.addHandler(file_handler)
