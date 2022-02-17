@@ -1169,12 +1169,20 @@ def determine_params(opts):
     '''This utility function will read in the parameters of the reference
     implementation api.h file and update the opts dict
     '''
+    api_map = {"CRYPTO_KEYBYTES": 'key_size', "CRYPTO_NPUBBYTES": 'npub_size', "CRYPTO_NSECBYTES": 'nsec_size',
+               "CRYPTO_ABYTES": 'tag_size', "CRYPTO_BYTES": 'message_digest_size'
+               }
+    optional_attributes = {'nsec_size'}
+    if not opts.hash:
+        optional_attributes.add('message_digest_size')
+    if not opts.aead:
+        optional_attributes.update(['key_size', 'npub_size', 'tag_size'])
+    if all(getattr(opts, p) is not None or p in optional_attributes for p in api_map.values()):
+        log.info("All api.h values are already known.")
+        return
     candidates_dir = opts.candidates_dir
     assert candidates_dir.exists(
     ), f"candidates_dir: {candidates_dir} does not exist!"
-    api_map = {"CRYPTO_KEYBYTES": 'key_size', "CRYPTO_NPUBBYTES": 'npub_size', "CRYPTO_NSECBYTES": 'nsec_size', "CRYPTO_NSECBYTES": 'nsec_size',
-               "CRYPTO_ABYTES": 'tag_size', "CRYPTO_BYTES": 'message_digest_size'
-               }
     opts = vars(opts)
     for op in ['aead', 'hash']:
         alg = opts.get(op)
@@ -1183,7 +1191,7 @@ def determine_params(opts):
         log.info('Determining parameters from api.h header files')
         impl_path = candidates_dir / f'crypto_{op}' / alg
         if not impl_path.exists():
-            log.critical(f"{impl_path} does not exist!")
+            log.critical(f"determine_params: {impl_path} does not exist!")
             exit(f"\n\n{impl_path} does not exist!\n\n  Make sure algorithm name is correct \n   or\n  use --candidates_dir (currently set to {candidates_dir}) to select a different root path")
         api_h_files = list(impl_path.glob('**/api.h'))
         if not api_h_files or len(api_h_files) < 1:

@@ -65,6 +65,7 @@ gen_configs_subfolder.mkdir(exist_ok=True)
 
 def gen_tv(ccw, blocks_per_segment, dest_dir, bench=False):
     args = [
+        # '--candidates_dir', str(tvgen_cand_dir),
         '--lib_path', str(tvgen_cand_dir / 'lib'),
         '--aead', 'dummy_lwc',
         '--hash', 'dummy_lwc',
