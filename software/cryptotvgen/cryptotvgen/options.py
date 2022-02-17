@@ -452,8 +452,11 @@ def get_parser():
             Optional arguments --hash and --block_size_msg_digest allow for the generation
             of the hash test vectors
         '''))
+    test.add_argument('--random_shuffle', default=True,
+                      help="'--gen_benchmark' blanket tests are shuffled into a randomized order"
+                      )
     test.add_argument('--with_key_reuse', default=False, action='store_true',
-                      help="'--gen_benchmark' blanket will tests include key-reuse test cases"
+                      help="'--gen_benchmark' blanket tests will include key-reuse test-cases"
                       )
     test.add_argument(
         '--gen_custom_mode', type=int, default=0, choices=range(3),
@@ -945,7 +948,7 @@ def get_parser():
         '--do_file', default='do.txt', metavar='FILENAME',
         help='Data output filename')
     tvops.add_argument(
-        '--dest', metavar='PATH_TO_DEST', default='.',
+        '--dest', metavar='PATH_TO_DEST', default='KAT',
         help='Destination folder where the files should be written to.')
     tvops.add_argument(
         '--human_readable', default=False, action='store_true',
