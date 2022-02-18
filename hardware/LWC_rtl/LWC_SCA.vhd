@@ -65,11 +65,11 @@ entity LWC_SCA is
         sdi_ready : out std_logic;
         --! Data out ports
         do_data   : out std_logic_vector(PDI_SHARES * W - 1 downto 0);
-        do_valid  : out std_logic;
-        do_ready  : in  std_logic;
         do_last   : out std_logic;
+        do_valid  : out std_logic;
+        do_ready  : in  std_logic
         --! Random Input
-        rdi_data  : in  std_logic_vector(RW - 1 downto 0);
+        ;rdi       : in  std_logic_vector(RW - 1 downto 0);
         rdi_valid : in  std_logic;
         rdi_ready : out std_logic
     );
@@ -99,7 +99,7 @@ architecture structure of LWC_SCA is
     signal bdo_valid_cipher_out       : std_logic;
     signal bdo_ready_cipher_out       : std_logic;
     ------!CryptoCore to Post-Processor
-    signal end_of_block_cipher_out    : std_logic;
+    signal bdo_last_cipher_out        : std_logic;
     signal bdo_valid_bytes_cipher_out : std_logic_vector(CCW / 8 - 1 downto 0);
     signal bdo_type_cipher_out        : std_logic_vector(4 - 1 downto 0);
     signal msg_auth_valid             : std_logic;
@@ -121,16 +121,17 @@ architecture structure of LWC_SCA is
     signal do_fifo_in, do_fifo_out    : std_logic_vector(do_data'length downto 0); -- data + last
 
     --============================================ Component Declarations ===========================================--
-
-    component CryptoCore
+    component CryptoCore_SCA
         port(
             clk             : in  std_logic;
             rst             : in  std_logic;
-            key             : in  std_logic_vector(CCSW - 1 downto 0);
+            key             : in  std_logic_vector(SDI_SHARES * CCSW - 1 downto 0);
             key_valid       : in  std_logic;
             key_ready       : out std_logic;
+            --
             key_update      : in  std_logic;
-            bdi             : in  std_logic_vector(CCW - 1 downto 0);
+            --
+            bdi             : in  std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
             bdi_valid       : in  std_logic;
             bdi_ready       : out std_logic;
             bdi_pad_loc     : in  std_logic_vector(CCW / 8 - 1 downto 0);
@@ -139,53 +140,22 @@ architecture structure of LWC_SCA is
             bdi_eot         : in  std_logic;
             bdi_eoi         : in  std_logic;
             bdi_type        : in  std_logic_vector(4 - 1 downto 0);
+            --
             decrypt_in      : in  std_logic;
             hash_in         : in  std_logic;
-            bdo             : out std_logic_vector(CCW - 1 downto 0);
+            --
+            bdo             : out std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
             bdo_valid       : out std_logic;
             bdo_ready       : in  std_logic;
             bdo_type        : out std_logic_vector(4 - 1 downto 0);
             bdo_valid_bytes : out std_logic_vector(CCW / 8 - 1 downto 0);
-            end_of_block    : out std_logic; -- last word of BDO. Should be named bdo_last
+            -- The last word of BDO of the currect outout type (i.e., "bdo_eot")
+            end_of_block    : out std_logic;
+            --
             msg_auth_valid  : out std_logic;
             msg_auth_ready  : in  std_logic;
             msg_auth        : out std_logic
-        );
-    end component;
-
-    component CryptoCore_SCA
-        port(
-            clk             : in  STD_LOGIC;
-            rst             : in  STD_LOGIC;
-            key             : in  STD_LOGIC_VECTOR(SDI_SHARES * CCSW - 1 downto 0);
-            key_update      : in  STD_LOGIC;
-            key_valid       : in  STD_LOGIC;
-            key_ready       : out STD_LOGIC;
-            bdi             : in  STD_LOGIC_VECTOR(PDI_SHARES * CCW - 1 downto 0);
-            bdi_valid       : in  STD_LOGIC;
-            bdi_ready       : out STD_LOGIC;
-            bdi_pad_loc     : in  STD_LOGIC_VECTOR(CCW / 8 - 1 downto 0);
-            bdi_valid_bytes : in  STD_LOGIC_VECTOR(CCW / 8 - 1 downto 0);
-            bdi_size        : in  STD_LOGIC_VECTOR(3 - 1 downto 0);
-            bdi_eot         : in  STD_LOGIC;
-            bdi_eoi         : in  STD_LOGIC;
-            bdi_type        : in  STD_LOGIC_VECTOR(4 - 1 downto 0);
-            decrypt_in      : in  STD_LOGIC;
-            hash_in         : in  std_logic;
-            bdo             : out STD_LOGIC_VECTOR(PDI_SHARES * CCW - 1 downto 0);
-            bdo_valid       : out STD_LOGIC;
-            bdo_ready       : in  STD_LOGIC;
-            bdo_type        : out STD_LOGIC_VECTOR(4 - 1 downto 0);
-            bdo_valid_bytes : out STD_LOGIC_VECTOR(CCW / 8 - 1 downto 0);
-            end_of_block    : out STD_LOGIC;
-            --
-            msg_auth_valid  : out STD_LOGIC;
-            msg_auth_ready  : in  STD_LOGIC;
-            msg_auth        : out STD_LOGIC;
             --! Random Input
-            rdi             : in  std_logic_vector(RW - 1 downto 0);
-            rdi_valid       : in  std_logic;
-            rdi_ready       : out std_logic
         );
     end component;
 
@@ -211,6 +181,7 @@ begin
 
     -- ASYNC_RSTN notification
     assert not ASYNC_RSTN report "[LWC] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
+
 
     Inst_PreProcessor : entity work.PreProcessor
         port map(
@@ -272,11 +243,11 @@ begin
             bdo_ready       => bdo_ready_cipher_out,
             bdo_type        => bdo_type_cipher_out,
             bdo_valid_bytes => bdo_valid_bytes_cipher_out,
-            end_of_block    => end_of_block_cipher_out,
+            end_of_block    => bdo_last_cipher_out,
             msg_auth_valid  => msg_auth_valid,
             msg_auth_ready  => msg_auth_ready,
             msg_auth        => msg_auth,
-            rdi             => rdi_data,
+            rdi             => rdi,
             rdi_valid       => rdi_valid,
             rdi_ready       => rdi_ready
         );
@@ -287,7 +258,7 @@ begin
             rst             => rst,
             bdo_data        => bdo_cipher_out,
             bdo_valid_bytes => bdo_valid_bytes_cipher_out,
-            bdo_last        => end_of_block_cipher_out,
+            bdo_last        => bdo_last_cipher_out,
             bdo_type        => bdo_type_cipher_out,
             bdo_valid       => bdo_valid_cipher_out,
             bdo_ready       => bdo_ready_cipher_out,

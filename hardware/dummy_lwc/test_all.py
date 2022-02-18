@@ -63,18 +63,18 @@ gen_configs_subfolder = Path('generated_config').resolve()
 gen_configs_subfolder.mkdir(exist_ok=True)
 
 
-def gen_tv(ccw, blocks_per_segment, dest_dir, bench=False):
+def gen_tv(w, blocks_per_segment, dest_dir, design, bench):
     args = [
-        # '--candidates_dir', str(tvgen_cand_dir),
-        '--lib_path', str(tvgen_cand_dir / 'lib'),
-        '--aead', 'dummy_lwc',
-        '--hash', 'dummy_lwc',
-        '--io', str(ccw), str(ccw),
-        '--key_size', '128',
-        '--npub_size', '96',
-        '--nsec_size', '0',
-        '--message_digest_size', '256',
-        '--tag_size', '128',
+        '--candidates_dir', str(tvgen_cand_dir),
+        # '--lib_path', str(tvgen_cand_dir / 'lib'),
+        '--aead', design.lwc['aead']['algorithm'],
+        '--hash', design.lwc['hash']['algorithm'],
+        '--io', str(w), str(w),
+        # '--key_size', '128',
+        # '--npub_size', '96',
+        # '--nsec_size', '0',
+        # '--message_digest_size', '256',
+        # '--tag_size', '128',
         '--block_size', '128',
         '--block_size_ad', '128',
         '--block_size_msg_digest', '128',
@@ -196,7 +196,7 @@ def test_all():
                             if f.file.resolve().samefile(orig):
                                 return replace_files_map[orig]
                         return f
-                    gen_tv(w, 2 if ms else None, kat_dir, bench)
+                    gen_tv(w, 2 if ms else None, kat_dir, design, bench)
 
                     design.rtl.sources = [str(replace_file(f))
                                           for f in vhdl_files]
