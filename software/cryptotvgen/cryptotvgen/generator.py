@@ -359,7 +359,7 @@ def get_cffi_path(opts, hashop):
         op = "aead"
         name = opts.aead
     if not name:
-        sys.exit(f'--{op} <ALGORITHM-VARIANT> not specified!')
+        raise Exception(f'--{op} <ALGORITHM-VARIANT> not specified!')
 
     lib_ext = '.dll' if sys.platform in ['win32', 'win64', 'msys'] else '.so'
     libname = f'{name}{lib_ext}'
@@ -1274,7 +1274,7 @@ def blanket_tests(opts, reuse_key=None):
     if reuse_key:
         for i in range(1, len(routine)):
             if routine[i][4] == False and routine[i-1][4] == False:  # consequetive enc/dec
-                routine[i][4] = bool(random.randint(0, 1))
+                routine[i][0] = bool(random.randint(0, 1))
     log.debug(
         f"blanket_tests: generated {len(routine)} testvectors"
     )
