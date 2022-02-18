@@ -40,3 +40,10 @@ G_PDI_STALLS = 7
 G_SDI_STALLS = 13
 G_DO_STALLS = 21
 G_RANDOM_STALL = true              # true
+
+[lwc]
+aead.algorithm = "dummy_lwc"
+hash.algorithm = "dummy_lwc"
+
+ports.pdi.bit_width = 8
+portssdi.bit_width = 8

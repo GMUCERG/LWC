@@ -53,7 +53,7 @@ use work.NIST_LWAPI_pkg.all;
 --/-
 entity LWC is
     generic(
-        G_DO_FIFO_DEPTH : natural := 0  -- 0: disable output FIFO, 1 or 2 (elastic FIFO)
+        G_DO_FIFO_DEPTH : natural := 1  -- 0: disable output FIFO, 1 or 2 (elastic FIFO)
     );
     port(
         --! Global ports
@@ -269,7 +269,7 @@ begin
             msg_auth        => msg_auth
             --/++++
             -- ,
-            -- rdi        => rdi,
+            -- rdi             => rdi,
             -- rdi_valid       => rdi_valid,
             -- rdi_ready       => rdi_ready
         );
