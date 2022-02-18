@@ -72,9 +72,10 @@ entity LWC is
         do_last   : out std_logic;
         do_valid  : out std_logic;
         do_ready  : in  std_logic
-        --/++++
+        --/+++++
+        -- ;
         --! Random Input
-        -- ;rdi       : in  std_logic_vector(RW - 1 downto 0);
+        -- rdi_data  : in  std_logic_vector(RW - 1 downto 0);
         -- rdi_valid : in  std_logic;
         -- rdi_ready : out std_logic
     );
@@ -166,9 +167,10 @@ architecture structure of LWC is
             msg_auth_valid  : out std_logic;
             msg_auth_ready  : in  std_logic;
             msg_auth        : out std_logic
+            --/+++++
+            -- ;
             --! Random Input
-            --/---
-            -- ;rdi             : in  std_logic_vector(CCRW - 1 downto 0);
+            -- rdi             : in  std_logic_vector(CCRW - 1 downto 0);
             -- rdi_valid       : in  std_logic;
             -- rdi_ready       : out std_logic
         );
@@ -269,7 +271,7 @@ begin
             msg_auth        => msg_auth
             --/++++
             -- ,
-            -- rdi             => rdi,
+            -- rdi             => rdi_data,
             -- rdi_valid       => rdi_valid,
             -- rdi_ready       => rdi_ready
         );
