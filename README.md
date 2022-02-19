@@ -29,7 +29,6 @@ The subfolders of dummy_lwc include:
 Definition and initialization of these constants _MUST_ be present in the user-provided `design_pkg.vhd` file. Please refer to [dummy_lwc design_pkg](hardware/dummy_lwc/src_rtl/v1/design_pkg.vhd) for an example.
 - `CCW`: Specifies the bus width (in bits) of `CryptoCore`'s PDI data and can be 8, 16, or 32. 
 - `CCSW`: Specifies the bus width (in bits) of `CryptoCore`'s SDI data and is expected to be equal to `CCW`.
-- `CCWdiv8`: Needs to be set equal to `CCW / 8`.
 - `TAG_SIZE`: specifies the tag size in bits.
 - `HASH_VALUE_SIZE`: specifies the hash size in bits. Only used in hash mode.
  
@@ -41,9 +40,9 @@ Definition and initialization of these constants _MUST_ be present in the user-p
 ### Testbench Parameters
 Testbench parameters are exposed as VHDL generics in the `LWC_TB` testbench top-level entity.
 Some notable generics include:
-- `G_MAX_FAILURES`: number of maximum failures before stopping the simulation (default: 100)
+- `G_MAX_FAILURES`(integer): number of maximum failures before stopping the simulation (default: 100)
 - `G_TEST_MODE`(integer): see "Test Mode"below. (default: 0)
-- `G_PERIOD`(time): simulation clock period (default: 10 ns)
+- `G_CLK_PERIOD_PS`(integer): simulation clock period (default: 10 ns)
 - `G_FNAME_PDI`, `G_FNAME_SDI`, `G_FNAME_DO`(string): Paths to testvector input and expected output files.
 - `G_FNAME_LOG`(string): Path to the testbench-generated log file.
 - `G_FNAME_FAILED_TVS`(string): Path to testbench-generated file containing all failed test-vectors. It will be an empty file if all test vectors passed. (default: "failed_test_vectors.txt")
@@ -53,7 +52,7 @@ Please see [LWC_TB.vhd](hardware/LWC_tb/LWC_TB.vhd) for the full list of testben
 Note: Commercial and open-source simulators provide mechanisms for overriding the value of top-level testbench generics without the need to manually change the VHDL file.
 
 #### Measurement Mode
-- The `LWC_TB` now includes an experimental measurement mode intended to aid designers with verification of formulas for execution times and latencies. To activate this mode, set `G_TEST_MODE` to 4. Measurement Mode yields results in simulator reports and two file formats: txt and csv. The corresponding output files can be specified by the `G_FNAME_TIMING` and `G_FNAME_TIMING_CSV` generics, respectively.  Run this mode with `dummy_lwc` example for a sample of the output. Note, this mode is still being actively developed and may have outstanding issues.
+- The `LWC_TB` now includes an experimental measurement mode intended to aid designers with verification of formulas for execution times and latencies. To activate this mode, set `G_TEST_MODE` to 4. Measurement Mode yields results in simulator reports and two file formats: txt and csv. The generated output file can be specified by the `G_FNAME_TIMING` generic.
 
 ## Software
 The software subdirectory contains:

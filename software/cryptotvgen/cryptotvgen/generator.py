@@ -5,6 +5,7 @@
 #
 # Based on aeadtvgen 2.0.0 by Ekawat Homsirikamol (GMU CERG)
 
+from typing import Tuple
 from .__init__ import __version__
 import binascii
 import cffi
@@ -1038,39 +1039,41 @@ def gen_test_combined(opts, start_msg_no, key_no):
     bsa, bsd = int(bsa/8), int(bsd/8)
     (start, stop, mode) = opts.gen_test_combined
 
-    routine = [[True,     False,      0,         0, False],
-               [False,     True,       0,         0, False],
-               [False,     True,       0,         0, True],
-               [True,     False,      1,         0, False],
-               [False,     True,       1,         0, False],
-               [False,     True,       0,         1, True],
-               [True,     False,      0,         1, False],
-               [False,     True,       0,         1, False],
-               [False,     True,       0,         2, True],
-               [True,     False,      1,         1, False],
-               [False,     True,       1,         1, False],
-               [False,     True,       0,         3, True],
-               [True,     False,      2,         2, False],
-               [False,     True,       2,         2, False],
-               [False,     True,       0,         4, True],
-               [True,     False,      bsa-1,     bsd-1, False],
-               [False,     True,       bsa-1,     bsd-1, False],
-               [False,     True,       0,         bsd-1, True],
-               [True,     False,      bsa,       bsd, False],
-               [False,     True,       bsa,       bsd, False],
-               [False,     True,       0,         bsd+1, True],
-               [True,     False,      bsa+1,     bsd+1, False],
-               [False,     True,       bsa+1,     bsd+1, False],
-               [False,     True,       0,         bsd+2, True],
-               [True,     False,      bsa*2,     bsd*2, False],
-               [False,     True,       bsa*2,     bsd*2, False],
-               [False,     True,       0,         bsd*2, True],
-               [True,     False,      bsa*2+1,   bsd*2+1, False],
-               [False,     True,       bsa*2+1,   bsd*2+1, False],
-               [False,     True,       0,         bsd*2+1, True],
-               [True,     False,      bsa*3,     bsd*3, False],
-               [False,     True,       bsa*3,     bsd*3, False],
-               [False,     True,       0,     bsd*3, True]]
+    routine = [
+        [True,  False,       0,       0, False],
+        [False,  True,       0,       0, False],
+        [False,  True,       0,       0,  True],
+        [True,  False,       1,       0, False],
+        [False,  True,       1,       0, False],
+        [False,  True,       0,       1,  True],
+        [True,  False,       0,       1, False],
+        [False,  True,       0,       1, False],
+        [False,  True,       0,       2,  True],
+        [True,  False,       1,       1, False],
+        [False,  True,       1,       1, False],
+        [False,  True,       0,       3,  True],
+        [True,  False,       2,       2, False],
+        [False,  True,       2,       2, False],
+        [False,  True,       0,       4,  True],
+        [True,  False,   bsa-1,   bsd-1, False],
+        [False,  True,   bsa-1,   bsd-1, False],
+        [False,  True,       0,   bsd-1,  True],
+        [True,  False,     bsa,     bsd, False],
+        [False,  True,     bsa,     bsd, False],
+        [False,  True,       0,   bsd+1,  True],
+        [True,  False,   bsa+1,   bsd+1, False],
+        [False,  True,   bsa+1,   bsd+1, False],
+        [False,  True,       0,   bsd+2,  True],
+        [True,  False,   bsa*2,   bsd*2, False],
+        [False,  True,   bsa*2,   bsd*2, False],
+        [False,  True,       0,   bsd*2,  True],
+        [True,  False, bsa*2+1, bsd*2+1, False],
+        [False,  True, bsa*2+1, bsd*2+1, False],
+        [False,  True,       0, bsd*2+1,  True],
+        [True,  False,   bsa*3,   bsd*3, False],
+        [False,  True,   bsa*3,   bsd*3, False],
+        [False,  True,       0,   bsd*3,  True]
+    ]
 
     return gen_dataset(opts, routine[start-1:stop],
                        start_msg_no, key_no, mode)
@@ -1224,16 +1227,6 @@ def determine_params(opts):
                         opts[opt_attr] = v
 
 
-def basic_hash_sizes(block_size_msg_digest):
-    routine = [[False, False, 0,                          0, True],
-               [False, False, 0, 5*block_size_msg_digest//8, True],
-               [False, False, 0, 4*block_size_msg_digest//8, True],
-               [False, False, 0,                       1536, True],
-               [False, False, 0,                         64, True],
-               [False, False, 0,                         16, True], ]
-    return routine
-
-
 def blanket_tests(opts, reuse_key=None):
     if reuse_key is None:
         reuse_key = opts.with_key_reuse
@@ -1252,9 +1245,9 @@ def blanket_tests(opts, reuse_key=None):
     msg_sizes = list(set(msg_sizes)) + [0] * 5 + [1] * 2
     ad_sizes = list(set(ad_sizes)) + [0] * 5 + [1] * 2
     routine = [
-        [True, dec, ad_size, mess_size, False]
+        [True, dec, ad_size, msg_size, False]
         for dec in [False, True]
-        for mess_size in msg_sizes
+        for msg_size in msg_sizes
         for ad_size in ad_sizes
     ]
     if opts.hash:
@@ -1281,79 +1274,71 @@ def blanket_tests(opts, reuse_key=None):
     return routine
 
 
-def basic_aead_sizes(new_key, enc_dec, block_size_ad, block_size_message):
-    routine = [[new_key,     enc_dec,  5*block_size_ad//8,                          0, False],
-               [new_key,     enc_dec,  4*block_size_ad //
-                8,                          0, False],
-               [new_key,     enc_dec,
-                1536,                          0, False],
-               [new_key,     enc_dec,
-                64,                          0, False],
-               [new_key,     enc_dec,
-                16,                          0, False],
-               [new_key,     enc_dec,                   0,
-                5*block_size_message//8, False],
-               [new_key,     enc_dec,                   0,
-                4*block_size_message//8, False],
-               [new_key,     enc_dec,
-                0,                       1536, False],
-               [new_key,     enc_dec,
-                0,                         64, False],
-               [new_key,     enc_dec,
-                0,                         16, False],
-               [new_key,     enc_dec,  5*block_size_ad //
-                8,    5*block_size_message//8, False],
-               [new_key,     enc_dec,  4*block_size_ad //
-                8,    4*block_size_message//8, False],
-               [new_key,     enc_dec,
-                1536,                       1536, False],
-               [new_key,     enc_dec,
-                64,                         64, False],
-               [new_key,     enc_dec,                  16,                         16, False]]
-    return routine
+def timing_tests(opts, n=4):
+    # should always start with new key
+    new_key = [True]
+    if opts.with_key_reuse:
+        new_key.append(False)
+    ret = []
+    abs = opts.block_size_ad // 8
+    mbs = opts.block_size // 8
+
+    for nk in new_key:
+        for dec in [False, True]:
+            ret += [
+                (nk, dec,    0,               16, False),
+                (nk, dec,   16,                0, False),
+                (nk, dec,   16,               16, False),
+                (nk, dec,    0,               64, False),
+                (nk, dec,   64,                0, False),
+                (nk, dec,   64,               64, False),
+                (nk, dec,    0,             1536, False),
+                (nk, dec, 1536,                0, False),
+                (nk, dec, 1536,             1536, False),
+                (nk, dec,    0,          n * mbs, False),
+                (nk, dec,    0,      (n+1) * mbs, False),
+                (nk, dec, n * abs,             0, False),
+                (nk, dec, (n+1) * abs,         0, False),
+                # (nk, dec, n * abs,         n * mbs, False),
+                # (nk, dec, (n+1) * abs, (n+1) * mbs, False),
+            ]
+
+    if opts.hash:
+        hbs = opts.block_size_msg_digest // 8
+        ret += [
+            (False, False, 0, hm_sz, True) for hm_sz in [16, 64, 1536, n * hbs, (n+1) * hbs]
+        ]
+    return ret
 
 
 def gen_benchmark_routine(opts):
     if (opts.verbose):
         print("gen_benckmark_routine")
     if not opts.aead or not opts.block_size or not opts.block_size_ad:
-        sys.exit(
-            "--aead algorithm & --block_size & --block_size_ad must be specified")
+        if not not opts.block_size:
+            opts.block_size = 512
+        if not opts.block_size_ad:
+            opts.block_size_ad = 512
+        log.warning(
+            f"--aead is specified, but --block_size or --block_size_ad are not set. Assuming default values of {opts.block_size}, {opts.block_size_ad}."
+        )
     if opts.hash and not opts.block_size_msg_digest:
-        sys.exit("If --hash algorithm is desired --block_size_msg_digest is required")
+        opts.block_size_msg_digest = 512
+        log.warning(
+            f"--hash is specified, but --block_size_msg_digest is not set. Assuming default value of {opts.block_size_msg_digest}"
+        )
     log.debug(f"original options \n{opts}\n")
 
     orig_dest = opts.dest
-    if opts.hash:
-        opts.dest = os.path.join(orig_dest, 'basic_hash_sizes')
-        print(f'Generating {os.path.abspath(opts.dest)}')
-        data, _, _ = gen_dataset(opts, basic_hash_sizes(
-            opts.block_size_msg_digest), 1, 1)
-        gen_tv_and_write_files(opts, data)
 
     opts.dest = os.path.join(orig_dest, 'kats_for_verification')
     data, _, _ = gen_dataset(opts, blanket_tests(opts), 1, 1)
     print(f'Generating {os.path.abspath(opts.dest)}')
     gen_tv_and_write_files(opts, data)
 
-    if False:  # already covered by blanket_tests
-        opts.dest = os.path.join(orig_dest, 'generic_aead_sizes_new_key')
-        print(f'Generating {os.path.abspath(opts.dest)}')
-        routine_new_key = [[True, False, 0, 0, False]]
-        routine_new_key += basic_aead_sizes(True,
-                                            False, opts.block_size_ad, opts.block_size)
-        routine_new_key += basic_aead_sizes(True,
-                                            True, opts.block_size_ad, opts.block_size)
-        data_enc = gen_dataset(opts, routine_new_key, 1, 1)
-        gen_tv_and_write_files(opts, data_enc[0])
-
-    # Ensure at least one new key
-    opts.dest = os.path.join(orig_dest, 'generic_aead_sizes_reuse_key')
+    opts.dest = os.path.join(orig_dest, 'timing_tests')
     print(f'Generating {os.path.abspath(opts.dest)}')
-    routine_reuse_key = [[True, False, 0, 0, False]]
-    routine_reuse_key += basic_aead_sizes(False,
-                                          False, opts.block_size_ad, opts.block_size)
-    routine_reuse_key += basic_aead_sizes(False,
-                                          True, opts.block_size_ad, opts.block_size)
-    data_enc = gen_dataset(opts, routine_reuse_key, 1, 1)
-    gen_tv_and_write_files(opts, data_enc[0])
+    data, _, _ = gen_dataset(opts, timing_tests(opts), 1, 1)
+    gen_tv_and_write_files(opts, data)
+
+    opts.dest = orig_dest

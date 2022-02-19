@@ -1,15 +1,14 @@
 #! /usr/bin/env python3
+
 from copy import copy
 from pathlib import Path
 import re
 import logging
-
-
 from cryptotvgen import cli
-
 from xeda.flow_runner import DefaultRunner
 from xeda.flows import GhdlSim
 from xeda import load_design_from_toml
+from xeda.flows.design import Design
 
 logger = logging.getLogger()
 
@@ -122,6 +121,38 @@ def gen_from_template(orig_filename, gen_filename, changes):
         gen.write(content)
 
 
+def measure_timing(design: Design):
+    design = copy(design)
+    w = 32
+    ccw = 32
+    design.name = f"generated_timing_w{w}_ccw{ccw}"
+    kat_dir = Path("generated_tv")
+    gen_tv(w, None, kat_dir, design, True)
+    kat_dir = kat_dir / "timing_tests"
+    timing_report = Path.cwd() / (design.name + "_timing.txt")
+    design.tb.parameters = {
+        **design.tb.parameters,
+        'G_FNAME_PDI': {'file': kat_dir / 'pdi.txt'},
+        'G_FNAME_SDI': {'file': kat_dir / 'sdi.txt'},
+        'G_FNAME_DO': {'file': kat_dir / 'do.txt'},
+        'G_FNAME_TIMING': str(timing_report),
+        'G_TEST_MODE': 4
+    }
+
+    xeda_runner.run_flow(
+        GhdlSim, design
+    )
+    assert timing_report.exists()
+
+    with open(timing_report) as f:
+        d = {}
+        for l in f.readlines():
+            kv = re.split(r"\s*,\s*", l.strip())
+            if len(kv) == 2:
+                d[kv[0]] = kv[1]
+        print(d)
+
+
 def test_all():
     vhdl_files = []
     verilog_files = []
@@ -142,6 +173,8 @@ def test_all():
     generated_sources.mkdir(exist_ok=True)
 
     orig_parameters = copy(design.tb.parameters)
+
+    measure_timing(design)
 
     # first try with original settings
     xeda_runner.run_flow(

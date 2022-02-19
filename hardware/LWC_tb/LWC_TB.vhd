@@ -34,7 +34,7 @@ entity LWC_TB IS
         G_RDI_STALLS       : natural := 3; --! Number of cycles to stall rdi_valid
         G_RANDOM_STALL     : boolean := false; --! Randomized stalls
         G_RANDOM_SEED      : positive := 1; --! Seed used for all random generation, must be positive
-        G_CLK_PERIOD_PS    : integer := 10_000; --! Simulation clock period in picoseconds
+        G_CLK_PERIOD_PS    : positive := 10_000; --! Simulation clock period in picoseconds
         G_FNAME_PDI        : string  := "../KAT/v1/pdi.txt"; --! Path to the input file containing cryptotvgen PDI testvector data
         G_FNAME_SDI        : string  := "../KAT/v1/sdi.txt"; --! Path to the input file containing cryptotvgen SDI testvector data
         G_FNAME_RDI        : string  := "../KAT/v1/rdi.txt"; --! Path to the input file containing random data
