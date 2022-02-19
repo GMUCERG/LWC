@@ -249,8 +249,7 @@ begin
             end_of_block    => bdo_last_cipher_out,
             msg_auth_valid  => msg_auth_valid,
             msg_auth_ready  => msg_auth_ready,
-            msg_auth        => msg_auth
-            ,
+            msg_auth        => msg_auth,
             rdi             => rdi_data,
             rdi_valid       => rdi_valid,
             rdi_ready       => rdi_ready
