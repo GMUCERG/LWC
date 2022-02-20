@@ -1,12 +1,12 @@
 #! /usr/bin/env python3
 
-from copy import copy
+from copy import deepcopy
 from pathlib import Path
 import re
 import logging
 from cryptotvgen import cli
 from xeda.flow_runner import DefaultRunner
-from xeda.flows import GhdlSim
+from xeda.flows import GhdlSim, YosysSynth
 from xeda import load_design_from_toml
 from xeda.flows.design import Design
 import csv
@@ -123,7 +123,7 @@ def gen_from_template(orig_filename, gen_filename, changes):
 
 
 def measure_timing(design: Design):
-    design = copy(design)  # passed by reference, don't change the original
+    design = deepcopy(design)  # passed by reference, don't change the original
     w = 32
     ccw = 32
     design.name = f"generated_timing_w{w}_ccw{ccw}"
@@ -166,7 +166,7 @@ def measure_timing(design: Design):
             row['throughput'] = f"{(int(row['adBytes']) + int(row['msgBytes'])) / msg_cycles[msgid]:0.3f}"
             results.append(row)
             if row['longN+1'] == 'True':
-                long_row = copy(results[-2])
+                long_row = results[-2]
                 prev_id = long_row['msgId']
                 prev_ad = int(long_row['adBytes'])
                 prev_msg = int(long_row['msgBytes'])
@@ -183,104 +183,119 @@ def measure_timing(design: Design):
                 results.append(long_row)
     results_file = design.name + "_timing_results.csv"
     with open(results_file, "w") as f:
-        writer = csv.DictWriter(f, fieldnames=['op', 'msgBytes', 'adBytes', 'cycles', 'throughput'], extrasaction='ignore')
+        writer = csv.DictWriter(f, fieldnames=[
+                                'op', 'msgBytes', 'adBytes', 'cycles', 'throughput'], extrasaction='ignore')
         writer.writeheader()
         writer.writerows(results)
     logger.info(f"Timing results written to {results_file}")
+
+
+def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
+    design = deepcopy(design)
+    # TODO find in design.rtl.sources
+    orig_design_pkg = Path('src_rtl') / 'v1' / 'design_pkg.vhd'
+    orig_lwc_config = Path('src_rtl') / 'LWC_config_32.vhd'
+
+    generated_sources = (core_src_path / 'generated_srcs')
+    generated_sources.mkdir(exist_ok=True)
+    replaced_lwc_config = (
+        generated_sources /
+        f'LWC_config_W{w}{"_ASYNC_RSTN" if async_rstn else ""}.vhd'
+    ).resolve()
+
+    gen_from_template(orig_lwc_config,
+                      replaced_lwc_config,
+                      [
+                          (r'(constant\s+W\s*:\s*positive\s*:=\s*)\d+(\s*;)',
+                           f'\\g<1>{w}\\g<2>'),
+                          (r'(constant\s+ASYNC_RSTN\s*:\s+boolean\s*:=\s*)\w+(\s*;)',
+                           f'\\g<1>{async_rstn}\\g<2>')
+                      ]
+                      )
+    bench = w == ccw and not async_rstn and vhdl_std == "08" and not ms
+    logger.info(
+        f'*** Testing VHDL:20{vhdl_std} multi-segment:{ms} W:{w} CCW:{ccw} ASYNC_RSTN:{async_rstn} benchmark-KATs:{bench} ***'
+    )
+    kat_dir = gen_tv_subfolder / \
+        f'TV{"_MS" if ms else ""}_{w}'
+
+    replaced_design_pkg = (
+        generated_sources / f'design_pkg_{ccw}.vhd'
+    ).resolve()
+
+    gen_from_template(
+        orig_design_pkg,
+        replaced_design_pkg,
+        [
+            (r'(constant\s+CCW\s*:\s*\w+\s*:=\s*)\d+(\s*;)',
+             f'\\g<1>{ccw}\\g<2>')
+        ]
+    )
+    replace_files_map = {
+        orig_design_pkg: replaced_design_pkg,
+        orig_lwc_config: replaced_lwc_config,
+    }
+
+    def replace_file(f):
+        for orig in replace_files_map.keys():
+            if f.file.resolve().samefile(orig):
+                return replace_files_map[orig]
+        return f
+    gen_tv(w, 2 if ms else None, kat_dir, design, bench)
+
+    design.rtl.sources = [str(replace_file(f))
+                          for f in design.rtl.sources]
+
+    design.language.vhdl.standard = vhdl_std
+    design.name = f"generated_dummy_{vhdl_std}_W{w}_CCW{ccw}{'_ASYNC_RSTN' if async_rstn else ''}"
+    if bench:
+        kat_dir = kat_dir / 'kats_for_verification'
+    design.tb.parameters = {
+        **design.tb.parameters,
+        'G_FNAME_PDI': {'file': kat_dir / 'pdi.txt'},
+        'G_FNAME_SDI': {'file': kat_dir / 'sdi.txt'},
+        'G_FNAME_DO': {'file': kat_dir / 'do.txt'},
+        'G_TEST_MODE': 1 if bench else 0,
+        'G_MAX_FAILURES': 0,
+        'G_TIMEOUT_CYCLES': 1000,
+        'G_RANDOM_STALL': True,
+    }
+
+    xeda_runner.run_flow(
+        GhdlSim, design, setting_overrides=ghdl_setting_overrides
+    )
+
+
+def synth_test(design):
+    xeda_runner.run_flow(
+        YosysSynth,
+        design, {
+            "fpga": {"vendor": "xilinx"}
+        }
+    )
 
 
 def test_all():
     design = load_design_from_toml(
         script_dir / 'dummy_lwc_w32_ccw32.toml'
     )
-    orig_design_pkg = Path('src_rtl') / 'v1' / 'design_pkg.vhd'
-    orig_lwc_config = Path('src_rtl') / 'LWC_config_32.vhd'
-
-    param_variants = [(32, 32), (32, 16), (32, 8), (16, 16), (8, 8)]
-
-    generated_sources = (core_src_path / 'generated_srcs')
-    generated_sources.mkdir(exist_ok=True)
-
-    orig_parameters = copy(design.tb.parameters)
-
-    measure_timing(design)
-
+    try:
+        synth_test(design)
+    except:
+        logger.warning("synth_test failed. Continuing...")
     # first try with original settings
     xeda_runner.run_flow(
         GhdlSim, design
     )
+    measure_timing(design)
+
+    param_variants = [(32, 32), (32, 16), (32, 8), (16, 16), (8, 8)]
 
     for vhdl_std in ['08', '02']:
         for ms in [False, True]:
-            replace_files_map = {}
             for w, ccw in param_variants:
                 for async_rstn in [False, True]:
-                    replaced_lwc_config = (
-                        generated_sources /
-                        f'LWC_config_W{w}{"_ASYNC_RSTN" if async_rstn else ""}.vhd'
-                    ).resolve()
-
-                    gen_from_template(orig_lwc_config,
-                                      replaced_lwc_config,
-                                      [
-                                          (r'(constant\s+W\s*:\s*positive\s*:=\s*)\d+(\s*;)',
-                                           f'\\g<1>{w}\\g<2>'),
-                                          (r'(constant\s+ASYNC_RSTN\s*:\s+boolean\s*:=\s*)\w+(\s*;)',
-                                           f'\\g<1>{async_rstn}\\g<2>')
-                                      ]
-                                      )
-
-                    replace_files_map[orig_lwc_config] = replaced_lwc_config
-
-                    bench = w == ccw and not async_rstn and vhdl_std == "08"
-                    print(
-                        f'\n\n{"="*12}- Testing VHDL:20{vhdl_std} multi-segment:{ms} W:{w} CCW:{ccw} ASYNC_RSTN:{async_rstn} benchmark-KATs:{bench} -{"="*12}\n'
-                    )
-                    kat_dir = gen_tv_subfolder / \
-                        f'TV{"_MS" if ms else ""}_{w}'
-
-                    replaced_design_pkg = (
-                        generated_sources / f'design_pkg_{ccw}.vhd'
-                    ).resolve()
-
-                    gen_from_template(
-                        orig_design_pkg,
-                        replaced_design_pkg,
-                        [
-                            (r'(constant\s+CCW\s*:\s*\w+\s*:=\s*)\d+(\s*;)',
-                             f'\\g<1>{ccw}\\g<2>')
-                        ]
-                    )
-                    replace_files_map[orig_design_pkg] = replaced_design_pkg
-
-                    def replace_file(f):
-                        for orig in replace_files_map.keys():
-                            if f.file.resolve().samefile(orig):
-                                return replace_files_map[orig]
-                        return f
-                    gen_tv(w, 2 if ms else None, kat_dir, design, bench)
-
-                    design.rtl.sources = [str(replace_file(f))
-                                          for f in design.rtl.sources]
-
-                    design.language.vhdl.standard = vhdl_std
-                    design.name = f"generated_dummy_{vhdl_std}_W{w}_CCW{ccw}{'_ASYNC_RSTN' if async_rstn else ''}"
-                    if bench:
-                        kat_dir = kat_dir / 'kats_for_verification'
-                    design.tb.parameters = {
-                        **orig_parameters,
-                        'G_FNAME_PDI': {'file': kat_dir / 'pdi.txt'},
-                        'G_FNAME_SDI': {'file': kat_dir / 'sdi.txt'},
-                        'G_FNAME_DO': {'file': kat_dir / 'do.txt'},
-                        'G_TEST_MODE': 1 if bench else 0,
-                        'G_MAX_FAILURES': 0,
-                        'G_TIMEOUT_CYCLES': 1000,
-                        'G_RANDOM_STALL': True,
-                    }
-
-                    xeda_runner.run_flow(
-                        GhdlSim, design, setting_overrides=ghdl_setting_overrides
-                    )
+                    variant_test(design, vhdl_std, w, ccw, ms, async_rstn)
 
 
 if __name__ == "__main__":
