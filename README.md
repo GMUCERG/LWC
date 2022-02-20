@@ -52,7 +52,7 @@ Please see [LWC_TB.vhd](hardware/LWC_tb/LWC_TB.vhd) for the full list of testben
 Note: Commercial and open-source simulators provide mechanisms for overriding the value of top-level testbench generics without the need to manually change the VHDL file.
 
 #### Measurement Mode
-- The `LWC_TB` now includes an experimental measurement mode intended to aid designers with verification of formulas for execution times and latencies. To activate this mode, set `G_TEST_MODE` to 4. Measurement Mode yields results in simulator reports and two file formats: txt and csv. The generated output file can be specified by the `G_FNAME_TIMING` generic.
+- The `LWC_TB` now includes a timing measurement mode which measures the number of cycles spent on the execution of each individual test-case. To activate this mode, set `G_TEST_MODE` to 4. The results of the timing measurement are written to the file specified by the `G_FNAME_TIMING` testbench generic.
 
 ## Software
 The software subdirectory contains:
