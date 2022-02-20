@@ -26,28 +26,28 @@ use work.NIST_LWAPI_pkg.all;
 
 entity LWC_TB IS
     generic(
-        G_MAX_FAILURES     : natural := 0; --! Maximum number of failures before stopping the simulation
-        G_TEST_MODE        : natural := 0; --! 0: normal, 1: stall both sdi/pdi_valid and do_ready, 2: stall sdi/pdi_valid, 3: stall do_ready, 4: Timing (cycle) measurement 
-        G_PDI_STALLS       : natural := 3; --! Number of cycles to stall pdi_valid
-        G_SDI_STALLS       : natural := 3; --! Number of cycles to stall sdi_valid
-        G_DO_STALLS        : natural := 3; --! Number of cycles to stall do_ready
-        G_RDI_STALLS       : natural := 3; --! Number of cycles to stall rdi_valid
-        G_RANDOM_STALL     : boolean := false; --! Randomized stalls
-        G_RANDOM_SEED      : positive := 1; --! Seed used for all random generation, must be positive
+        G_MAX_FAILURES     : natural  := 0; --! Maximum number of failures before stopping the simulation
+        G_TEST_MODE        : natural  := 0; --! 0: normal, 1: stall both sdi/pdi_valid and do_ready, 2: stall sdi/pdi_valid, 3: stall do_ready, 4: Timing (cycle) measurement 
+        G_PDI_STALLS       : natural  := 3; --! Number of cycles to stall pdi_valid
+        G_SDI_STALLS       : natural  := 3; --! Number of cycles to stall sdi_valid
+        G_DO_STALLS        : natural  := 3; --! Number of cycles to stall do_ready
+        G_RDI_STALLS       : natural  := 3; --! Number of cycles to stall rdi_valid
+        G_RANDOM_STALL     : boolean  := false; --! Stall for a random number of cycles in the range [0..G_xx_STALLS], when G_TEST_MODE = 4
         G_CLK_PERIOD_PS    : positive := 10_000; --! Simulation clock period in picoseconds
-        G_FNAME_PDI        : string  := "../KAT/v1/pdi.txt"; --! Path to the input file containing cryptotvgen PDI testvector data
-        G_FNAME_SDI        : string  := "../KAT/v1/sdi.txt"; --! Path to the input file containing cryptotvgen SDI testvector data
-        G_FNAME_RDI        : string  := "../KAT/v1/rdi.txt"; --! Path to the input file containing random data
-        G_PRNG_RDI         : boolean := false; -- use testbench PRNG to generate RDI input instead of the file `G_FNAME_RDI`
-        G_FNAME_DO         : string  := "../KAT/v1/do.txt"; --! Path to the input file containing cryptotvgen DO testvector data
-        G_FNAME_LOG        : string  := "log.txt"; --! Path to the generated log file
-        G_FNAME_TIMING     : string  := "timing.txt"; --! Path to the generated timing measurements (when G_TEST_MODE=4)
-        G_FNAME_FAILED_TVS : string  := "failed_testvectors.txt"; --! Path to the generated log of failed testvector words
-        G_FNAME_RESULT     : string  := "result.txt"; --! Path to the generated result file containing 0 or 1  -- REDUNDANT / NOT USED
-        G_PRERESET_WAIT_NS : natural := 0; --! Time (in nanoseconds) to wait before reseting UUT. Xilinx GSR takes 100ns, required for post-synth simulation
-        G_INPUT_DELAY_NS   : natural := 0; --! Input delay in nanoseconds
-        G_TIMEOUT_CYCLES   : integer := 0; --! Fail simulation after this many consecutive cycles of data I/O inactivity, 0: disable timeout
-        G_VERBOSE_LEVEL    : integer := 0 --! verbosity level
+        G_FNAME_PDI        : string   := "../KAT/v1/pdi.txt"; --! Path to the input file containing cryptotvgen PDI testvector data
+        G_FNAME_SDI        : string   := "../KAT/v1/sdi.txt"; --! Path to the input file containing cryptotvgen SDI testvector data
+        G_FNAME_RDI        : string   := "../KAT/v1/rdi.txt"; --! Path to the input file containing random data
+        G_PRNG_RDI         : boolean  := false; --! Use testbench's internal PRNG to generate RDI input instead of the file `G_FNAME_RDI`
+        G_RANDOM_SEED      : positive := 1; --! Internal PRNG seed, must be positive
+        G_FNAME_DO         : string   := "../KAT/v1/do.txt"; --! Path to the input file containing cryptotvgen DO testvector data
+        G_FNAME_LOG        : string   := "log.txt"; --! Path to the generated log file
+        G_FNAME_TIMING     : string   := "timing.txt"; --! Path to the generated timing measurements (when G_TEST_MODE=4)
+        G_FNAME_FAILED_TVS : string   := "failed_testvectors.txt"; --! Path to the generated log of failed testvector words
+        G_FNAME_RESULT     : string   := "result.txt"; --! Path to the generated result file containing 0 or 1  -- REDUNDANT / NOT USED
+        G_PRERESET_WAIT_NS : natural  := 0; --! Time (in nanoseconds) to wait before reseting UUT. Xilinx GSR takes 100ns, required for post-synth simulation
+        G_INPUT_DELAY_NS   : natural  := 0; --! Input delay in nanoseconds
+        G_TIMEOUT_CYCLES   : integer  := 0; --! Fail simulation after this many consecutive cycles of data I/O inactivity, 0: disable timeout
+        G_VERBOSE_LEVEL    : integer  := 0 --! Verbosity level
     );
 end LWC_TB;
 
@@ -305,8 +305,9 @@ begin
             do_last   => do_last,
             do_valid  => do_valid,
             do_ready  => do_ready_delayed
-            --/+++
-            -- , rdi_data => rdi_delayed,
+            --/++++
+            -- ,
+            -- rdi_data  => rdi_data_delayed,
             -- rdi_valid => rdi_valid_delayed,
             -- rdi_ready => rdi_ready
         );
@@ -423,7 +424,7 @@ begin
                             pdi_valid <= '0';
                             wait until rising_edge(clk) and timing_stopped; -- wait for tb_verify_do process to complete timed operation
                         end if;
-                        timing_started <= False; -- Ack receiving timing_stopped = '1' to tb_verify_do process
+                        timing_started <= False; -- ACK receiving timing_stopped = '1' to tb_verify_do process
                     end if;
 
                     pdi_valid <= '1';
@@ -497,6 +498,7 @@ begin
         variable line_no      : integer := 0;
         variable line_data    : LINE;
         variable logMsg       : LINE;
+        variable logMsg2      : LINE;
         variable failMsg      : LINE;
         variable tb_block     : std_logic_vector(20 - 1 downto 0);
         variable golden_word  : std_logic_vector(W - 1 downto 0);
@@ -541,7 +543,7 @@ begin
                 exit;
             end if;
             if preamble = EOF_HEAD then
-                report "Reached EOF marker in " & G_FNAME_DO severity warning;
+                report "Reached EOF marker in " & G_FNAME_DO severity note;
                 force_exit := True;
                 exit;
             elsif preamble = HDR_HEAD or preamble = DAT_HEAD or preamble = STT_HEAD then -- header, data, or status lines
@@ -599,9 +601,11 @@ begin
                             timing_stopped <= True;
                             do_ready       <= '0'; -- needed as we wait for de-assertion of timing_started
                             wait until not timing_started;
-                            write(logMsg, integer'image(msgid) & ", " & integer'image(cycles));
+                            write(logMsg, integer'image(msgid) & "," & integer'image(cycles));
                             writeline(timing_file, logMsg);
-                            report "[Timing] MsgId: " & integer'image(msgid) & ", cycles: " & integer'image(cycles) severity note;
+                            if G_VERBOSE_LEVEL > 0 then
+                                report "[Timing] MsgId: " & integer'image(msgid) & ", cycles: " & integer'image(cycles) severity note;
+                            end if;
                         end if;
                     end if;
                 end loop;               -- end of this line
@@ -648,8 +652,8 @@ begin
         end if;
         file_close(do_file);
         write(logMsg, string'("Simulation completed in ") & integer'image(end_cycle) & " cycles.");
-        -- write(logMsg, string'(" Simulation time: ") & time'image(end_time));
-        writeline(log_file, logMsg);
+        write(logMsg2, string'(" Simulation time: ") & time'image(end_time));
+        writeline(log_file, logMsg2);
         --
         if TIMING_MODE then
             file_close(timing_file);

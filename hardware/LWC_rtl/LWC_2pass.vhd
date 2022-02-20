@@ -119,7 +119,7 @@ begin
     report "[LWC_2pass] Invalid combination of (SW, CCSW)" severity failure;
 
     -- ASYNC_RSTN notification
-    assert ASYNC_RSTN = false report "[LWC_2pass] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
+    assert not ASYNC_RSTN report "[LWC_2pass] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
 
     Inst_PreProcessor : entity work.PreProcessor
 

@@ -5,7 +5,8 @@
 #
 # Based on aeadtvgen 2.0.0 by Ekawat Homsirikamol (GMU CERG)
 
-from typing import Tuple
+from collections import OrderedDict
+from typing import Any, List, Tuple
 from .__init__ import __version__
 import binascii
 import cffi
@@ -34,6 +35,11 @@ ffi.cdef(AEAD_HEADER + HASH_HEADER)
 HUMAN_READABLE_FILE = 'test_vectors.txt'
 HLS_CC_DI_FILE = 'cc_di.txt'
 HLS_CC_DO_FILE = 'cc_do.txt'
+
+
+def unique(l: List[Any]) -> List[Any]:
+    """returns unique elements of a list (filters out duplicates) while keeping the order"""
+    return list(OrderedDict.fromkeys(l))
 
 
 def print_header(opts):
@@ -88,7 +94,6 @@ def print_header(opts):
 
 
 class Opcode(Enum):
-    #hash = 1
     encrypt = 2
     decrypt = 3
     loadkey = 4
@@ -555,19 +560,19 @@ class TestVector(object):
             self.hash_tag = self.crypto_hash()
             self.partial = int(self.partial)
 
-            log.info("== Hash")
-            log.info("Msg = {}".format(self.pt))
-            log.info("Md = {}".format(self.hash_tag))
+            log.debug("== Hash")
+            log.debug("Msg = {}".format(self.pt))
+            log.debug("Md = {}".format(self.hash_tag))
         else:
             (self.nsec_ct, self.ct, self.tag, self.partial) = self.aead_encrypt()
             self.partial = int(self.partial)
             # Check for mismatching decrypted values and tag
-            log.info("== AEAD Encrypt")
-            log.info("Key = {}".format(self.key))
-            log.info("Nonce = {}".format(self.npub))
-            log.info("PT = {}".format(self.pt))
-            log.info("AD = {}".format(self.ad))
-            log.info("CT = {}{}".format(self.ct, self.tag))
+            log.debug("== AEAD Encrypt")
+            log.debug("Key = {}".format(self.key))
+            log.debug("Nonce = {}".format(self.npub))
+            log.debug("PT = {}".format(self.pt))
+            log.debug("AD = {}".format(self.ad))
+            log.debug("CT = {}{}".format(self.ct, self.tag))
 
             if (self.opts.verify_lib):
                 if (self.opts.verbose):
@@ -575,13 +580,13 @@ class TestVector(object):
                     print(" == Decryption Check == ")
                     print(" ====================== ")
                 (auth_result, nsec_pt, pt) = self.aead_decrypt()
-                log.info("== AEAD Decrypt")
-                log.info("Auth result = {}".format(auth_result))
-                log.info("Key = {}".format(self.key))
-                log.info("Nonce = {}".format(self.npub))
-                log.info("PT = {}".format(pt))
-                log.info("AD = {}".format(self.ad))
-                log.info("CT = {}{}".format(self.ct, self.tag))
+                log.debug("== AEAD Decrypt")
+                log.debug("Auth result = {}".format(auth_result))
+                log.debug("Key = {}".format(self.key))
+                log.debug("Nonce = {}".format(self.npub))
+                log.debug("PT = {}".format(pt))
+                log.debug("AD = {}".format(self.ad))
+                log.debug("CT = {}{}".format(self.ct, self.tag))
 
                 assert nsec_pt == self.nsec_pt
                 assert pt == self.pt
@@ -1114,36 +1119,38 @@ def gen_hash(opts, start_msg_no):
 
 
 def gen_test_routine(opts, start_msg_no, start_key_no):
-    if (opts.verbose):
-        print('gen_test_routine')
     if not opts.block_size:
         opts.block_size = 8
+        log.warn(
+            f"--block_size not specified. Using a default value of {opts.block_size}")
     bsa = opts.block_size_ad if opts.block_size_ad else opts.block_size
     bsd = opts.block_size
     bsa, bsd = bsa // 8, bsd // 8
     (start, stop, mode) = opts.gen_test_routine
-    routine = [[True,     False,      0,         0, False],
-               [False,     True,       0,         0, False],
-               [True,     False,      1,         0, False],
-               [False,     True,       1,         0, False],
-               [True,     False,      0,         1, False],
-               [False,     True,       0,         1, False],
-               [True,     False,      1,         1, False],
-               [False,     True,       1,         1, False],
-               [True,     False,      bsa,       bsd, False],
-               [False,     True,       bsa,       bsd, False],
-               [True,     False,      bsa-1,     bsd-1, False],
-               [False,     True,       bsa-1,     bsd-1, False],
-               [True,     False,      bsa+1,     bsd+1, False],
-               [False,     True,       bsa+1,     bsd+1, False],
-               [True,     False,      bsa*2,     bsd*2, False],
-               [False,     True,       bsa*2,     bsd*2, False],
-               [True,     False,      bsa*3,     bsd*3, False],
-               [False,     True,       bsa*3,     bsd*3, False],
-               [True,     False,      bsa*4,     bsd*4, False],
-               [False,     True,       bsa*4,     bsd*4, False],
-               [True,     False,      bsa*5,     bsd*5, False],
-               [False,     True,       bsa*5,     bsd*5, False]]
+    routine = [
+        (True,  False,    0,      0, False),
+        (False,  True,    0,      0, False),
+        (True,  False,    1,      0, False),
+        (False,  True,    1,      0, False),
+        (True,  False,    0,      1, False),
+        (False,  True,    0,      1, False),
+        (True,  False,    1,      1, False),
+        (False,  True,    1,      1, False),
+        (True,  False,   bsa,   bsd, False),
+        (False,  True,   bsa,   bsd, False),
+        (True,  False, bsa-1, bsd-1, False),
+        (False,  True, bsa-1, bsd-1, False),
+        (True,  False, bsa+1, bsd+1, False),
+        (False,  True, bsa+1, bsd+1, False),
+        (True,  False, bsa*2, bsd*2, False),
+        (False,  True, bsa*2, bsd*2, False),
+        (True,  False, bsa*3, bsd*3, False),
+        (False,  True, bsa*3, bsd*3, False),
+        (True,  False, bsa*4, bsd*4, False),
+        (False,  True, bsa*4, bsd*4, False),
+        (True,  False, bsa*5, bsd*5, False),
+        (False,  True, bsa*5, bsd*5, False)
+    ]
     return gen_dataset(opts, routine[start-1:stop],
                        start_msg_no, start_key_no, mode)
 
@@ -1198,7 +1205,7 @@ def determine_params(opts):
             exit(f"\n\n{impl_path} does not exist!\n\n  Make sure algorithm name is correct \n   or\n  use --candidates_dir (currently set to {candidates_dir}) to select a different root path")
         api_h_files = list(impl_path.glob('**/api.h'))
         if not api_h_files or len(api_h_files) < 1:
-            log.warning(f"No 'api.h' file found in {impl_path}.")
+            log.warning(f"No 'api.h' file found in {impl_path}")
             return
         if len(api_h_files) > 1:
             log.info(
@@ -1209,7 +1216,7 @@ def determine_params(opts):
             log.warning(f"{api_h} does not exist!")
             return
 
-        log.info(f"Using {api_h}")
+        log.debug(f"Using {api_h}")
 
         with open(api_h, 'r') as f:
             api_h_content = f.read()
@@ -1223,7 +1230,8 @@ def determine_params(opts):
                     if opts[opt_attr] is None:
                         v = int(v)*8
                         log.info(
-                            f'From {api_h}: determined {opt_attr} to be {v} bits')
+                            f'From {api_h}: determined {opt_attr} to be {v} bits'
+                        )
                         opts[opt_attr] = v
 
 
@@ -1242,8 +1250,8 @@ def blanket_tests(opts, reuse_key=None):
                                   ad_bs - 1, ad_bs, ad_bs + 1,
                                   2*ad_bs - 1, 2*ad_bs, 2*ad_bs + 1
                                   ]
-    msg_sizes = list(set(msg_sizes)) + [0] * 5 + [1] * 2
-    ad_sizes = list(set(ad_sizes)) + [0] * 5 + [1] * 2
+    msg_sizes = unique(msg_sizes) + [0] * 5 + [1] * 2
+    ad_sizes = unique(ad_sizes) + [0] * 5 + [1] * 2
     routine = [
         [True, dec, ad_size, msg_size, False]
         for dec in [False, True]
@@ -1257,7 +1265,7 @@ def blanket_tests(opts, reuse_key=None):
                                       hm_bs // 2 - 1, hm_bs // 2,
                                       2*hm_bs - 1, 2*hm_bs, 2*hm_bs + 1,
                                       ]
-        hm_sizes = list(set(hm_sizes)) + [0] * 5
+        hm_sizes = unique(hm_sizes) + [0] * 5
         random.shuffle(hm_sizes)
         routine += [(True, False, 0, mess_size, True)
                     for mess_size in hm_sizes]
@@ -1285,30 +1293,47 @@ def timing_tests(opts, n=4):
 
     for nk in new_key:
         for dec in [False, True]:
+            if n:
+                # they go first because we eliminate repeted cases and want these pairs to stay consecutive
+                # on the last field of the second of "long" pairs is set to True
+                ret += [
+                    (nk, dec,           0,     n * mbs, False, False),
+                    (nk, dec,           0, (n+1) * mbs, False,  True),
+                    (nk, dec,     n * abs,           0, False, False),
+                    (nk, dec, (n+1) * abs,           0, False,  True),
+                    # (nk, dec, n * abs,         n * mbs, False, False),
+                    # (nk, dec, (n+1) * abs, (n+1) * mbs, False,  True),
+                ]
             ret += [
-                (nk, dec,    0,               16, False),
-                (nk, dec,   16,                0, False),
-                (nk, dec,   16,               16, False),
-                (nk, dec,    0,               64, False),
-                (nk, dec,   64,                0, False),
-                (nk, dec,   64,               64, False),
-                (nk, dec,    0,             1536, False),
-                (nk, dec, 1536,                0, False),
-                (nk, dec, 1536,             1536, False),
-                (nk, dec,    0,          n * mbs, False),
-                (nk, dec,    0,      (n+1) * mbs, False),
-                (nk, dec, n * abs,             0, False),
-                (nk, dec, (n+1) * abs,         0, False),
-                # (nk, dec, n * abs,         n * mbs, False),
-                # (nk, dec, (n+1) * abs, (n+1) * mbs, False),
+                (nk, dec,    0,   16, False, False),
+                (nk, dec,   16,    0, False, False),
+                (nk, dec,   16,   16, False, False),
+                (nk, dec,    0,   64, False, False),
+                (nk, dec,   64,    0, False, False),
+                (nk, dec,   64,   64, False, False),
+                (nk, dec,    0, 1536, False, False),
+                (nk, dec, 1536,    0, False, False),
+                (nk, dec, 1536, 1536, False, False),
             ]
-
     if opts.hash:
         hbs = opts.block_size_msg_digest // 8
+        if n:
+            ret += [
+                (False, False, 0,     n * hbs, True, False),
+                (False, False, 0, (n+1) * hbs, True,  True),
+            ]
         ret += [
-            (False, False, 0, hm_sz, True) for hm_sz in [16, 64, 1536, n * hbs, (n+1) * hbs]
+            (False, False, 0, hm_sz, True, False) for hm_sz in [16, 64, 1536]
         ]
-    return ret
+    ret = unique(ret)
+    with open(Path(opts.dest) / "timing_tests.csv", "w") as f:
+        fields = ["msgId", "newKey", "decrypt",
+                  "adBytes", "msgBytes", "hash", "longN+1"]
+        f.write(",".join(fields) + "\n")
+        for i, t in enumerate(ret):
+            f.write(f"{i+1},{','.join(str(x) for x in t)}\n")
+    # removing the extra last field even though right now get_dataset works with it as well
+    return [r[0:-1] for r in ret]
 
 
 def gen_benchmark_routine(opts):

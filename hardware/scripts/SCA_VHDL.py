@@ -5,11 +5,9 @@
 # ./scripts/SCA_VHDL.py LWC_tb/LWC_TB.vhd LWC_tb/LWC_TB_SCA.vhd
 # ./scripts/SCA_VHDL.py LWC_tb/LWC.vhd LWC_tb/LWC_SCA.vhd
 
-import secrets
 import argparse
 from pathlib import Path
 from functools import reduce
-import sys
 import re
 
 parser = argparse.ArgumentParser(

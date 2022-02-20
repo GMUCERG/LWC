@@ -26,28 +26,28 @@ use work.NIST_LWAPI_pkg.all;
 
 entity LWC_TB IS
     generic(
-        G_MAX_FAILURES     : integer := 0; --! Maximum number of failures before stopping the simulation
-        G_TEST_MODE        : integer := 0; --! 0: normal, 1: stall both sdi/pdi_valid and do_ready, 2: stall sdi/pdi_valid, 3: stall do_ready, 4: Timing (cycle) measurement 
-        G_PDI_STALLS       : integer := 3; --! Number of cycles to stall pdi_valid
-        G_SDI_STALLS       : integer := 3; --! Number of cycles to stall sdi_valid
-        G_DO_STALLS        : integer := 3; --! Number of cycles to stall do_ready
-        G_RDI_STALLS       : integer := 3; --! Number of cycles to stall rdi_valid
-        G_RANDOM_STALL     : boolean := false; --! Randomized stalls
-        G_RANDOM_SEED      : integer := 1; --! Seed used for all random generation, must be positive
-        G_CLK_PERIOD_PS    : integer := 10_000; --! Simulation clock period in picoseconds
-        G_FNAME_PDI        : string  := "../KAT/v1/pdi.txt"; --! Path to the input file containing cryptotvgen PDI testvector data
-        G_FNAME_SDI        : string  := "../KAT/v1/sdi.txt"; --! Path to the input file containing cryptotvgen SDI testvector data
-        G_FNAME_RDI        : string  := "../KAT/v1/rdi.txt"; --! Path to the input file containing random data
-        G_PRNG_RDI         : boolean := false; -- use testbench PRNG to generate RDI input instead of the file `G_FNAME_RDI`
-        G_FNAME_DO         : string  := "../KAT/v1/do.txt"; --! Path to the input file containing cryptotvgen DO testvector data
-        G_FNAME_LOG        : string  := "log.txt"; --! Path to the generated log file
-        G_FNAME_TIMING     : string  := "timing.txt"; --! Path to the generated timing measurements (when G_TEST_MODE=4)
-        G_FNAME_FAILED_TVS : string  := "failed_testvectors.txt"; --! Path to the generated log of failed testvector words
-        G_FNAME_RESULT     : string  := "result.txt"; --! Path to the generated result file containing 0 or 1  -- REDUNDANT / NOT USED
-        G_PRERESET_WAIT_NS : integer := 0; --! Time (in nanoseconds) to wait before reseting UUT. Xilinx GSR takes 100ns, required for post-synth simulation
-        G_INPUT_DELAY_NS   : integer := 0; --! Input delay in nanoseconds
-        G_TIMEOUT_CYCLES   : integer := 0; --! Fail simulation after this many consecutive cycles of data I/O inactivity, 0: disable timeout
-        G_VERBOSE_LEVEL    : integer := 0 --! verbosity level
+        G_MAX_FAILURES     : natural  := 0;                        --! Maximum number of failures before stopping the simulation
+        G_TEST_MODE        : natural  := 0;                        --! 0: normal, 1: stall both sdi/pdi_valid and do_ready, 2: stall sdi/pdi_valid, 3: stall do_ready, 4: Timing (cycle) measurement 
+        G_PDI_STALLS       : natural  := 3;                        --! Number of cycles to stall pdi_valid
+        G_SDI_STALLS       : natural  := 3;                        --! Number of cycles to stall sdi_valid
+        G_DO_STALLS        : natural  := 3;                        --! Number of cycles to stall do_ready
+        G_RDI_STALLS       : natural  := 3;                        --! Number of cycles to stall rdi_valid
+        G_RANDOM_STALL     : boolean  := false;                    --! Stall for a random number of cycles in the range [0..G_xx_STALLS], when G_TEST_MODE = 4
+        G_CLK_PERIOD_PS    : positive := 10_000;                   --! Simulation clock period in picoseconds
+        G_FNAME_PDI        : string   := "../KAT/v1/pdi.txt";      --! Path to the input file containing cryptotvgen PDI testvector data
+        G_FNAME_SDI        : string   := "../KAT/v1/sdi.txt";      --! Path to the input file containing cryptotvgen SDI testvector data
+        G_FNAME_RDI        : string   := "../KAT/v1/rdi.txt";      --! Path to the input file containing random data
+        G_PRNG_RDI         : boolean  := false;                    --! Use testbench's internal PRNG to generate RDI input instead of the file `G_FNAME_RDI`
+        G_RANDOM_SEED      : positive := 1;                        --! Internal PRNG seed, must be positive
+        G_FNAME_DO         : string   := "../KAT/v1/do.txt";       --! Path to the input file containing cryptotvgen DO testvector data
+        G_FNAME_LOG        : string   := "log.txt";                --! Path to the generated log file
+        G_FNAME_TIMING     : string   := "timing.txt";             --! Path to the generated timing measurements (when G_TEST_MODE=4)
+        G_FNAME_FAILED_TVS : string   := "failed_testvectors.txt"; --! Path to the generated log of failed testvector words
+        G_FNAME_RESULT     : string   := "result.txt";             --! Path to the generated result file containing 0 or 1  -- REDUNDANT / NOT USED
+        G_PRERESET_WAIT_NS : natural  := 0;                        --! Time (in nanoseconds) to wait before reseting UUT. Xilinx GSR takes 100ns, required for post-synth simulation
+        G_INPUT_DELAY_NS   : natural  := 0;                        --! Input delay in nanoseconds
+        G_TIMEOUT_CYCLES   : integer  := 0;                        --! Fail simulation after this many consecutive cycles of data I/O inactivity, 0: disable timeout
+        G_VERBOSE_LEVEL    : integer  := 0                         --! Verbosity level
     );
 end LWC_TB;
 
@@ -95,8 +95,8 @@ architecture TB of LWC_TB is
     signal do_ready_delayed    : std_logic                           := '0';
     -- Used only for protected implementations:
     --   RDI
-    signal rdi                 : std_logic_vector(RW - 1 downto 0)   := (others => '0');
-    signal rdi_delayed         : std_logic_vector(RW - 1 downto 0)   := (others => '0');
+    signal rdi_data            : std_logic_vector(RW - 1 downto 0)   := (others => '0');
+    signal rdi_data_delayed    : std_logic_vector(RW - 1 downto 0)   := (others => '0');
     signal rdi_valid           : std_logic                           := '0';
     signal rdi_valid_delayed   : std_logic                           := '0';
     signal rdi_ready           : std_logic;
@@ -300,8 +300,9 @@ begin
             do_data   => do_data,
             do_last   => do_last,
             do_valid  => do_valid,
-            do_ready  => do_ready_delayed,
-            rdi_data  => rdi_delayed,
+            do_ready  => do_ready_delayed
+            ,
+            rdi_data  => rdi_data_delayed,
             rdi_valid => rdi_valid_delayed,
             rdi_ready => rdi_ready
         );
@@ -316,7 +317,7 @@ begin
 
     GEN_RDI : if RW > 0 generate
     begin
-        rdi_delayed       <= transport rdi after input_delay;
+        rdi_data_delayed  <= transport rdi_data after input_delay;
         rdi_valid_delayed <= transport rdi_valid after input_delay;
         rdi_proc : process
             variable rdi_line : line;
@@ -326,18 +327,19 @@ begin
             report LF & "RW=" & integer'image(RW);
             wait until reset_done and rising_edge(clk);
             if G_PRNG_RDI then
-                loop
+                while not stop_clock loop
                     for i in 0 to get_stalls(G_RDI_STALLS) - 1 loop
                         rdi_valid <= '0';
                         wait until rising_edge(clk);
                     end loop;
-                    rdi       <= random(RW);
-                    rdi_valid <= '1';
+                    rdi_data         <= random(RW);
+                    rdi_valid        <= '1';
                     wait until rising_edge(clk) and rdi_ready = '1' and rdi_valid_delayed = '1';
+                    num_rand_vectors <= num_rand_vectors + 1;
                 end loop;
             else
                 file_open(rdi_file, G_FNAME_RDI, READ_MODE);
-                loop
+                while not stop_clock loop
                     loop
                         if endfile(rdi_file) then
                             assert num_rand_vectors > 0 report "RDI file is empty!" severity failure;
@@ -366,7 +368,7 @@ begin
                         rdi_valid <= '0';
                         wait until rising_edge(clk);
                     end loop;
-                    rdi              <= rdi_vec;
+                    rdi_data         <= rdi_vec;
                     rdi_valid        <= '1';
                     wait until rising_edge(clk) and rdi_ready = '1' and rdi_valid_delayed = '1';
                     num_rand_vectors <= num_rand_vectors + 1;

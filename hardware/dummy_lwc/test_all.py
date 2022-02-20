@@ -9,13 +9,14 @@ from xeda.flow_runner import DefaultRunner
 from xeda.flows import GhdlSim
 from xeda import load_design_from_toml
 from xeda.flows.design import Design
+import csv
 
-logger = logging.getLogger()
+logging.getLogger().setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 xeda_runner = DefaultRunner()
 
-
-logger.setLevel(logging.WARNING)
 
 script_dir = Path(__file__).parent.resolve()
 print(f'script_dir={script_dir}')
@@ -122,7 +123,7 @@ def gen_from_template(orig_filename, gen_filename, changes):
 
 
 def measure_timing(design: Design):
-    design = copy(design)
+    design = copy(design)  # passed by reference, don't change the original
     w = 32
     ccw = 32
     design.name = f"generated_timing_w{w}_ccw{ccw}"
@@ -144,26 +145,48 @@ def measure_timing(design: Design):
     )
     assert timing_report.exists()
 
+    msg_cycles = {}
     with open(timing_report) as f:
-        d = {}
         for l in f.readlines():
             kv = re.split(r"\s*,\s*", l.strip())
             if len(kv) == 2:
-                d[kv[0]] = kv[1]
-        print(d)
+                msg_cycles[kv[0]] = int(kv[1])
+    results = []
+    with open(kat_dir / "timing_tests.csv") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            msgid = row['msgId']
+            row['cycles'] = msg_cycles[msgid]
+            if row['longN+1'] == 'True':
+                prev_id = results[-1]['msgId']
+                prev_ad = int(results[-1]['adBytes'])
+                prev_msg = int(results[-1]['msgBytes'])
+                ad_diff = int(row['adBytes']) - prev_ad
+                msg_diff = int(row['msgBytes']) - prev_msg
+                cycle_diff = msg_cycles[msgid] - msg_cycles[prev_id]
+                results[-1]['adBytes'] = 'long' if int(
+                    results[-1]['adBytes']) else 0
+                results[-1]['msgBytes'] = 'long' if int(
+                    results[-1]['msgBytes']) else 0
+                results[-1]['cycles'] = cycle_diff
+                results[-1]['msgId'] = prev_id + ":" + msgid
+                results[-1]['throughput'] = f"{(ad_diff + msg_diff) / cycle_diff:0.3f}"
+            else:
+                row['throughput'] = f"{(int(row['adBytes']) + int(row['msgBytes'])) / msg_cycles[msgid]:0.3f}"
+                del row['longN+1']
+                results.append(row)
+    results_file = design.name + "_timing_results.csv"
+    with open(results_file, "w") as f:
+        writer = csv.DictWriter(f, fieldnames=results[0].keys())
+        writer.writeheader()
+        writer.writerows(results)
+    logger.info(f"Timing results written to {results_file}")
 
 
 def test_all():
-    vhdl_files = []
-    verilog_files = []
-    # print(f'VHDL_FILES={vhdl_files}')
-
     design = load_design_from_toml(
         script_dir / 'dummy_lwc_w32_ccw32.toml'
     )
-
-    vhdl_files = design.rtl.sources
-
     orig_design_pkg = Path('src_rtl') / 'v1' / 'design_pkg.vhd'
     orig_lwc_config = Path('src_rtl') / 'LWC_config_32.vhd'
 
@@ -232,7 +255,7 @@ def test_all():
                     gen_tv(w, 2 if ms else None, kat_dir, design, bench)
 
                     design.rtl.sources = [str(replace_file(f))
-                                          for f in vhdl_files]
+                                          for f in design.rtl.sources]
 
                     design.language.vhdl.standard = vhdl_std
                     design.name = f"generated_dummy_{vhdl_std}_W{w}_CCW{ccw}{'_ASYNC_RSTN' if async_rstn else ''}"
