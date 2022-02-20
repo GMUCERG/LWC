@@ -1326,12 +1326,18 @@ def timing_tests(opts, n=4):
             (False, False, 0, hm_sz, True, False) for hm_sz in [16, 64, 1536]
         ]
     ret = unique(ret)
-    with open(Path(opts.dest) / "timing_tests.csv", "w") as f:
+    dest = Path(opts.dest)
+    if not dest.exists():
+        dest.mkdir(parents=True)
+    test_desc_file = dest / "timing_tests.csv"
+    with open(test_desc_file, "w") as f:
         fields = ["msgId", "newKey", "decrypt",
                   "adBytes", "msgBytes", "hash", "longN+1"]
         f.write(",".join(fields) + "\n")
         for i, t in enumerate(ret):
             f.write(f"{i+1},{','.join(str(x) for x in t)}\n")
+    assert test_desc_file.exists()
+    log.info(f"Timing test description written to: {test_desc_file}")
     # removing the extra last field even though right now get_dataset works with it as well
     return [r[0:-1] for r in ret]
 

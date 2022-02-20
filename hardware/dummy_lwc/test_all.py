@@ -157,27 +157,33 @@ def measure_timing(design: Design):
         for row in reader:
             msgid = row['msgId']
             row['cycles'] = msg_cycles[msgid]
+            if row['hash'] == 'True':
+                row['op'] = 'Hash'
+            else:
+                row['op'] = 'Dec' if row['decrypt'] == 'True' else 'Enc'
+                if row['newKey'] == 'False':
+                    row['op'] += ":reuse-key"
+            row['throughput'] = f"{(int(row['adBytes']) + int(row['msgBytes'])) / msg_cycles[msgid]:0.3f}"
+            results.append(row)
             if row['longN+1'] == 'True':
-                prev_id = results[-1]['msgId']
-                prev_ad = int(results[-1]['adBytes'])
-                prev_msg = int(results[-1]['msgBytes'])
+                long_row = copy(results[-2])
+                prev_id = long_row['msgId']
+                prev_ad = int(long_row['adBytes'])
+                prev_msg = int(long_row['msgBytes'])
                 ad_diff = int(row['adBytes']) - prev_ad
                 msg_diff = int(row['msgBytes']) - prev_msg
                 cycle_diff = msg_cycles[msgid] - msg_cycles[prev_id]
-                results[-1]['adBytes'] = 'long' if int(
-                    results[-1]['adBytes']) else 0
-                results[-1]['msgBytes'] = 'long' if int(
-                    results[-1]['msgBytes']) else 0
-                results[-1]['cycles'] = cycle_diff
-                results[-1]['msgId'] = prev_id + ":" + msgid
-                results[-1]['throughput'] = f"{(ad_diff + msg_diff) / cycle_diff:0.3f}"
-            else:
-                row['throughput'] = f"{(int(row['adBytes']) + int(row['msgBytes'])) / msg_cycles[msgid]:0.3f}"
-                del row['longN+1']
-                results.append(row)
+                long_row['adBytes'] = 'long' if int(
+                    long_row['adBytes']) else 0
+                long_row['msgBytes'] = 'long' if int(
+                    long_row['msgBytes']) else 0
+                long_row['cycles'] = cycle_diff
+                long_row['msgId'] = prev_id + ":" + msgid
+                long_row['throughput'] = f"{(ad_diff + msg_diff) / cycle_diff:0.3f}"
+                results.append(long_row)
     results_file = design.name + "_timing_results.csv"
     with open(results_file, "w") as f:
-        writer = csv.DictWriter(f, fieldnames=results[0].keys())
+        writer = csv.DictWriter(f, fieldnames=['op', 'msgBytes', 'adBytes', 'cycles', 'throughput'], extrasaction='ignore')
         writer.writeheader()
         writer.writerows(results)
     logger.info(f"Timing results written to {results_file}")
