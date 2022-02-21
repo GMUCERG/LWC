@@ -3,9 +3,10 @@
 All notable changes to this project will be documented in this file.
 
 ### Added
-- Support for SCA protected implementations
+- Support for SCA protected implementations. Please see the updated _Implementers' Guide_ for more details.
   - LWC top entity: [LWC_SCA.vhd](./hardware/LWC_rtl/LWC_SCA.vhd)
   - Testbench: [LWC_TB_SCA.vhd](./hardware/LWC_tb/LWC_TB_SCA.vhd)
+  - Script for generation of shared testvectors: [gen_shared.py](./software/scripts/gen_shared.py)
 ### Changed
 - LWC package parameters are now set in the user-provided [`LWC_config`](hardware/LWC_config_template.vhd) VHDL package and [`NIST_LWAPI_pkg.vhd`](./hardware/LWC_rtl/NIST_LWAPI_pkg.vhd) should not be directly modified.
 - Simplification, fixes, and cleanup for PreProcessor and PostProcessor.
