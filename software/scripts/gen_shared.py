@@ -59,9 +59,8 @@ def gen_shares(in_file, num_shares, w_nbytes=0):
     )
 
 
-parser.add_argument(
-    '--rdi-file', default=None, type=argparse.FileType('w'),
-    help='path to generated rdi.txt')
+parser.add_argument('--rdi-file', default=None, type=Path,
+                    help='path to generated rdi.txt')
 parser.add_argument(
     '--pdi-file', default=None, type=argparse.FileType('r'),
     help='path to unshared pdi.txt')
@@ -81,11 +80,12 @@ parser.add_argument('--sdi-shares', default=None, type=int,
 parser.add_argument('--rdi-words', default=200000,
                     type=int, help='number of RDI words')
 parser.add_argument('--design', default=None, type=argparse.FileType('r'),
-                    help="""TOML description file for the protected LWC design. 
-                    If provided, all parameters will be extracted from this file.""")
+                    help="""TOML description file for the protected LWC design.
+                     If provided, all parameters will be extracted from this file.""")
 
 parser.add_argument('--folder', default=None, type=Path,
-                    help="Use this folder containing inputs pdi.txt and sdi.txt. Output files will also be generated under this folder.")
+                    help="""Use this folder containing inputs pdi.txt and sdi.txt.
+                     Output files will also be generated under this folder.""")
 
 args = parser.parse_args()
 
@@ -115,18 +115,13 @@ if args.folder:
     assert isinstance(args.folder, Path)
     assert args.folder.exists() and args.folder.is_dir(
     ), f"Folder {args.folder} does not exist!"
-    args.pdi_file = open(args.folder / "pdi.txt")
-    args.sdi_file = open(args.folder / "sdi.txt")
+    if not args.pdi_file:
+        args.pdi_file = open(args.folder / "pdi.txt")
+    if not args.sdi_file:
+        args.sdi_file = open(args.folder / "sdi.txt")
 
-if args.rdi_file:
-    if not args.rdi_width:
-        print("--rdi-width <RW> (RW > 0) must be specified!")
-        exit(1)
-    rw_bytes = (args.rdi_width + 7) // 8  # round to bytes
-    for i in range(args.rdi_words):
-        args.rdi_file.write(secrets.token_hex(rw_bytes).upper() + '\n')
-    print(
-        f"Generated RDI file: {args.rdi_file.name} RW={args.rdi_width} words={args.rdi_words}")
+if args.rdi_width and args.pdi_file and not args.rdi_file:
+    args.rdi_file = Path(args.pdi_file.name).parent / "rdi.txt"
 
 if args.pdi_file:
     if not args.pdi_shares or args.pdi_shares < 2:
@@ -138,7 +133,7 @@ if args.pdi_file:
     gen_shares(args.pdi_file, args.pdi_shares, nbytes)
 
 if args.sdi_file:
-    if not args.sdi_shares or args.sdi_shares < 2:
+    if not args.sdi_shares:
         if args.pdi_shares:
             args.sdi_shares = args.pdi_shares
             print(
@@ -150,3 +145,14 @@ if args.sdi_file:
     if args.pdi_width:
         nbytes = (args.pdi_width + 7) // 8
     gen_shares(args.sdi_file, args.sdi_shares, nbytes)
+
+if args.rdi_file:
+    if not args.rdi_width:
+        print("--rdi-width <RW> (RW > 0) must be specified!")
+        exit(1)
+    rw_bytes = (args.rdi_width + 7) // 8  # round to bytes
+    with open(args.rdi_file, "w") as f:
+        for i in range(args.rdi_words):
+            f.write(secrets.token_hex(rw_bytes).upper() + '\n')
+    print(
+        f"Generated RDI file: {args.rdi_file.name} RW={args.rdi_width} words={args.rdi_words}")
