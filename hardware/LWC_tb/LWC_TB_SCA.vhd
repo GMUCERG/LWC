@@ -36,10 +36,10 @@ entity LWC_TB IS
         G_CLK_PERIOD_PS    : positive := 10_000;                   --! Simulation clock period in picoseconds
         G_FNAME_PDI        : string   := "../KAT/v1/pdi.txt";      --! Path to the input file containing cryptotvgen PDI testvector data
         G_FNAME_SDI        : string   := "../KAT/v1/sdi.txt";      --! Path to the input file containing cryptotvgen SDI testvector data
+        G_FNAME_DO         : string   := "../KAT/v1/do.txt";       --! Path to the input file containing cryptotvgen DO testvector data
         G_FNAME_RDI        : string   := "../KAT/v1/rdi.txt";      --! Path to the input file containing random data
         G_PRNG_RDI         : boolean  := false;                    --! Use testbench's internal PRNG to generate RDI input instead of the file `G_FNAME_RDI`
         G_RANDOM_SEED      : positive := 1;                        --! Internal PRNG seed, must be positive
-        G_FNAME_DO         : string   := "../KAT/v1/do.txt";       --! Path to the input file containing cryptotvgen DO testvector data
         G_FNAME_LOG        : string   := "log.txt";                --! Path to the generated log file
         G_FNAME_TIMING     : string   := "timing.txt";             --! Path to the generated timing measurements (when G_TEST_MODE=4)
         G_FNAME_FAILED_TVS : string   := "failed_testvectors.txt"; --! Path to the generated log of failed testvector words
