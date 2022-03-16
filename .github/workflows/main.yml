@@ -10,6 +10,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+    # see https://github.com/actions/virtual-environments/issues/1757
+    - name: Run apt update on Ubuntu
+      run: sudo apt update
     - uses: ghdl/setup-ghdl-ci@nightly
       with:
         backend: gcc
