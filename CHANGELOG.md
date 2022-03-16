@@ -2,20 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+<!-- add changes before release under [unreleased]: -->
+<!-- ## [unreleased] -->
+
+
+## [1.2.0]
 ### Added
-- Support for SCA protected implementations. Please see the updated _Implementers' Guide_ for more details.
+- Support for SCA-protected (masked) implementations. Please see the updated _Implementers' Guide_ for more details.
   - LWC top entity: [LWC_SCA.vhd](./hardware/LWC_rtl/LWC_SCA.vhd)
   - Testbench: [LWC_TB_SCA.vhd](./hardware/LWC_tb/LWC_TB_SCA.vhd)
   - Script for generation of shared testvectors: [gen_shared.py](./software/scripts/gen_shared.py)
+  - New LWC parameters for SCA-protected implementations:
+    - `PDI_SHARES`: number of shares for PDI input and DO output. It's set to `1` for unprotected implementations.
+    - `SDI_SHARES`: number of shares for SDI (key) input. It's set to `1` for unprotected implementations.
+    - `RW`: bit-width of random data input (RDI). It's set to `0` for unprotected implementations.
 ### Changed
 - LWC package parameters are now set in the user-provided [`LWC_config`](hardware/LWC_config_template.vhd) VHDL package and [`NIST_LWAPI_pkg.vhd`](./hardware/LWC_rtl/NIST_LWAPI_pkg.vhd) should not be directly modified.
 - Simplification, fixes, and cleanup for PreProcessor and PostProcessor.
+  - Can work in SCA-protected implementations ([LWC_SCA](./hardware/LWC_rtl/LWC_SCA.vhd)).
   - Cleaner, more efficient code in fewer source lines of code (SLOC):
-    |   Source File     | v1.0.2  | v1.1.1  | v1.2.0 |
+    |   Source File     | v1.0.3  | v1.1.1  | v1.2.0 |
     | ----------------- |:-------:|:-------:|:------:|
-    |`PreProcessor.vhd` |1305 SLOC|1352 SLOC|351 SLOC|
+    |`PreProcessor.vhd` |1273 SLOC|1352 SLOC|351 SLOC|
     |`PostProcessor.vhd`|801  SLOC|838  SLOC|308 SLOC|
-  - Improved synthesis result.
+  - Improvements in synthesis result.
+    - Approximate utilization in Xilinx Series-7 FPGAs (LUTs, FFs)
+      |   Design               | v1.0.3  | v1.1.1  | v1.2.0 |
+      | ---------------------- |:-------:|:-------:|:------:|
+      | dummy_lwc (CCW=8,W=8)  | 440, 195|491, 227 |379, 210|
+      | dummy_lwc (CCW=32,W=32)| 534, 177|547, 261 |518, 221|
 - The FIFO implementation has been renamed to `FIFO` (file renamed to [`FIFO.vhd`](./hardware/LWC_rtl/FIFO.vhd)) and now contains 3 different implementations, selected based on the generic parameters.
 
 ## [1.1.0]
@@ -94,8 +109,9 @@ Nevertheless, it is also read by the [Pre-](hardware/LWCsrc/PreProcessor.vhd) an
 
 ## [1.0.0] 
 Initial release.
-  
-[unreleased]: https://github.com/GMUCERG/LWC/compare/v1.0.3...HEAD
+
+[unreleased]: https://github.com/GMUCERG/LWC/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/GMUCERG/LWC/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/GMUCERG/LWC/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/GMUCERG/LWC/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/GMUCERG/LWC/compare/v1.0.1...v1.0.2

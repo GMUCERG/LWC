@@ -4,11 +4,11 @@ from copy import deepcopy
 from pathlib import Path
 import re
 import logging
+from typing import Dict, List, Mapping, Union
 from cryptotvgen import cli
+from xeda import Design
 from xeda.flow_runner import DefaultRunner
 from xeda.flows import GhdlSim, YosysSynth
-from xeda import load_design_from_toml
-from xeda.flows.design import Design
 import csv
 
 logging.getLogger().setLevel(logging.WARNING)
@@ -140,23 +140,25 @@ def measure_timing(design: Design):
         'G_TEST_MODE': 4
     }
 
-    xeda_runner.run_flow(
+    f = xeda_runner.run_flow(
         GhdlSim, design
     )
+    assert f.results['success']
+
     assert timing_report.exists()
 
-    msg_cycles = {}
+    msg_cycles: Dict[str, int] = {}
     with open(timing_report) as f:
         for l in f.readlines():
             kv = re.split(r"\s*,\s*", l.strip())
             if len(kv) == 2:
                 msg_cycles[kv[0]] = int(kv[1])
-    results = []
+    results: List[Mapping[str, Union[int, str]]] = []
     with open(kat_dir / "timing_tests.csv") as f:
         reader = csv.DictReader(f)
         for row in reader:
             msgid = row['msgId']
-            row['cycles'] = msg_cycles[msgid]
+            row['cycles'] = str(msg_cycles[msgid])
             if row['hash'] == 'True':
                 row['op'] = 'Hash'
             else:
@@ -167,7 +169,9 @@ def measure_timing(design: Design):
             results.append(row)
             if row['longN+1'] == 'True':
                 long_row = results[-2]
-                prev_id = long_row['msgId']
+                # just to silence the type checker:
+                assert isinstance(long_row, dict)
+                prev_id: str = str(long_row['msgId'])
                 prev_ad = int(long_row['adBytes'])
                 prev_msg = int(long_row['msgBytes'])
                 ad_diff = int(row['adBytes']) - prev_ad
@@ -193,8 +197,15 @@ def measure_timing(design: Design):
 def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
     design = deepcopy(design)
     # TODO find in design.rtl.sources
-    orig_design_pkg = Path('src_rtl') / 'v1' / 'design_pkg.vhd'
-    orig_lwc_config = Path('src_rtl') / 'LWC_config_32.vhd'
+    orig_design_pkg = None
+    orig_lwc_config = None
+    for src in design.rtl.sources:
+        if src.file.name == 'design_pkg.vhd':
+            orig_design_pkg = src.file
+        elif src.file.name == 'LWC_config_32.vhd':
+            orig_lwc_config = src.file
+    assert orig_design_pkg
+    assert orig_lwc_config
 
     generated_sources = (core_src_path / 'generated_srcs')
     generated_sources.mkdir(exist_ok=True)
@@ -261,32 +272,34 @@ def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
         'G_RANDOM_STALL': True,
     }
 
-    xeda_runner.run_flow(
+    f = xeda_runner.run_flow(
         GhdlSim, design, setting_overrides=ghdl_setting_overrides
     )
+    assert f.results['success']
 
 
 def synth_test(design):
-    xeda_runner.run_flow(
+    f = xeda_runner.run_flow(
         YosysSynth,
         design, {
             "fpga": {"vendor": "xilinx"}
         }
     )
+    assert f.results['success']
 
 
 def test_all():
-    design = load_design_from_toml(
-        script_dir / 'dummy_lwc_w32_ccw32.toml'
-    )
+    design = Design.from_toml(script_dir / 'dummy_lwc_w32_ccw32.toml')
     try:
         synth_test(design)
     except:
         logger.warning("synth_test failed. Continuing...")
     # first try with original settings
-    xeda_runner.run_flow(
+    f = xeda_runner.run_flow(
         GhdlSim, design
     )
+    assert f.results['success']
+
     measure_timing(design)
 
     param_variants = [(32, 32), (32, 16), (32, 8), (16, 16), (8, 8)]

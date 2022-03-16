@@ -131,7 +131,7 @@ $ cryptotvgen -h
 
 
 ## Using as Python Library
-See the example scripts in the [examples](./examples) sub-folder as well as [hardware/dummy_lwc/test_all.py](../../hardware/dummy_lwc/test_all.py).
+See the example scripts in the [examples](./examples) sub-folder:
 
 1. [examples/dummy_lwc.py](examples/dummy_lwc.py): generate AEAD and hash test vectors for `dummy_lwc` core.
 
@@ -147,6 +147,5 @@ See the example scripts in the [examples](./examples) sub-folder as well as [har
     ```
     $ dummy_lwc.py 16 2
     ```
-
- 1. [examples/gimli24v1.py](examples/gimli24v1.py) generate AEAD and hash test vectors for `gimli24v1` NIST Round 2 LWC candidate.
+2. [examples/gimli24v1.py](examples/gimli24v1.py) generate AEAD and hash test vectors for `gimli24v1` NIST Round 2 LWC candidate.
 
