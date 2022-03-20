@@ -26,17 +26,17 @@ entity CryptoCore is
     port(
         clk             : in  std_logic;
         rst             : in  std_logic;
-        --PreProcessor===============================================
-        ----!key----------------------------------------------------
+        ---- PreProcessor ===============================================
+        --! Key
         key             : in  std_logic_vector(CCSW - 1 downto 0);
         key_valid       : in  std_logic;
         key_ready       : out std_logic;
-        ----!Data----------------------------------------------------
+        --! Data Input
         bdi             : in  std_logic_vector(CCW - 1 downto 0);
         bdi_valid       : in  std_logic;
         bdi_ready       : out std_logic;
-        bdi_pad_loc     : in  std_logic_vector(CCWdiv8 - 1 downto 0);
-        bdi_valid_bytes : in  std_logic_vector(CCWdiv8 - 1 downto 0);
+        bdi_pad_loc     : in  std_logic_vector(CCW / 8 - 1 downto 0);
+        bdi_valid_bytes : in  std_logic_vector(CCW / 8 - 1 downto 0);
         bdi_size        : in  std_logic_vector(3 - 1 downto 0);
         bdi_eot         : in  std_logic;
         bdi_eoi         : in  std_logic;
@@ -44,13 +44,16 @@ entity CryptoCore is
         decrypt_in      : in  std_logic;
         key_update      : in  std_logic;
         hash_in         : in  std_logic;
-        --!Post Processor=========================================
+        ---- Post Processor =========================================
+        --! Data Output
         bdo             : out std_logic_vector(CCW - 1 downto 0);
         bdo_valid       : out std_logic;
         bdo_ready       : in  std_logic;
         bdo_type        : out std_logic_vector(4 - 1 downto 0);
-        bdo_valid_bytes : out std_logic_vector(CCWdiv8 - 1 downto 0);
+        bdo_valid_bytes : out std_logic_vector(CCW / 8 - 1 downto 0);
+        --! The last word of BDO of the currect outout type (i.e., "bdo_eot")
         end_of_block    : out std_logic;
+        --! Tag authentication
         msg_auth_valid  : out std_logic;
         msg_auth_ready  : in  std_logic;
         msg_auth        : out std_logic
@@ -103,17 +106,9 @@ architecture behavioral of CryptoCore is
     signal padd_npub_s : std_logic_vector(CCW - 1 downto 0);
 
     -- State signals
-    type state_t is (IDLE, STORE_KEY, ABSORB_NONCE, ABSORB_AD, ABSORB_MSG,
-                     PADD_AD,
-                     PADD_MSG,
-                     ABSORB_LENGTH,
-                     EXTRACT_TAG,
-                     VERIFY_TAG,
-                     WAIT_ACK,
-                     INIT_HASH,
-                     ABSORB_HASH_MSG,
-                     PADD_HASH_MSG,
-                     EXTRACT_HASH_VALUE);
+    type state_t is (IDLE, STORE_KEY, RELOAD_KEY, ABSORB_NONCE, ABSORB_AD, ABSORB_MSG,
+                     PADD_AD, PADD_MSG, ABSORB_LENGTH, EXTRACT_TAG, VERIFY_TAG, WAIT_ACK,
+                     INIT_HASH, ABSORB_HASH_MSG, PADD_HASH_MSG, EXTRACT_HASH_VALUE);
     signal n_state_s, state_s : state_t;
 
     -- Concatenated length according to specification
@@ -191,7 +186,7 @@ begin
     ----------------------------------------------------------------------------
     --! Tag RAM instantiation - used to calculate tag and hash_value
     ----------------------------------------------------------------------------
-    i_tag_ram : entity work.SPDRam
+    i_tag_ram : entity work.RAM1RW
         generic map(
             DataWidth => CCW,
             AddrWidth => ADDR_BITS_256_C
@@ -203,12 +198,6 @@ begin
             din  => tag_din_s,
             dout => tag_dout_s
         );
-    -- Initialize the RAM with the key, afterwards absorb (xor) any incoming
-    -- data (Npub, Len, AD, PT).
-    tag_din_s <= std_logic_vector(resize(unsigned(key_din_s), tag_din_s'length)) when (state_s = STORE_KEY and key_update = '1') else
-                 std_logic_vector(resize(unsigned(key_dout_s), tag_din_s'length)) when (state_s = STORE_KEY and key_update = '0') else
-                 (others => '0') when (state_s = INIT_HASH) else
-                 data_to_tag_s xor tag_dout_s;
 
     -- tag_wen_s set in decoder process for control logic.
 
@@ -219,7 +208,7 @@ begin
     --! Key RAM instantiation
     ----------------------------------------------------------------------------
     -- required for later CT generation
-    i_key_ram : entity work.SPDRam
+    i_key_ram : entity work.RAM1RW
         generic map(
             DataWidth => CCSW,
             AddrWidth => ADDR_BITS_128_C
@@ -243,7 +232,7 @@ begin
     --! NPub RAM instantiation
     ----------------------------------------------------------------------------
     -- required for later CT generation
-    i_npub_ram : entity work.SPDRam
+    i_npub_ram : entity work.RAM1RW
         generic map(
             DataWidth => CCW,
             AddrWidth => ADDR_BITS_96_C
@@ -271,8 +260,14 @@ begin
     ----------------------------------------------------------------------------
     --! Bdo multiplexer
     ----------------------------------------------------------------------------
-    p_bdo_mux : process(state_s, bdi_s, key_dout_s, word_cnt_s, bdi_valid_bytes_s, bdi_valid, bdi_eot, decrypt_s, tag_dout_s, padd_npub_s, block_num_word_s, hash_s)
+    p_bdo_mux : process(state_s, bdi_s, key_dout_s, word_cnt_s, bdi_valid_bytes_s, bdi_valid, bdi_eot, --
+        decrypt_s, tag_dout_s, padd_npub_s, block_num_word_s)
     begin
+        end_of_block_s    <= '0';
+        bdo_s             <= (others => '0');
+        bdo_valid_bytes_s <= (others => '0');
+        bdo_valid_s       <= '0';
+        bdo_type_s        <= HDR_TAG;
         case state_s is
             -- Directly connect bdi and bdo signals and encryp/decrypt data.
             -- Set bdo_type depending on mode.
@@ -287,32 +282,29 @@ begin
                     bdo_type_s <= HDR_CT;
                 end if;
 
-            -- Connect bdo with tag_ram to extract computet tag/hash_value depending
+            -- Connect bdo with tag_ram to extract computed tag/hash_value depending
             -- on mode. Set end_of_block_s on either the last word of the tag block
             -- or the hash_value block.
-            when EXTRACT_TAG | EXTRACT_HASH_VALUE =>
+            when EXTRACT_TAG =>
                 bdo_s             <= tag_dout_s;
                 bdo_valid_bytes_s <= (others => '1');
                 bdo_valid_s       <= '1';
-                if (hash_s = '1') then
-                    bdo_type_s <= HDR_HASH_VALUE;
-                else
-                    bdo_type_s <= HDR_TAG;
-                end if;
-                if (word_cnt_s = BLOCK_WORDS_C - 1 and hash_s = '0') 
-                or (word_cnt_s >= HASH_WORDS_C - 1 and hash_s = '1') then
+                bdo_type_s        <= HDR_TAG;
+                if word_cnt_s = BLOCK_WORDS_C - 1 then
                     end_of_block_s <= '1';
-                else
-                    end_of_block_s <= '0';
                 end if;
 
-            -- Default values.
+            when EXTRACT_HASH_VALUE =>
+                bdo_s             <= tag_dout_s;
+                bdo_valid_bytes_s <= (others => '1');
+                bdo_valid_s       <= '1';
+                bdo_type_s        <= HDR_HASH_VALUE;
+                if word_cnt_s = HASH_WORDS_C - 1 then
+                    end_of_block_s <= '1';
+                end if;
+
             when others =>
-                bdo_s             <= (others => '0');
-                bdo_valid_bytes_s <= (others => '0');
-                bdo_valid_s       <= '0';
-                end_of_block_s    <= '0';
-                bdo_type_s        <= HDR_TAG;
+                null;
 
         end case;
     end process p_bdo_mux;
@@ -371,33 +363,36 @@ begin
     ----------------------------------------------------------------------------
     --! Next_state FSM
     ----------------------------------------------------------------------------
-    p_next_state : process(state_s, key_valid, key_ready_s, key_update, bdi_valid, bdi_ready_s, bdi_eot, bdi_eoi, eoi_s, bdi_type, word_cnt_s, hash_in, decrypt_s, bdo_valid_s, bdo_ready, msg_auth_valid_s, msg_auth_ready, bdi_partial_s)
+    p_next_state : process(state_s, key_valid, bdi_valid, bdi_ready_s, bdi_eot, bdi_eoi, eoi_s, --
+        bdi_type, word_cnt_s, hash_in, decrypt_s, bdo_valid_s, bdo_ready, msg_auth_valid_s, --
+        msg_auth_ready, bdi_partial_s)
     begin
+        n_state_s <= state_s;
         case state_s is
-            -- Wakeup as soon as valid bdi or key is signaled.
             when IDLE =>
-                if (key_valid = '1' or bdi_valid = '1') then
-                    if (hash_in = '1') then
+                -- Wake up as soon as valid bdi or key is signaled.
+                if key_valid = '1' then
+                    n_state_s <= STORE_KEY;
+                elsif bdi_valid = '1' then
+                    -- hash_in (and decrypt_in) are only valid when bdi_valid is asserted (it will
+                    --    maintaint its value for the entire duration of the bdi operation)
+                    if hash_in = '1' then
                         n_state_s <= INIT_HASH;
                     else
-                        n_state_s <= STORE_KEY;
+                        n_state_s <= RELOAD_KEY;
                     end if;
-                else
-                    n_state_s <= IDLE;
                 end if;
 
             -- Initialize hash with zero so we don't need padding after receiving
             -- non-full hash_msg block. Additionally no distinction between empty
             -- hash or regular hash is required when extracting hash from ram.
             when INIT_HASH =>
-                if (word_cnt_s >= HASH_WORDS_C - 1) then
-                    if (eoi_s = '1') then
+                if word_cnt_s = HASH_WORDS_C - 1 then
+                    if eoi_s = '1' then
                         n_state_s <= EXTRACT_HASH_VALUE;
                     else
                         n_state_s <= ABSORB_HASH_MSG;
                     end if;
-                else
-                    n_state_s <= INIT_HASH;
                 end if;
 
             -- Wait until the new key is completely received or until the old
@@ -406,18 +401,20 @@ begin
             -- state transition back to IDLE is required to prevent deadlock in case
             -- bdi data follows that is not of type npub.
             when STORE_KEY =>
-                if (((key_valid = '1' and key_ready_s = '1') or key_update = '0')
-                and word_cnt_s >= BLOCK_WORDS_C - 1) then
+                if key_valid = '1' and word_cnt_s = BLOCK_WORDS_C - 1 then
                     n_state_s <= ABSORB_NONCE;
-                else
-                    n_state_s <= STORE_KEY;
                 end if;
 
-            -- Wait until the whole nonce block is received. If no npub
+            when RELOAD_KEY =>
+                if word_cnt_s = BLOCK_WORDS_C - 1 then
+                    n_state_s <= ABSORB_NONCE;
+                end if;
+
+            -- Wait until the whole nonce block is received. If no AD
             -- follows, directly go to extracting/verifying tag.
             when ABSORB_NONCE =>
-                if (bdi_valid = '1' and bdi_ready_s = '1' and word_cnt_s >= NPUB_WORDS_C - 1) then
-                    if (bdi_eoi = '1') then
+                if bdi_valid = '1' and bdi_ready_s = '1' and word_cnt_s = NPUB_WORDS_C - 1 then
+                    if bdi_eoi = '1' then
                         if (decrypt_s = '1') then
                             n_state_s <= VERIFY_TAG;
                         else
@@ -426,8 +423,6 @@ begin
                     else
                         n_state_s <= ABSORB_AD;
                     end if;
-                else
-                    n_state_s <= ABSORB_NONCE;
                 end if;
 
             -- In case input is plaintext or ciphertext, no ad is processed.
@@ -446,8 +441,6 @@ begin
                     else
                         n_state_s <= ABSORB_MSG;
                     end if;
-                else
-                    n_state_s <= ABSORB_AD;
                 end if;
 
             -- Since only one cycle is required to insert 0x80 padding byte,
@@ -469,8 +462,6 @@ begin
                     else
                         n_state_s <= ABSORB_LENGTH;
                     end if;
-                else
-                    n_state_s <= ABSORB_MSG;
                 end if;
 
             -- Next absorb length data.
@@ -486,8 +477,6 @@ begin
                     else
                         n_state_s <= EXTRACT_HASH_VALUE;
                     end if;
-                else
-                    n_state_s <= ABSORB_HASH_MSG;
                 end if;
 
             -- Only one cycle of padding is needed for inserting the 0x80 byte.
@@ -497,47 +486,37 @@ begin
             -- When lenght is absorbed, either verify the tag or extract it
             -- from ram depending on decrypt_s.
             when ABSORB_LENGTH =>
-                if (word_cnt_s >= BLOCK_WORDS_C - 1) then
-                    if (decrypt_s = '1') then
+                if word_cnt_s = BLOCK_WORDS_C - 1 then
+                    if decrypt_s = '1' then
                         n_state_s <= VERIFY_TAG;
                     else
                         n_state_s <= EXTRACT_TAG;
                     end if;
-                else
-                    n_state_s <= ABSORB_LENGTH;
                 end if;
 
             -- Wait until the whole tag block is transferred, then go back to IDLE.
             when EXTRACT_TAG =>
-                if (bdo_valid_s = '1' and bdo_ready = '1' and word_cnt_s >= BLOCK_WORDS_C - 1) then
+                if bdo_ready = '1' and word_cnt_s = BLOCK_WORDS_C - 1 then
                     n_state_s <= IDLE;
-                else
-                    n_state_s <= EXTRACT_TAG;
                 end if;
 
             -- Wait until the tag being verified is received, continue
             -- with waiting for acknowledgement on msg_auth_valis.
             when VERIFY_TAG =>
-                if (bdi_valid = '1' and bdi_ready_s = '1' and word_cnt_s >= BLOCK_WORDS_C - 1) then
+                if bdi_valid = '1' and bdi_ready_s = '1' and word_cnt_s = BLOCK_WORDS_C - 1 then
                     n_state_s <= WAIT_ACK;
-                else
-                    n_state_s <= VERIFY_TAG;
                 end if;
 
             -- Wait until message authentication is acknowledged.
             when WAIT_ACK =>
-                if (msg_auth_valid_s = '1' and msg_auth_ready = '1') then
+                if msg_auth_valid_s = '1' and msg_auth_ready = '1' then
                     n_state_s <= IDLE;
-                else
-                    n_state_s <= WAIT_ACK;
                 end if;
 
             -- Wait until the whole hash_value is transferred, then go back to IDLE.
             when EXTRACT_HASH_VALUE =>
-                if (bdo_valid_s = '1' and bdo_ready = '1' and word_cnt_s >= HASH_WORDS_C - 1) then
+                if bdo_valid_s = '1' and bdo_ready = '1' and word_cnt_s = HASH_WORDS_C - 1 then
                     n_state_s <= IDLE;
-                else
-                    n_state_s <= EXTRACT_HASH_VALUE;
                 end if;
 
         end case;
@@ -546,7 +525,10 @@ begin
     ----------------------------------------------------------------------------
     --! Decoder process for control logic
     ----------------------------------------------------------------------------
-    p_decoder : process(state_s, key_valid, key_ready_s, key_update, update_key_s, bdi_s, bdi_valid, bdi_ready_s, bdi_eoi, bdi_valid_bytes_s, bdi_pad_loc_s, bdi_size, bdi_type, eoi_s, hash_in, hash_s, empty_hash_s, decrypt_in, decrypt_s, bdo_s, bdo_ready, msg_auth_s, tag_dout_s, len_word_s)
+    p_decoder : process(state_s, key_valid, key_ready_s, key_update, update_key_s, bdi_s, bdi_valid, bdi_ready_s, --
+        bdi_eoi, bdi_valid_bytes_s, bdi_pad_loc_s, bdi_size, bdi_type, eoi_s, hash_in, hash_s, empty_hash_s, decrypt_in, --
+        decrypt_s, bdo_s, bdo_ready, msg_auth_s, tag_dout_s, len_word_s, data_to_tag_s, key_din_s, key_dout_s --
+        )
     begin
         -- Default values preventing latches
         key_ready_s      <= '0';
@@ -560,6 +542,9 @@ begin
         n_decrypt_s      <= decrypt_s;
         data_to_tag_s    <= (others => '0');
         tag_wen_s        <= '0';
+        -- Initialize the RAM with the key, afterwards absorb (xor) any incoming
+        -- data (Npub, Len, AD, PT).
+        tag_din_s        <= data_to_tag_s xor tag_dout_s;
 
         case state_s is
             -- Default values. If valid input is detected, set internal flags
@@ -587,6 +572,7 @@ begin
             -- Enable tag_ram.
             when INIT_HASH =>
                 tag_wen_s <= '1';
+                tag_din_s <= (others => '0');
                 if (empty_hash_s = '1') then
                     bdi_ready_s    <= '1';
                     n_empty_hash_s <= '0';
@@ -596,14 +582,15 @@ begin
             -- If key is updated, write to tag_ram on data transfer, else set
             -- it to '1' because key is directly streamed from key_ram to tag_ram.
             when STORE_KEY =>
-                if (update_key_s = '1') then
-                    key_ready_s <= '1';
-                    tag_wen_s   <= key_valid and key_ready_s;
-                else
-                    tag_wen_s <= '1';
-                end if;
+                tag_din_s   <= std_logic_vector(resize(unsigned(key_din_s), tag_din_s'length));
+                key_ready_s <= '1';
+                tag_wen_s   <= key_valid and key_ready_s;
 
-            -- Store bdi_eoi (will only be effective on last word) and decrypt_in flag.
+            when RELOAD_KEY =>
+                tag_din_s <= std_logic_vector(resize(unsigned(key_dout_s), tag_din_s'length));
+                tag_wen_s <= '1';
+
+            -- Store bdi_eoi (will only be effective on last word) m and decrypt_in flag.
             -- Connect bdi_s (npub) to tag_ram.
             when ABSORB_NONCE =>
                 bdi_ready_s   <= '1';
@@ -687,7 +674,7 @@ begin
     ----------------------------------------------------------------------------
     --! Word, Byte and Block counters
     ----------------------------------------------------------------------------
-    GEN_p_counters_SYNC_RST : if (not ASYNC_RSTN) generate
+    GEN_p_counters_SYNC_RST : if not ASYNC_RSTN generate
         p_counters : process(clk)
         begin
             if rising_edge(clk) then
@@ -706,7 +693,7 @@ begin
         end process p_counters;
     end generate GEN_p_counters_SYNC_RST;
 
-    GEN_p_counters_ASYNC_RSTN : if (ASYNC_RSTN) generate
+    GEN_p_counters_ASYNC_RSTN : if ASYNC_RSTN generate
         p_counters : process(clk, rst)
         begin
             if (rst = '0') then
@@ -744,27 +731,26 @@ begin
             -- data transfer (valid and ready), else just count the cycles required
             -- to move key from key_ram to tag_ram.
             when STORE_KEY =>
-                if (key_update = '1') then
-                    if (key_valid = '1' and key_ready_s = '1') then
-                        if (word_cnt_s >= BLOCK_WORDS_C - 1) then
-                            word_cnt_s_next <= 0;
-                        else
-                            word_cnt_s_next <= word_cnt_s + 1;
-                        end if;
-                    end if;
-                else
-                    if (word_cnt_s >= BLOCK_WORDS_C - 1) then
+                if key_valid = '1' then
+                    if word_cnt_s = BLOCK_WORDS_C - 1 then
                         word_cnt_s_next <= 0;
                     else
                         word_cnt_s_next <= word_cnt_s + 1;
                     end if;
                 end if;
 
+            when RELOAD_KEY =>
+                if word_cnt_s = BLOCK_WORDS_C - 1 then
+                    word_cnt_s_next <= 0;
+                else
+                    word_cnt_s_next <= word_cnt_s + 1;
+                end if;
+
             -- Every time a word is transferred, increase counter
             -- up to NPUB_WORDS_C
             when ABSORB_NONCE =>
                 if (bdi_valid = '1' and bdi_ready_s = '1') then
-                    if (word_cnt_s >= NPUB_WORDS_C - 1) then
+                    if (word_cnt_s = NPUB_WORDS_C - 1) then
                         word_cnt_s_next <= 0;
                     else
                         word_cnt_s_next <= word_cnt_s + 1;
@@ -777,8 +763,8 @@ begin
             -- only partially filled -> bdi_eot and bdi_partial).
             -- Additionally count number of ad bytes.
             when ABSORB_AD =>
-                if (bdi_valid = '1' and bdi_ready_s = '1') then
-                    if (word_cnt_s >= BLOCK_WORDS_C - 1 or (bdi_eot = '1' and bdi_partial_s = '1')) then
+                if bdi_valid = '1' and bdi_ready_s = '1' then
+                    if word_cnt_s = BLOCK_WORDS_C - 1 or (bdi_eot = '1' and bdi_partial_s = '1') then
                         word_cnt_s_next <= 0;
                     else
                         word_cnt_s_next <= word_cnt_s + 1;
@@ -791,8 +777,8 @@ begin
             -- and only partially filled such that the 0x80 padding byte could be inserted.
             -- Additionally count number of msg bytes.
             when ABSORB_MSG =>
-                if (bdi_valid = '1' and bdi_ready_s = '1') then
-                    if (word_cnt_s >= BLOCK_WORDS_C - 1 or (bdi_eot = '1' and bdi_partial_s = '1')) then
+                if bdi_valid = '1' and bdi_ready_s = '1' then
+                    if word_cnt_s = BLOCK_WORDS_C - 1 or (bdi_eot = '1' and bdi_partial_s = '1') then
                         word_cnt_s_next  <= 0;
                         block_cnt_s_next <= block_cnt_s + 1;
                     else
@@ -806,7 +792,7 @@ begin
             -- partially filled (again such that 0x80 can be inserted).
             when ABSORB_HASH_MSG =>
                 if (bdi_valid = '1' and bdi_ready_s = '1') then
-                    if (word_cnt_s >= HASH_WORDS_C - 1 or (bdi_eot = '1' and bdi_partial_s = '1')) then
+                    if (word_cnt_s = HASH_WORDS_C - 1 or (bdi_eot = '1' and bdi_partial_s = '1')) then
                         word_cnt_s_next <= 0;
                     else
                         word_cnt_s_next <= word_cnt_s + 1;
@@ -821,7 +807,7 @@ begin
             -- Increase word counter up to block size or hash block size
             -- depending on whether input is currently hashed or not.
             when ABSORB_LENGTH | INIT_HASH =>
-                if (word_cnt_s >= BLOCK_WORDS_C - 1 and hash_s = '0') or (word_cnt_s >= HASH_WORDS_C - 1 and hash_s = '1') then
+                if (word_cnt_s = BLOCK_WORDS_C - 1 and hash_s = '0') or (word_cnt_s = HASH_WORDS_C - 1 and hash_s = '1') then
                     word_cnt_s_next <= 0;
                 else
                     word_cnt_s_next <= word_cnt_s + 1;
@@ -830,9 +816,18 @@ begin
             -- Increase word counter on valid bdo transfer until either
             -- block size or hash block size is reached depending on whether
             -- input is hashed or not.
-            when EXTRACT_TAG | EXTRACT_HASH_VALUE =>
-                if (bdo_valid_s = '1' and bdo_ready = '1') then
-                    if (word_cnt_s >= BLOCK_WORDS_C - 1 and hash_s = '0') or (word_cnt_s >= HASH_WORDS_C - 1 and hash_s = '1') then
+            when EXTRACT_TAG =>
+                if bdo_valid_s = '1' and bdo_ready = '1' then
+                    if (word_cnt_s = BLOCK_WORDS_C - 1 and hash_s = '0') or (word_cnt_s = HASH_WORDS_C - 1 and hash_s = '1') then
+                        word_cnt_s_next <= 0;
+                    else
+                        word_cnt_s_next <= word_cnt_s + 1;
+                    end if;
+                end if;
+
+            when EXTRACT_HASH_VALUE =>
+                if bdo_valid_s = '1' and bdo_ready = '1' then
+                    if word_cnt_s = HASH_WORDS_C - 1 then
                         word_cnt_s_next <= 0;
                     else
                         word_cnt_s_next <= word_cnt_s + 1;
@@ -841,8 +836,8 @@ begin
 
             -- Increase word counter when transferring the received data (tag).
             when VERIFY_TAG =>
-                if (bdi_valid = '1' and bdi_ready_s = '1') then
-                    if (word_cnt_s >= BLOCK_WORDS_C - 1) then
+                if bdi_valid = '1' and bdi_ready_s = '1' then
+                    if word_cnt_s = BLOCK_WORDS_C - 1 then
                         word_cnt_s_next <= 0;
                     else
                         word_cnt_s_next <= word_cnt_s + 1;

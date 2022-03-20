@@ -121,19 +121,24 @@ architecture RTL of PostProcessor is
 
 begin
    -- optimized out if CCW=W
-   bdoSIPO : entity work.DATA_SIPO
+   bdoSIPO : entity work.SIPO
+      generic map(
+         G_IN_W       => PDI_SHARES * CCW,
+         G_N          => W / CCW,
+         G_ASYNC_RSTN => ASYNC_RSTN
+      )
       port map(
-         clk          => clk,
-         rst          => rst,
+         clk        => clk,
+         rst        => rst,
          -- serial input (CCW)
-         data_s       => bdo_cleared,
-         end_of_input => bdo_last,
-         data_valid_s => bdo_valid,
-         data_ready_s => bdo_ready,
+         sin_data   => bdo_cleared,
+         sin_last   => bdo_last,
+         sin_valid  => bdo_valid,
+         sin_ready  => bdo_ready,
          -- parallel output (W)
-         data_p       => bdo_data_p,
-         data_valid_p => bdo_valid_p,
-         data_ready_p => bdo_ready_p
+         pout_data  => bdo_data_p,
+         pout_valid => bdo_valid_p,
+         pout_ready => bdo_ready_p
       );
 
    --===========================================================================================--
@@ -267,7 +272,7 @@ begin
    -- process(all)
    process(state, op_is_hash, op_is_decrypt, do_ready, do_fire, decrypt_flag, seglen_is_zero, --
       eot_flag, cmd_valid, cmd_fire, hdr_first, hdr_last, auth_valid, status_success, --
-      cmd_hdr_opcode, bdo_valid_p, bdo_data_p, bdo_p_fire, bdo_last_p, seglen, last_flit_of_segment)
+      cmd_hdr_opcode, bdo_valid_p, bdo_data_p, bdo_p_fire, bdo_last_p, last_flit_of_segment)
    begin
       -- make sure we do not output intermediate data
       do_data           <= (others => '0');

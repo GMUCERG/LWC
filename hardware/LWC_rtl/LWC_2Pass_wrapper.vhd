@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 
 use work.NIST_LWAPI_pkg.all;
 
-entity LWC_2pass_wrapper is
+entity LWC_2Pass_wrapper is
     port(
         clk       : in  std_logic;
         rst       : in  std_logic;
@@ -24,9 +24,9 @@ entity LWC_2pass_wrapper is
         fdo_valid : out std_logic;
         fdo_ready : in  std_logic
     );
-end LWC_2pass_wrapper;
+end LWC_2Pass_wrapper;
 
-architecture RTL of LWC_2pass_wrapper is
+architecture RTL of LWC_2Pass_wrapper is
     signal lwc_pdi_data  : std_logic_vector(W - 1 downto 0);
     signal lwc_pdi_valid : std_logic;
     signal lwc_pdi_ready : std_logic;
@@ -47,7 +47,7 @@ architecture RTL of LWC_2pass_wrapper is
     signal do_datalast_i : std_logic_vector(W downto 0);
     signal do_datalast_o : std_logic_vector(W downto 0);
 
-    component LWC_2pass
+    component LWC_2Pass
         port(
             clk       : in  std_logic;
             rst       : in  std_logic;
@@ -68,13 +68,13 @@ architecture RTL of LWC_2pass_wrapper is
             fdo_valid : out std_logic;
             fdo_ready : in  std_logic
         );
-    end component LWC_2pass;
+    end component LWC_2Pass;
 
 begin
 
-    assert False report "Using LWC_2pass_wrapper" severity warning;
+    assert False report "Using LWC_2Pass_wrapper" severity warning;
 
-    LWC_inst : LWC_2pass
+    LWC_inst : LWC_2Pass
         port map(
             clk       => clk,
             rst       => rst,

@@ -1,6 +1,6 @@
-[![Main Test](https://github.com/GMUCERG/LWC/workflows/Main%20Test/badge.svg?branch=master)](https://github.com/GMUCERG/LWC/actions)
+[![CI](https://github.com/GMUCERG/LWC/workflows/Main%20Test/badge.svg?branch=master)](https://github.com/GMUCERG/LWC/actions)
 # LWC Hardware API Development Package
-This is a development package for GMU's [Hardware API for Lightweight Cryptography](https://cryptography.gmu.edu/athena/index.php?id=LWC). Please refer to the latest [LWC Hardware API](https://cryptography.gmu.edu/athena/LWC/LWC_HW_API.pdf) and [LWC Hardware API Implementer’s Guide](https://cryptography.gmu.edu/athena/LWC/LWC_HW_Implementers_Guide.pdf) for further details.
+This is a development package for GMU's [Hardware API for Lightweight Cryptography](https://cryptography.gmu.edu/athena/index.php?id=LWC). Please refer to the latest [LWC Hardware API](https://cryptography.gmu.edu/athena/LWC/LWC_HW_API.pdf) and [LWC Hardware API Implementer's Guide](https://cryptography.gmu.edu/athena/LWC/LWC_HW_Implementers_Guide.pdf) for further details.
 
 Note: if upgrading from an earlier version of the LWC package, please see our [upgrade guide](UPGRADE_GUIDE.md)
 

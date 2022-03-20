@@ -30,38 +30,37 @@ LIBRARY ieee;
 USE ieee.std_logic_1164.all;
 USE ieee.numeric_std.all;
 
---USE ieee.std_logic_unsigned.all;
-
-entity SPDRam is 
-    generic (   DataWidth : integer ; 
-                AddrWidth : integer
-            ); 
-    port    ( 
-                clk       : in  std_logic;
-                wen       : in  std_logic;
-                addr      : in  std_logic_vector(AddrWidth  -1 downto 0);
-                din       : in  std_logic_vector(DataWidth  -1 downto 0);
-                dout      : out std_logic_vector(DataWidth  -1 downto 0)
-            );
+entity RAM1RW is
+    --! RAM with a single Read/Write port
+    generic(
+        DataWidth : natural;
+        AddrWidth : natural
+    );
+    port(
+        clk  : in  std_logic;
+        wen  : in  std_logic;
+        addr : in  std_logic_vector(AddrWidth - 1 downto 0);
+        din  : in  std_logic_vector(DataWidth - 1 downto 0);
+        dout : out std_logic_vector(DataWidth - 1 downto 0)
+    );
     --Xilinx attributes for using only distributed rams
-    attribute ram_style:string;
-    attribute ram_style of SpDRam: entity is "distributed";
+    attribute ram_style : string;
+    attribute ram_style of RAM1RW : entity is "distributed";
 
-end SPDRam;
+end RAM1RW;
 
-architecture behavioral of SpDRam is
-type ram_type is array (2**AddrWidth-1 downto 0) of std_logic_vector (DataWidth-1 downto 0); 
-signal RAM : ram_type;  
+architecture behavioral of RAM1RW is
+    type ram_type is array (2 ** AddrWidth - 1 downto 0) of std_logic_vector(DataWidth - 1 downto 0);
+    signal RAM : ram_type;
 begin
-    process (clk)
+    process(clk)
     begin
         if rising_edge(clk) then
-            
+
             if (wen = '1') then
                 RAM(to_integer(to_01(unsigned(addr)))) <= din; --Write data
-            end if;            
+            end if;
         end if;
     end process;
-    dout <= RAM(to_integer(to_01(unsigned(addr))));    --Read data
-    --place the "Read data" line here for asynchronous read.     
+    dout <= RAM(to_integer(to_01(unsigned(addr)))); --Read data
 end behavioral;
