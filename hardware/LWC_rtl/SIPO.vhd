@@ -6,7 +6,7 @@
 --!                    ECE Department, George Mason University Fairfax, VA, USA
 --!                    All rights Reserved.
 --! @license           GNU Public License v3 ([GPL-3.0](http://www.gnu.org/licenses/gpl-3.0.txt))
---!--! @vhdl           VHDL 1993, 2002, 2008, and later
+--! @vhdl              VHDL 1993, 2002, 2008, and later
 --!
 --! @details           Universal SIPO implementations covering multiple use-cases
 --!
@@ -15,14 +15,14 @@
 --! @param G_CHANNELS  Input/output come in G_CHANNELS separate data "channels"
 --! @param G_PIPELINED Pipelined, shift-register impl. Data is fully registered
 --! @param G_SUBWORD   Support partially filled output word and `_keep` I/O signals
---!
+--! @param G_CLEAR_INVALID_BYTES
+--!                    Set invalid bytes of the output to zero
 --! @note              * All possible value values of G_IN_W, G_N, G_CHANNELS, G_BIGENDIAN and
 --!                        G_ASYNC_RSTN are fully supported
 --!                    * (G_PIPELINED and (G_SUBWORD or G_CLEAR_INVALIDS)) is not supported
 --!                    * (G_CLEAR_INVALIDS and not G_SUBWORD) is not supported
 --!                      
 --===============================================================================================--
-
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
@@ -30,23 +30,23 @@ use IEEE.numeric_std.all;
 entity SIPO is
     generic(
         --! Input width in bits
-        G_IN_W           : positive;
+        G_IN_W                : positive;
         --! Ratio of output width to input width. Output width is `G_N * G_IN_W`
-        G_N              : positive;
+        G_N                   : positive;
         --! Input and output data are in `G_CHANNELS` independent "channels".
         --!    Used e.g., in masked LWC implementations
-        G_CHANNELS       : positive := 1;
+        G_CHANNELS            : positive := 1;
         --! When `TRUE`, reset is asynchronous and active-low
-        G_ASYNC_RSTN     : boolean  := FALSE;
+        G_ASYNC_RSTN          : boolean  := FALSE;
         --! sin_data words will be sequenced in a big-endian order within pout_data (little-endian otherwise)
-        G_BIGENDIAN      : boolean  := TRUE;
+        G_BIGENDIAN           : boolean  := TRUE;
         --! Pipelined (and not passthrough)
-        G_PIPELINED      : boolean  := FALSE;
+        G_PIPELINED           : boolean  := FALSE;
         --! If `FALSE` ignores sin_last/pout_last and assume input data sequence always comes in a multiple of G_N
-        G_SUBWORD        : boolean  := FALSE;
+        G_SUBWORD             : boolean  := FALSE;
         --! zero-out the words in output not filled due to early sin_last.
         --! Only effective when `G_SUBWORD = TRUE`
-        G_CLEAR_INVALIDS : boolean  := TRUE
+        G_CLEAR_INVALID_BYTES : boolean  := TRUE
     );
     port(
         clk        : in  std_logic;
@@ -69,11 +69,31 @@ entity SIPO is
 end entity SIPO;
 
 architecture RTL of SIPO is
+    function maybe_clear_invalids(slv, keep : std_logic_vector) return std_logic_vector is
+        variable k   : natural;
+        variable ret : std_logic_vector(slv'range) := (others => '0');
+    begin
+        if not G_CLEAR_INVALID_BYTES then
+            return slv;
+        end if;
+        for i in 0 to G_CHANNELS - 1 loop
+            for j in 0 to keep'length - 1 loop
+                k := (i * keep'length + j) * 8;
+                if keep(j) = '1' then
+                    ret(k + 7 downto k) := slv(k + 7 downto k);
+                end if;
+            end loop;
+        end loop;
+        return ret;
+    end function;
+
+    signal sin_data_clr : std_logic_vector(sin_data'range);
 begin
+    sin_data_clr <= maybe_clear_invalids(sin_data, sin_keep);
     --===========================================================================================--
     GEN_TRIVIAL : if G_N = 1 generate
         -- sin_last is ignored
-        pout_data  <= sin_data;
+        pout_data  <= sin_data_clr;
         pout_valid <= sin_valid;
         pout_last  <= sin_last;
         sin_ready  <= pout_ready;
@@ -132,26 +152,26 @@ begin
         out_fire   <= pout_ready = '1' and pout_valid_o;
 
         assert FALSE report LF & "SIPO instance parameters:" --
-        & LF & "  G_IN_W           " & integer'image(G_IN_W) --
-        & LF & "  G_N              " & integer'image(G_N) --
-        & LF & "  G_CHANNELS       " & integer'image(G_CHANNELS) --
-        & LF & "  G_ASYNC_RSTN     " & boolean'image(G_ASYNC_RSTN) --
-        & LF & "  G_BIGENDIAN      " & boolean'image(G_BIGENDIAN) --
-        & LF & "  G_PIPELINED      " & boolean'image(G_PIPELINED) --
-        & LF & "  G_SUBWORD        " & boolean'image(G_SUBWORD) --
-        & LF & "  G_CLEAR_INVALIDS " & boolean'image(G_CLEAR_INVALIDS) --
+        & LF & "  G_IN_W                " & integer'image(G_IN_W) --
+        & LF & "  G_N                   " & integer'image(G_N) --
+        & LF & "  G_CHANNELS            " & integer'image(G_CHANNELS) --
+        & LF & "  G_ASYNC_RSTN          " & boolean'image(G_ASYNC_RSTN) --
+        & LF & "  G_BIGENDIAN           " & boolean'image(G_BIGENDIAN) --
+        & LF & "  G_PIPELINED           " & boolean'image(G_PIPELINED) --
+        & LF & "  G_SUBWORD             " & boolean'image(G_SUBWORD) --
+        & LF & "  G_CLEAR_INVALID_BYTES " & boolean'image(G_CLEAR_INVALID_BYTES) --
         severity NOTE;
 
         assert not (                    -- invalid or not supported parameter combinations
-            (G_PIPELINED and (G_SUBWORD or G_CLEAR_INVALIDS) ) or --
-            (G_CLEAR_INVALIDS and not G_SUBWORD) --
+            (G_PIPELINED and (G_SUBWORD or G_CLEAR_INVALID_BYTES) ) or --
+            (G_CLEAR_INVALID_BYTES and not G_SUBWORD) --
         )
         report "Parameter combination is not supported!"
         severity FAILURE;
 
         --==================================== GEN_SPLIT_SIN ====================================--
         GEN_SPLIT_SIN : for i in sin_data_arr'range generate
-            sin_data_arr(i) <= sin_data((i + 1) * G_IN_W - 1 downto i * G_IN_W);
+            sin_data_arr(i) <= sin_data_clr((i + 1) * G_IN_W - 1 downto i * G_IN_W);
         end generate;
 
         --==================================== GEN_PIPELINED ====================================--
@@ -231,10 +251,10 @@ begin
                     pout_array(ch)(i) <= and_mask(valids(i), data(ch)(i)) or --
                                          and_mask(marker(i), sin_data_arr(ch));
                 end generate;
-                GEN_CLEAR_INVALIDS : if G_CLEAR_INVALIDS generate
+                GEN_CLEAR_INVALIDS : if G_CLEAR_INVALID_BYTES generate
                     pout_array(ch)(BUFF_WORDS) <= and_mask(marker(BUFF_WORDS), sin_data_arr(ch));
                 end generate GEN_CLEAR_INVALIDS;
-                GEN_NOT_CLEAR_INVALIDS : if not G_CLEAR_INVALIDS generate -- else generate
+                GEN_NOT_CLEAR_INVALIDS : if not G_CLEAR_INVALID_BYTES generate -- else generate
                     pout_array(ch)(BUFF_WORDS) <= sin_data_arr(ch);
                 end generate GEN_NOT_CLEAR_INVALIDS;
             end generate;
@@ -256,7 +276,7 @@ begin
                 end generate GEN_NOT_BIGENDIAN;
             end generate GEN_POUT_KEEP;
 
-            GEN_CLEAR_INVALIDS : if G_SUBWORD and G_CLEAR_INVALIDS generate
+            GEN_CLEAR_INVALIDS : if G_SUBWORD and G_CLEAR_INVALID_BYTES generate
                 process(marker) is
                     variable any_marker : std_logic_vector(0 to BUFF_WORDS - 1);
                 begin
@@ -268,7 +288,7 @@ begin
                     valids <= any_marker;
                 end process;
             end generate GEN_CLEAR_INVALIDS;
-            GEN_NOT_CLEAR_INVALIDS : if not G_SUBWORD or not G_CLEAR_INVALIDS generate -- else generate
+            GEN_NOT_CLEAR_INVALIDS : if not G_SUBWORD or not G_CLEAR_INVALID_BYTES generate -- else generate
                 valids <= not marker(0 to BUFF_WORDS - 1);
             end generate GEN_NOT_CLEAR_INVALIDS;
             sin_ready_o <= pout_ready = '1' or (sin_last /= '1' and not is_full);

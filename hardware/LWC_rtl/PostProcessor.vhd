@@ -92,7 +92,6 @@ architecture RTL of PostProcessor is
    signal nx_state                               : t_state;
    -- PRE VHDL-2008 COMPATIBILITY: readable temporaries assigned to output ports
    signal cmd_ready_o, do_valid_o                : std_logic;
-   signal bdo_cleared                            : std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
    signal bdo_valid_p, bdo_ready_p, bdo_last_p   : std_logic;
    signal bdo_data_p                             : std_logic_vector(PDI_SHARES * W - 1 downto 0);
    signal bdo_valid_bytes_p                      : std_logic_vector(W / 8 - 1 downto 0);
@@ -125,28 +124,28 @@ begin
    -- optimized out if CCW=W
    bdoSIPO : entity work.SIPO
       generic map(
-         G_IN_W           => CCW,
-         G_N              => W / CCW,
-         G_CHANNELS       => PDI_SHARES,
-         G_ASYNC_RSTN     => ASYNC_RSTN,
-         G_BIGENDIAN      => TRUE,
-         G_PIPELINED      => FALSE,     -- TODO
-         G_SUBWORD        => TRUE,
-         G_CLEAR_INVALIDS => TRUE
+         G_IN_W                => CCW,
+         G_N                   => W / CCW,
+         G_CHANNELS            => PDI_SHARES,
+         G_ASYNC_RSTN          => ASYNC_RSTN,
+         G_BIGENDIAN           => TRUE,
+         G_PIPELINED           => FALSE, -- TODO
+         G_SUBWORD             => TRUE,
+         G_CLEAR_INVALID_BYTES => TRUE
       )
       port map(
          clk        => clk,
          rst        => rst,
          -- serial input (CCW)
-         sin_data   => bdo_cleared,
-         sin_last   => bdo_last,
+         sin_data   => bdo_data,
          sin_keep   => bdo_valid_bytes,
+         sin_last   => bdo_last,
          sin_valid  => bdo_valid,
          sin_ready  => bdo_ready,
          -- parallel output (W)
          pout_data  => bdo_data_p,
-         pout_last  => bdo_last_p,
          pout_keep  => bdo_valid_bytes_p,
+         pout_last  => bdo_last_p,
          pout_valid => bdo_valid_p,
          pout_ready => bdo_ready_p
       );
@@ -193,7 +192,7 @@ begin
       seglen <= seglen_msb8 & hdr_seglen;
    end generate;
    WNOT8_GEN : if W /= 8 generate
-      seglen <= cmd_hdr_seglen;
+      seglen <= cmd_hdr_seglen(seglen'range);
    end generate;
 
    --===========================================================================================--
@@ -259,7 +258,6 @@ begin
    cmd_fire             <= cmd_valid = '1' and cmd_ready_o = '1';
    bdo_p_fire           <= bdo_valid_p = '1' and bdo_ready_p = '1';
    -- set non-valid bytes to zero
-   bdo_cleared          <= clear_invalid_bytes(bdo_data, bdo_valid_bytes);
    -- TODO avoid recomparison to zero by including a seglen_is_zero in cmd from PreProcessor
    -- NOTE: The following optimization needs to be changed if other operations are added
    -- possibilities: INST_HASH ("1000"), INST_DEC  ("0011"), or INST_DEC ("0010")
