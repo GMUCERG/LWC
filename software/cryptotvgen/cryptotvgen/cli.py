@@ -11,11 +11,12 @@ import os
 import sys
 import errno
 import pathlib
+from typing import Optional
 
 
 ## validation can only be safely done when all args are parsed and stored!
 
-def run_cryptotvgen(args=sys.argv[1:], logfile='cryptotvgen.log'):
+def run_cryptotvgen(args=sys.argv[1:], logfile: Optional[str]='cryptotvgen.log'):
     # Parse options
     parser = get_parser()
     opts = parser.parse_args(args)
