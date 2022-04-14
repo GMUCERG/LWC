@@ -2,7 +2,7 @@ name = "dummy_lwc_w32_ccw8"
 description = "Implementation of the dummy_lwc cipher and hash with W=32 and CCW=8"
 
 [language]
-vhdl.standard = "2002"
+vhdl.standard = "2008"
 vhdl.synopsys = false
 
 [rtl]

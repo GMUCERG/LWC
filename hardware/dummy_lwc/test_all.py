@@ -13,7 +13,6 @@ from xeda import Design
 from xeda.flow_runner import DefaultRunner
 from xeda.flows import GhdlSim, Yosys
 
-logging.getLogger().setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -23,7 +22,7 @@ xeda_runner = DefaultRunner()
 script_dir = Path(__file__).parent.resolve()
 print(f"script_dir={script_dir}")
 
-ghdl_setting_overrides = {
+ghdl_setting = {
     "warn_flags": [
         "-Wno-runtime-error",
         "--warn-binding",
@@ -67,18 +66,19 @@ def gen_tv(
     w: int,
     blocks_per_segment: Optional[int],
     dest_dir: Union[str, os.PathLike],
-    aead: str,
-    hash: str,
+    aead_alg: str,
+    hash_alg: str,
     bench: bool,
 ):
+    """generate testvectors using cryptotvgen"""
     args = [
         "--candidates_dir",
         str(tvgen_cand_dir),
         # '--lib_path', str(tvgen_cand_dir / 'lib'),
         "--aead",
-        aead,
+        aead_alg,
         "--hash",
-        hash,
+        hash_alg,
         "--io",
         str(w),
         str(w),
@@ -134,6 +134,7 @@ def get_lang(file: str):
 
 
 def gen_from_template(orig_filename, gen_filename, changes):
+    """create a modified version of orig_filename baseon regex changes"""
     with open(orig_filename, "r") as orig:
         content = orig.read()
         for old, repl in changes:
@@ -143,6 +144,7 @@ def gen_from_template(orig_filename, gen_filename, changes):
 
 
 def measure_timing(design: Design, kat_dir: Path):
+    """measure number of cycles for different operations and input sizes"""
     design = deepcopy(design)  # passed by reference, don't change the original
     w = 32
     ccw = 32
@@ -213,10 +215,11 @@ def measure_timing(design: Design, kat_dir: Path):
         )
         writer.writeheader()
         writer.writerows(results)
-    logger.info(f"Timing results written to {results_file}")
+    logger.info("Timing results written to %s", results_file)
 
 
 def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
+    """generate modified sources and run test(s)"""
     # TODO find in design.rtl.sources
     orig_design_pkg = None
     orig_lwc_config = None
@@ -268,11 +271,19 @@ def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
             if f.file.resolve().samefile(orig):
                 return replace_files_map[orig]
         return f
+
     lwc = design.dict().get("lwc")
     assert lwc
-    gen_tv(w, 2 if ms else None, kat_dir, lwc["aead"]["algorithm"], lwc["hash"]["algorithm"], bench)
+    gen_tv(
+        w,
+        2 if ms else None,
+        kat_dir,
+        lwc["aead"]["algorithm"],
+        lwc["hash"]["algorithm"],
+        bench,
+    )
     design = deepcopy(design)
-    design.rtl.sources = [replace_file(f) for f in design.rtl.sources]
+    design.rtl.sources = [replace_file(f) for f in design.rtl.sources]  # type: ignore
 
     design.language.vhdl.standard = vhdl_std
     design.name = (
@@ -291,16 +302,20 @@ def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
         "G_RANDOM_STALL": True,
     }
 
-    f = xeda_runner.run_flow(GhdlSim, design, flow_settings=ghdl_setting_overrides)
+    f = xeda_runner.run_flow(GhdlSim, design, ghdl_setting)
     assert f.results["success"]
 
 
 def synth_test(design):
-    f = xeda_runner.run_flow(Yosys, design, {"fpga": {"vendor": "xilinx", "family": "xc7"}})
+    """synthesize using Yosys"""
+    f = xeda_runner.run_flow(
+        Yosys, design, {"fpga": {"vendor": "xilinx", "family": "xc7"}}
+    )
     assert f.results["success"]
 
 
-def test_all():
+def test_all(args=None):
+    """main entry"""
     design = Design.from_toml(script_dir / "dummy_lwc_w32_ccw32.toml")
     try:
         synth_test(design)
@@ -314,7 +329,7 @@ def test_all():
 
     param_variants = [(32, 32), (32, 16), (32, 8), (16, 16), (8, 8)]
 
-    for vhdl_std in ["08", "02"]:
+    for vhdl_std in ["08"]:  # , '02']: # FIXME
         for ms in [False, True]:
             for w, ccw in param_variants:
                 for async_rstn in [False, True]:
@@ -328,4 +343,4 @@ if __name__ == "__main__":
     args = argparser.parse_args()
     if args.build_libs:
         build_libs()
-    test_all(**args)
+    test_all(args)

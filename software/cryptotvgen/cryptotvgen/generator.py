@@ -1301,8 +1301,8 @@ def timing_tests(opts, n=4):
                     (nk, dec,           0, (n+1) * mbs, False,  True),
                     (nk, dec,     n * abs,           0, False, False),
                     (nk, dec, (n+1) * abs,           0, False,  True),
-                    # (nk, dec, n * abs,         n * mbs, False, False),
-                    # (nk, dec, (n+1) * abs, (n+1) * mbs, False,  True),
+                    (nk, dec, n * abs,         n * mbs, False, False),
+                    (nk, dec, (n+1) * abs, (n+1) * mbs, False,  True),
                 ]
             ret += [
                 (nk, dec,    0,   16, False, False),

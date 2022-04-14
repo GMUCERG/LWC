@@ -22,7 +22,7 @@ jobs:
       run: |
         python3 -m pip install --upgrade setuptools
         cd software/cryptotvgen && python3 -m pip install --upgrade . && cd ../..
-        python3 -m pip install --upgrade git+https://github.com/XedaHQ/xeda.git@v0.1.0-alpha.2
+        python3 -m pip install --upgrade xeda==0.1.0a10
     - name: dummy core test_all
       run: |
         cd hardware/dummy_lwc && python3 ./test_all.py
