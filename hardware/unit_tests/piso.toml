@@ -1,0 +1,14 @@
+name = 'PISO'
+language.vhdl.standard = "1993"
+
+[rtl]
+sources = ['PISO.vhd']
+top = 'PISO'
+clock_port = 'clk'
+# parameters = { G_OUT_W = 8, G_N = 4, G_CHANNELS = 2, G_BIGENDIAN = true, G_SUBWORD=false }
+# parameters = { G_OUT_W = 32, G_N = 5, G_CHANNELS = 3, G_BIGENDIAN = true, G_SUBWORD=false }
+parameters = { G_OUT_W = 32, G_N = 4, G_CHANNELS = 2, G_BIGENDIAN = true, G_SUBWORD=true }
+
+[tb]
+sources = ['tb_piso.py']
+cocotb = true

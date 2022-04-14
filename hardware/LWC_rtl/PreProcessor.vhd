@@ -86,40 +86,46 @@ architecture PreProcessor of PreProcessor is
    constant SW_S         : positive := SDI_SHARES * SW;
 
    --========================================== Types ==========================================--
-   type t_state is (S_INST, S_INST_KEY, S_HDR_KEY, S_LD_KEY, S_HDR, S_LD, S_LD_EMPTY);
-
+   type t_state is (S_INST, S_INST_KEY, S_SDI_HDR, S_SDI_KEY, S_PDI_HDR, S_PDI_DATA, S_EMPTY_DATA);
    --======================================= Registers =========================================--
-   signal state                         : t_state; -- FSM state
-   signal seglen_counter                : unsigned(SEGLEN_BITS - 1 downto 0);
-   signal eoi_flag, eot_flag, last_flag : std_logic;
-   signal decrypt_op, hash_op           : boolean;
-   signal hdr_type                      : std_logic_vector(bdi_type'range);
-
+   signal state                            : t_state; -- FSM state
+   signal seglen_counter                   : unsigned(SEGLEN_BITS - 1 downto 0);
+   signal eoi_flag, eot_flag, last_flag    : std_logic;
+   signal decrypt_op, hash_op              : boolean;
+   signal hdr_type                         : std_logic_vector(bdi_type'range);
    --========================================= Wires ===========================================--
-   signal bdi_eoi_p, bdi_eot_p     : std_logic;
+   signal bdi_type_p, bdi_type_s           : std_logic_vector(bdi_type'range);
+   signal bdi_eoi_p, bdi_eot_p             : std_logic;
+   signal bdi_eoi_s, bdi_eot_s             : std_logic;
    -- for reading 'out' ports in VHDL < 2008
-   signal pdi_ready_o, sdi_ready_o : std_logic;
-   signal bdi_valid_p, bdi_ready_p : std_logic;
-   signal key_valid_p, key_ready_p : std_logic;
-   signal bdi_size_p               : std_logic_vector(2 downto 0);
-   signal bdi_pad_loc_p            : std_logic_vector(W / 8 - 1 downto 0);
-   signal op_is_actkey, op_is_hash : boolean;
+   signal pdi_ready_o, sdi_ready_o         : std_logic;
+   signal bdi_valid_p, bdi_ready_p         : std_logic;
+   signal key_valid_p, key_ready_p         : std_logic;
+   signal key_update_p                     : std_logic;
+   signal hash_s, decrypt_s                : std_logic;
+   signal key_valid_s                      : std_logic;
+   signal bdi_last_s, bdi_valid_s          : std_logic;
+   --! always 3 bits
+   signal bdi_size_p, bdi_size_s           : std_logic_vector(2 downto 0);
+   signal op_is_actkey, op_is_hash         : boolean;
    -- If the current PDI input is a part of a segment header, it's the first (last) word of it
    -- NOTE: hdr_first/hdr_last are not always mutually exclusive, e.g. W=32
-   signal hdr_first, hdr_last      : boolean;
-   signal reading_pdi_hdr          : boolean;
-   signal reading_sdi_hdr          : boolean;
-   signal pdi_fire, sdi_fire       : boolean; -- fire = valid AND ready
-   signal seglen                   : std_logic_vector(SEGLEN_BITS - 1 downto 0);
-   signal hdr_seglen               : std_logic_vector(HDR_LEN_BITS - 1 downto 0);
-   signal seglen_is_zero           : boolean;
-   signal last_flit_of_segment     : boolean;
-   signal relay_hdr_to_postproc    : boolean;
-   signal bdi_valid_bytes_p        : std_logic_vector(W / 8 - 1 downto 0);
-   signal nx_state                 : t_state; -- next FSM state
-   signal cur_hdr_last             : std_logic;
+   signal hdr_first, hdr_last              : boolean;
+   signal reading_pdi_hdr                  : boolean;
+   signal reading_sdi_hdr                  : boolean;
+   signal pdi_fire, sdi_fire               : boolean; -- fire = valid AND ready
+   signal seglen                           : std_logic_vector(SEGLEN_BITS - 1 downto 0);
+   signal hdr_seglen                       : std_logic_vector(HDR_LEN_BITS - 1 downto 0);
+   signal seglen_is_zero                   : boolean;
+   signal last_flit_of_segment             : std_logic;
+   signal relay_hdr_to_postproc            : boolean;
+   signal bdi_valid_bytes_p, bdi_pad_loc_p : std_logic_vector(W / 8 - 1 downto 0);
+   signal bdi_valid_bytes_s, bdi_pad_loc_s : std_logic_vector(CCW / 8 - 1 downto 0);
+   signal nx_state                         : t_state; -- next FSM state
+   signal cur_hdr_last                     : std_logic;
+
    --! for simulation only
-   signal received_wrong_header    : boolean;
+   signal received_wrong_header : boolean;
 
    --========================================= Aliases =========================================--
    alias pdi_hdr           : std_logic_vector(W - 1 downto 0) is pdi_data(W_S - 1 downto W_S - W);
@@ -136,43 +142,116 @@ architecture PreProcessor of PreProcessor is
 
 begin
    --======================================== Instances ========================================--
-   keyPISO : entity work.KEY_PISO
+   keyPISO : entity work.PISO
+      generic map(
+         G_OUT_W      => CCSW,
+         G_N          => SW / CCSW,
+         G_CHANNELS   => SDI_SHARES,
+         G_SUBWORD    => FALSE,
+         G_ASYNC_RSTN => ASYNC_RSTN,
+         G_BIGENDIAN  => TRUE
+      )
       port map(
-         clk          => clk,
-         rst          => rst,
+         clk         => clk,
+         rst         => rst,
          -- PISO Input
-         data_p       => sdi_data,
-         data_valid_p => key_valid_p,
-         data_ready_p => key_ready_p,
+         p_in_data   => sdi_data,
+         p_in_keep   => (others => '-'),
+         p_in_last   => '0',
+         p_in_valid  => key_valid_p,
+         p_in_ready  => key_ready_p,
          -- PISO Output
-         data_s       => key_data,
-         data_valid_s => key_valid,
-         data_ready_s => key_ready
+         s_out_data  => key_data,
+         s_out_keep  => open,
+         s_out_last  => open,
+         s_out_valid => key_valid_s,
+         s_out_ready => key_ready
       );
 
-   bdiPISO : entity work.DATA_PISO
+   bdiPISO : entity work.PISO
+      generic map(
+         G_OUT_W      => CCW,
+         G_N          => W / CCW,
+         G_CHANNELS   => PDI_SHARES,
+         G_SUBWORD    => TRUE,
+         G_ASYNC_RSTN => ASYNC_RSTN,
+         G_BIGENDIAN  => TRUE
+      )
       port map(
-         clk           => clk,
-         rst           => rst,
-         -- PISO Input
-         data_p        => pdi_data,
-         valid_bytes_p => bdi_valid_bytes_p,
-         data_size_p   => bdi_size_p,
-         pad_loc_p     => bdi_pad_loc_p,
-         eot_p         => bdi_eot_p,
-         eoi_p         => bdi_eoi_p,
-         data_valid_p  => bdi_valid_p,
-         data_ready_p  => bdi_ready_p,
-         -- PISO Output
-         data_s        => bdi_data,
-         valid_bytes_s => bdi_valid_bytes,
-         data_size_s   => bdi_size,
-         pad_loc_s     => bdi_pad_loc,
-         eot_s         => bdi_eot,
-         eoi_s         => bdi_eoi,
-         data_valid_s  => bdi_valid,
-         data_ready_s  => bdi_ready
+         clk         => clk,
+         rst         => rst,
+         -- Parallel Input
+         p_in_data   => pdi_data,
+         p_in_keep   => bdi_valid_bytes_p,
+         p_in_last   => last_flit_of_segment,
+         p_in_valid  => bdi_valid_p,
+         p_in_ready  => bdi_ready_p,
+         -- Serial Output
+         s_out_data  => bdi_data,
+         s_out_keep  => bdi_valid_bytes_s,
+         s_out_last  => bdi_last_s,
+         s_out_valid => bdi_valid_s,
+         s_out_ready => bdi_ready
       );
+
+   GEN_W_EQ_CCW : if W = CCW generate
+      bdi_eot_s     <= bdi_eot_p;
+      bdi_eoi_s     <= bdi_eoi_p;
+      bdi_size_s    <= bdi_size_p;
+      bdi_pad_loc_s <= bdi_pad_loc_p;
+      bdi_type_s    <= bdi_type_p;
+      decrypt_s     <= to_std_logic(decrypt_op);
+      hash_s        <= to_std_logic(hash_op);
+      key_update    <= key_update_p;
+   end generate;
+
+   GEN_W_GT_CCW : if W > CCW generate
+      type T_AUX_DATA is record
+         eot, eoi, decrypt, hash : std_logic;
+         typ                     : std_logic_vector(bdi_type'range);
+      end record;
+      signal aux_data_store : T_AUX_DATA;
+   begin
+      process(clk)
+      begin
+         if rising_edge(clk) then
+            if bdi_valid_p = '1' and bdi_ready_p = '1' then
+               aux_data_store <= (
+                  eot     => bdi_eot_p,
+                  eoi     => bdi_eoi_p,
+                  typ     => bdi_type_p,
+                  decrypt => to_std_logic(decrypt_op),
+                  hash    => to_std_logic(hash_op)
+               );
+            end if;
+            if (key_valid_p and key_ready_p) = '1' or (key_valid_s and key_ready) = '1' then
+               key_update <= key_update_p;
+            end if;
+         end if;
+      end process;
+      bdi_eot_s  <= aux_data_store.eot and bdi_last_s;
+      bdi_eoi_s  <= aux_data_store.eoi and bdi_last_s;
+      bdi_type_s <= aux_data_store.typ;
+      decrypt_s  <= aux_data_store.decrypt;
+      hash_s     <= aux_data_store.hash;
+
+      process(bdi_valid_bytes_s)
+         variable t_pad_loc : std_logic_vector(bdi_pad_loc_s'range);
+         variable t_size    : natural;
+      begin
+         t_pad_loc := (others => '0');
+         t_size    := bdi_valid_bytes'length;
+         for i in 0 to CCW / 8 - 1 loop -- valid_bytes are bigendian!
+            if bdi_valid_bytes_s(CCW / 8 - 1 - i) = '0' then -- first zero from left
+               t_pad_loc(CCW / 8 - 1 - i) := '1';
+               t_size                     := i;
+               exit;
+            end if;
+         end loop;
+         bdi_size_s    <= std_logic_vector(to_unsigned(t_size, bdi_size_s'length));
+         bdi_pad_loc_s <= t_pad_loc;
+      end process;
+   end generate;
 
    --===========================================================================================--
    --================================ Width-specific generation ================================--
@@ -279,19 +358,19 @@ begin
                   end if;
                end if;
 
-            when S_HDR_KEY =>
+            when S_SDI_HDR =>
                if sdi_fire then
                   if hdr_last then
                      seglen_counter <= unsigned(seglen);
                   end if;
                end if;
 
-            when S_LD_KEY =>
-               if sdi_fire then
+            when S_SDI_KEY | S_PDI_DATA =>
+               if sdi_fire or pdi_fire then
                   seglen_counter_hi <= seglen_counter_hi - 1;
                end if;
 
-            when S_HDR =>
+            when S_PDI_HDR =>
                if pdi_fire then
                   if hdr_first then
                      eoi_flag  <= pdi_hdr_eoi;
@@ -302,11 +381,6 @@ begin
                   if hdr_last then
                      seglen_counter <= unsigned(seglen);
                   end if;
-               end if;
-
-            when S_LD =>
-               if pdi_fire then
-                  seglen_counter_hi <= seglen_counter_hi - 1;
                end if;
 
             when others =>
@@ -322,8 +396,10 @@ begin
    end process;
 
    --===========================================================================================--
-   last_flit_of_segment <= is_zero(seglen_counter_hi(seglen_counter_hi'length - 1 downto 1)) and --
-                           (seglen_counter_hi(0) = '0' or is_zero(seglen_counter_lo));
+   last_flit_of_segment <= to_std_logic(
+      is_zero(seglen_counter_hi(seglen_counter_hi'length - 1 downto 1)) and --
+      (seglen_counter_hi(0) = '0' or is_zero(seglen_counter_lo))
+   );
 
    -- bdi number of valid bytes as a binary integer
    bdi_size_p <= std_logic_vector(resize(seglen_counter_hi(0) & seglen_counter_lo, bdi_size_p'length)) when last_flit_of_segment else --
@@ -335,55 +411,68 @@ begin
 
    pdi_fire  <= pdi_valid = '1' and pdi_ready_o = '1';
    sdi_fire  <= sdi_valid = '1' and sdi_ready_o = '1';
-   bdi_eoi_p <= eoi_flag and to_std_logic(last_flit_of_segment);
-   bdi_eot_p <= eot_flag and to_std_logic(last_flit_of_segment);
+   bdi_eoi_p <= eoi_flag and last_flit_of_segment;
+   bdi_eot_p <= eot_flag and last_flit_of_segment;
 
    op_is_actkey   <= pdi_hdr_type = INST_ACTKEY;
    op_is_hash     <= pdi_hdr_type(3) = '1'; -- INST_HASH
    hdr_seglen     <= sdi_hdr_seglen when reading_sdi_hdr else pdi_hdr_seglen;
    seglen_is_zero <= is_zero(seglen);
 
-   decrypt   <= to_std_logic(decrypt_op);
-   hash      <= to_std_logic(hash_op);
-   pdi_ready <= pdi_ready_o;
-   sdi_ready <= sdi_ready_o;
-   cmd_data  <= pdi_hdr;
-   bdi_type  <= hdr_type;
+   pdi_ready  <= pdi_ready_o;
+   sdi_ready  <= sdi_ready_o;
+   cmd_data   <= pdi_hdr;
+   bdi_type_p <= hdr_type;
+   key_valid  <= key_valid_s;
 
-   --===========================================================================================--
+   --============================================================================================--
    --= When using VHDL 2008+ change to
    -- process(all)
-   process(state, pdi_valid, pdi_fire, sdi_hdr, sdi_valid, sdi_fire, key_ready_p, --
-      last_flit_of_segment, cmd_ready, bdi_ready_p, reading_pdi_hdr, reading_sdi_hdr, pdi_hdr, --
-      seglen_is_zero, hdr_first, hdr_last, op_is_actkey, last_flag, hash_op, cur_hdr_last, --
-      relay_hdr_to_postproc)
+   process(state, pdi_valid, pdi_fire, sdi_hdr, sdi_valid, sdi_fire, key_ready_p, bdi_eot_s, --
+      last_flit_of_segment, cmd_ready, bdi_ready_p, reading_pdi_hdr, reading_sdi_hdr, bdi_type_p, --
+      seglen_is_zero, hdr_first, hdr_last, op_is_actkey, last_flag, bdi_valid_bytes_p, hash_s, --
+      relay_hdr_to_postproc, bdi_valid_s, bdi_ready, bdi_valid_bytes_s, decrypt_op, bdi_eot_p, --
+      bdi_size_s, bdi_eoi_s, bdi_pad_loc_s, bdi_type_s, bdi_eoi_p, decrypt_s, bdi_pad_loc_p, --
+      hash_op, bdi_size_p, cur_hdr_last)
    begin
       -- Default Values
       sdi_ready_o           <= to_std_logic(reading_sdi_hdr);
       pdi_ready_o           <= to_std_logic(reading_pdi_hdr);
       key_valid_p           <= '0';
-      key_update            <= '0';
+      key_update_p          <= '0';
       bdi_valid_p           <= '0';
-      cmd_valid             <= '0';
       reading_pdi_hdr       <= false;
       reading_sdi_hdr       <= false;
-      -- default input of registers: feedback of their current values
+      --! default input of registers: feedback of their current values
       nx_state              <= state;
-      -- for simulation only
+      cmd_valid             <= '0';
+      bdi_valid             <= bdi_valid_s;
+      bdi_valid_bytes       <= bdi_valid_bytes_s;
+      hash                  <= hash_s;
+      decrypt               <= decrypt_s;
+      bdi_eot               <= bdi_eot_s;
+      bdi_eoi               <= bdi_eoi_s;
+      bdi_size              <= bdi_size_s;
+      bdi_pad_loc           <= bdi_pad_loc_s;
+      bdi_type              <= bdi_type_s;
+      --! for simulation only:
       received_wrong_header <= false;
 
       -- TODO: Parallel key loading not currently supported
       case state is
          -- receive PDI instruction
          when S_INST =>
-            cmd_valid   <= pdi_valid and not to_std_logic(op_is_actkey);
-            pdi_ready_o <= cmd_ready or to_std_logic(op_is_actkey);
+            -- When a bdiP=-PISO exists (W != CCW), wait for it to drain. The mux is optimized out when W = CCW.
+            if bdi_valid_s = '0' then
+               cmd_valid   <= pdi_valid and not to_std_logic(op_is_actkey);
+               pdi_ready_o <= cmd_ready or to_std_logic(op_is_actkey);
 
-            if pdi_fire then
-               if op_is_actkey then
-                  nx_state <= S_INST_KEY;
-               else
-                  nx_state <= S_HDR;
+               if pdi_fire then
+                  if op_is_actkey then
+                     nx_state <= S_INST_KEY;
+                  else
+                     nx_state <= S_PDI_HDR;
+                  end if;
                end if;
             end if;
 
@@ -392,34 +481,34 @@ begin
             sdi_ready_o <= '1';
             if sdi_fire then
                received_wrong_header <= sdi_hdr_type /= INST_LDKEY;
-               nx_state              <= S_HDR_KEY;
+               nx_state              <= S_SDI_HDR;
             end if;
 
          -- receive key header from SDI
-         when S_HDR_KEY =>
+         when S_SDI_HDR =>
             reading_sdi_hdr <= true;
             if sdi_fire then
                if hdr_first then
                   received_wrong_header <= sdi_hdr_type /= HDR_KEY;
                end if;
                if hdr_last then
-                  nx_state <= S_LD_KEY;
+                  nx_state <= S_SDI_KEY;
                end if;
             end if;
 
          -- receive key data from SDI
-         when S_LD_KEY =>
-            sdi_ready_o <= key_ready_p;
-            key_valid_p <= sdi_valid;
-            key_update  <= '1';
+         when S_SDI_KEY =>
+            sdi_ready_o  <= key_ready_p;
+            key_valid_p  <= sdi_valid;
+            key_update_p <= '1';
             if sdi_fire then
-               if last_flit_of_segment then
+               if last_flit_of_segment = '1' then
                   nx_state <= S_INST;
                end if;
             end if;
 
          -- Read segment header
-         when S_HDR =>
+         when S_PDI_HDR =>
             reading_pdi_hdr <= true;
             if relay_hdr_to_postproc then
                pdi_ready_o <= cmd_ready;
@@ -430,38 +519,50 @@ begin
                if hdr_last then
                   if seglen_is_zero then -- empty segment
                      if hash_op then
-                        nx_state <= S_LD_EMPTY;
+                        nx_state <= S_EMPTY_DATA;
                      elsif cur_hdr_last = '1' then
                         nx_state <= S_INST;
                      else
-                        nx_state <= S_HDR;
+                        nx_state <= S_PDI_HDR;
                      end if;
                   else
-                     nx_state <= S_LD;
+                     nx_state <= S_PDI_DATA;
                   end if;
                end if;
             end if;
 
          -- Read segment data
-         when S_LD =>
+         when S_PDI_DATA =>
             pdi_ready_o <= bdi_ready_p;
             bdi_valid_p <= pdi_valid;
-            if pdi_fire and last_flit_of_segment then
+            if pdi_fire and last_flit_of_segment = '1' then
                if last_flag = '1' then
                   nx_state <= S_INST;
                else
-                  nx_state <= S_HDR;
+                  nx_state <= S_PDI_HDR;
                end if;
             end if;
 
          -- An empty word is sent to CryptoCore
-         when S_LD_EMPTY =>
-            bdi_valid_p <= '1';
-            if bdi_ready_p = '1' then
-               if last_flag = '1' then  -- generalize
-                  nx_state <= S_INST;
-               else
-                  nx_state <= S_HDR;
+         when S_EMPTY_DATA =>
+            -- if there's a bdiPISO, wait for it to empty
+            -- most of this will optimize out if W = CCW
+            if bdi_valid_s = '0' then
+               bdi_valid       <= '1';
+               hash            <= to_std_logic(hash_op);
+               decrypt         <= to_std_logic(decrypt_op);
+               bdi_valid_bytes <= bdi_valid_bytes_p(W / 8 - 1 downto (W - CCW) / 8); -- MSBs
+               bdi_pad_loc     <= bdi_pad_loc_p(W / 8 - 1 downto (W - CCW) / 8); -- MSBs
+               bdi_size        <= bdi_size_p; -- = 0
+               bdi_eoi         <= bdi_eoi_p;
+               bdi_eot         <= bdi_eot_p; -- = true
+               bdi_type        <= bdi_type_p;
+               if bdi_ready = '1' then
+                  if last_flag = '1' then -- generalize
+                     nx_state <= S_INST;
+                  else
+                     nx_state <= S_PDI_HDR;
+                  end if;
                end if;
             end if;
 

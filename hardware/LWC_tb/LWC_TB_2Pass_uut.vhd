@@ -2,65 +2,66 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 use work.NIST_LWAPI_pkg.all;
-use work.LWC_compatibility_pkg.all;
 
-entity LWC_TB_2pass_uut is
+entity LWC_TB_2Pass_uut is
     generic (
-          G_MAX_SEGMENT_BYTES : integer := 4 * 1024
+        --! Assumed maximum length of input plaintext/ciphertext in bytes, which determines the size of the 2Pass FIFO.
+        --! In a masked 2Pass implementation the actual FIFO size will be PDI_SHARES * G_MAX_SEGMENT_BYTES
+        G_MAX_SEGMENT_BYTES : integer := 4 * 1024
     );
     port (
         clk             : in  std_logic;
         rst             : in  std_logic;
-        pdi_data        : in  std_logic_vector(W-1 downto 0);
+        pdi_data        : in  std_logic_vector(PDI_SHARES * W - 1 downto 0);
         pdi_valid       : in  std_logic;
         pdi_ready       : out std_logic;
-        sdi_data        : in  std_logic_vector(SW-1 downto 0);
+        sdi_data        : in  std_logic_vector(PDI_SHARES * SW - 1 downto 0);
         sdi_valid       : in  std_logic;
         sdi_ready       : out std_logic;
-        do_data         : out std_logic_vector(W-1 downto 0);
+        do_data         : out std_logic_vector(PDI_SHARES * W - 1 downto 0);
         do_ready        : in  std_logic;
         do_valid        : out std_logic;
         do_last         : out std_logic
     );
 end entity;
 
-architecture structural of LWC_TB_2pass_uut is
+architecture structural of LWC_TB_2Pass_uut is
 
     --! fdi/o
-    signal fdi_data             : std_logic_vector(W-1 downto 0);
-    signal fdo_data             : std_logic_vector(W-1 downto 0);
+    signal fdi_data             : std_logic_vector(PDI_SHARES * W - 1 downto 0);
+    signal fdo_data             : std_logic_vector(PDI_SHARES * W - 1 downto 0);
     signal fdi_valid            : std_logic;
     signal fdo_valid            : std_logic;
     signal fdi_ready            : std_logic;
     signal fdo_ready            : std_logic;
 
-    component LWC_2pass
+    component LWC_2Pass
         port (
             clk       : in  std_logic;
             rst       : in  std_logic;
-            pdi_data  : in  std_logic_vector(W - 1 downto 0);
+            pdi_data  : in  std_logic_vector(PDI_SHARES * W - 1 downto 0);
             pdi_valid : in  std_logic;
             pdi_ready : out std_logic;
-            sdi_data  : in  std_logic_vector(SW - 1 downto 0);
+            sdi_data  : in  std_logic_vector(SDI_SHARES * SW - 1 downto 0);
             sdi_valid : in  std_logic;
             sdi_ready : out std_logic;
-            do_data   : out std_logic_vector(W - 1 downto 0);
+            do_data   : out std_logic_vector(PDI_SHARES * W - 1 downto 0);
             do_ready  : in  std_logic;
             do_valid  : out std_logic;
             do_last   : out std_logic;
-            fdi_data  : in  std_logic_vector(W - 1 downto 0);
+            fdi_data  : in  std_logic_vector(PDI_SHARES * W - 1 downto 0);
             fdi_valid : in  std_logic;
             fdi_ready : out std_logic;
-            fdo_data  : out std_logic_vector(W - 1 downto 0);
+            fdo_data  : out std_logic_vector(PDI_SHARES * W - 1 downto 0);
             fdo_valid : out std_logic;
             fdo_ready : in  std_logic
         );
     end component;
 begin
 
-    assert False report "Using LWC_2pass with G_MAX_SEGMENT_BYTES=" & integer'image(G_MAX_SEGMENT_BYTES) severity warning;
+    assert False report "Using LWC_2Pass with G_MAX_SEGMENT_BYTES=" & integer'image(G_MAX_SEGMENT_BYTES) severity warning;
     
-    uut: LWC_2pass
+    uut: LWC_2Pass
         port map(
             clk          => clk,
             rst          => rst,
@@ -84,8 +85,8 @@ begin
 
     twoPassfifo : entity work.FIFO
         generic map(
-            G_W              => W,
-            G_DEPTH          => G_MAX_SEGMENT_BYTES / (W/8)
+            G_W              => PDI_SHARES * W,
+            G_DEPTH          => G_MAX_SEGMENT_BYTES / (W/8) -- G_MAX_SEGMENT_BYTES is the size of each share
         )
         port map(
             clk              => clk,

@@ -1,0 +1,14 @@
+name = 'SIPO'
+language.vhdl.standard = "1993"
+
+[rtl]
+sources = ['SIPO.vhd']
+top = 'SIPO'
+clock_port = 'clk'
+parameters = { G_IN_W = 8, G_N = 4, G_CHANNELS = 2, G_PIPELINED = true, G_SUBWORD = false, G_CLEAR_INVALIDS = false }
+# parameters = { G_IN_W = 16, G_N = 5, G_CHANNELS = 2, G_PIPELINED = false, G_SUBWORD = true, G_CLEAR_INVALIDS = true }
+# parameters = { G_IN_W = 16, G_N = 5, G_CHANNELS = 3, G_PIPELINED = false, G_SUBWORD = true, G_CLEAR_INVALIDS = true }
+
+[tb]
+sources = ['tb_sipo.py']
+cocotb = true

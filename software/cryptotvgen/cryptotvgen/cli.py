@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from typing import Union
 from .generator import gen_dataset, gen_hash, gen_random, gen_single, gen_test_combined, \
          gen_test_routine, print_header, gen_benchmark_routine, gen_tv_and_write_files, determine_params
 from .options import get_parser
@@ -15,7 +16,7 @@ import pathlib
 
 ## validation can only be safely done when all args are parsed and stored!
 
-def run_cryptotvgen(args=sys.argv[1:], logfile='cryptotvgen.log'):
+def run_cryptotvgen(args=sys.argv[1:], logfile: Union[None, str, os.PathLike]='cryptotvgen.log'):
     # Parse options
     parser = get_parser()
     opts = parser.parse_args(args)

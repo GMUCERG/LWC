@@ -11,7 +11,6 @@ from xeda.flow_runner import DefaultRunner
 from xeda.flows import GhdlSim, YosysSynth
 import csv
 
-logging.getLogger().setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -21,7 +20,7 @@ xeda_runner = DefaultRunner()
 script_dir = Path(__file__).parent.resolve()
 print(f'script_dir={script_dir}')
 
-ghdl_setting_overrides = {'warn_flags': [
+ghdl_setting = {'warn_flags': [
     '-Wno-runtime-error',
     '--warn-binding',
     '--warn-default-binding',
@@ -122,20 +121,19 @@ def gen_from_template(orig_filename, gen_filename, changes):
         gen.write(content)
 
 
-def measure_timing(design: Design):
+def measure_timing(design: Design, kat_dir: Path):
     design = deepcopy(design)  # passed by reference, don't change the original
     w = 32
     ccw = 32
     design.name = f"generated_timing_w{w}_ccw{ccw}"
-    kat_dir = Path("generated_tv")
     gen_tv(w, None, kat_dir, design, True)
-    kat_dir = kat_dir / "timing_tests"
+    kat_subdir = kat_dir / "timing_tests"
     timing_report = Path.cwd() / (design.name + "_timing.txt")
     design.tb.parameters = {
         **design.tb.parameters,
-        'G_FNAME_PDI': {'file': kat_dir / 'pdi.txt'},
-        'G_FNAME_SDI': {'file': kat_dir / 'sdi.txt'},
-        'G_FNAME_DO': {'file': kat_dir / 'do.txt'},
+        'G_FNAME_PDI': {'file': kat_subdir / 'pdi.txt'},
+        'G_FNAME_SDI': {'file': kat_subdir / 'sdi.txt'},
+        'G_FNAME_DO': {'file': kat_subdir / 'do.txt'},
         'G_FNAME_TIMING': str(timing_report),
         'G_TEST_MODE': 4
     }
@@ -154,7 +152,7 @@ def measure_timing(design: Design):
             if len(kv) == 2:
                 msg_cycles[kv[0]] = int(kv[1])
     results: List[Mapping[str, Union[int, str]]] = []
-    with open(kat_dir / "timing_tests.csv") as f:
+    with open(kat_subdir / "timing_tests.csv") as f:
         reader = csv.DictReader(f)
         for row in reader:
             msgid = row['msgId']
@@ -223,7 +221,7 @@ def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
                            f'\\g<1>{async_rstn}\\g<2>')
                       ]
                       )
-    bench = w == ccw and not async_rstn and vhdl_std == "08" and not ms
+    bench = not async_rstn and vhdl_std == "08"
     logger.info(
         f'*** Testing VHDL:20{vhdl_std} multi-segment:{ms} W:{w} CCW:{ccw} ASYNC_RSTN:{async_rstn} benchmark-KATs:{bench} ***'
     )
@@ -273,7 +271,7 @@ def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
     }
 
     f = xeda_runner.run_flow(
-        GhdlSim, design, setting_overrides=ghdl_setting_overrides
+        GhdlSim, design, ghdl_setting
     )
     assert f.results['success']
 
@@ -300,7 +298,7 @@ def test_all():
     )
     assert f.results['success']
 
-    measure_timing(design)
+    measure_timing(design, gen_tv_subfolder / f"{design.name}_measure")
 
     param_variants = [(32, 32), (32, 16), (32, 8), (16, 16), (8, 8)]
 

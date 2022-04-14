@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
---! @file       LWC_2pass.vhd
---! @brief      LWC_2pass top level file
+--! @file       LWC_2Pass.vhd
+--! @brief      LWC_2Pass top level file
 --! @copyright  Copyright (c) 2021 Cryptographic Engineering Research Group
 --!             ECE Department, George Mason University Fairfax, VA, U.S.A.
 --!             All rights Reserved.
@@ -24,45 +24,90 @@ use ieee.std_logic_1164.all;
 use work.design_pkg.all;
 use work.NIST_LWAPI_pkg.all;
 
-entity LWC_2pass is
+entity LWC_2Pass is
     port(
         --! Global ports
         clk       : in  std_logic;
         rst       : in  std_logic;
         --! Public data ports
-        pdi_data  : in  std_logic_vector(W - 1 downto 0);
+        pdi_data  : in  std_logic_vector(PDI_SHARES * W - 1 downto 0);
         pdi_valid : in  std_logic;
         pdi_ready : out std_logic;
         --! Secret data ports
-        sdi_data  : in  std_logic_vector(SW - 1 downto 0);
+        sdi_data  : in  std_logic_vector(SDI_SHARES * SW - 1 downto 0);
         sdi_valid : in  std_logic;
         sdi_ready : out std_logic;
         --! Data out ports
-        do_data   : out std_logic_vector(W - 1 downto 0);
+        do_data   : out std_logic_vector(PDI_SHARES * W - 1 downto 0);
         do_ready  : in  std_logic;
         do_valid  : out std_logic;
         do_last   : out std_logic;
         --! Tow-pass FIFO interface
-        fdi_data  : in  std_logic_vector(W - 1 downto 0);
+        fdi_data  : in  std_logic_vector(PDI_SHARES * W - 1 downto 0);
         fdi_valid : in  std_logic;
         fdi_ready : out std_logic;
-        fdo_data  : out std_logic_vector(W - 1 downto 0);
+        fdo_data  : out std_logic_vector(PDI_SHARES * W - 1 downto 0);
         fdo_valid : out std_logic;
         fdo_ready : in  std_logic
     );
-end LWC_2pass;
+end LWC_2Pass;
 
-architecture structure of LWC_2pass is
-
+architecture structure of LWC_2Pass is
+    component CryptoCore_2Pass
+        port(
+            clk             : in  std_logic;
+            rst             : in  std_logic;
+            --! Key Input
+            key             : in  std_logic_vector(SDI_SHARES * CCSW - 1 downto 0);
+            key_valid       : in  std_logic;
+            key_ready       : out std_logic;
+            --! new key
+            -- kept high for the entire duration of key input operation:
+            key_update      : in  std_logic;
+            --! Data Input
+            bdi             : in  std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
+            bdi_valid       : in  std_logic;
+            bdi_ready       : out std_logic;
+            bdi_pad_loc     : in  std_logic_vector(CCW / 8 - 1 downto 0);
+            bdi_valid_bytes : in  std_logic_vector(CCW / 8 - 1 downto 0);
+            bdi_size        : in  std_logic_vector(3 - 1 downto 0);
+            bdi_eot         : in  std_logic;
+            bdi_eoi         : in  std_logic;
+            bdi_type        : in  std_logic_vector(4 - 1 downto 0);
+            -- kept stable for the entire duration of data input operation:
+            decrypt_in      : in  std_logic;
+            hash_in         : in  std_logic;
+            --! Data Output
+            bdo             : out std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
+            bdo_valid       : out std_logic;
+            bdo_ready       : in  std_logic;
+            bdo_type        : out std_logic_vector(4 - 1 downto 0);
+            bdo_valid_bytes : out std_logic_vector(CCW / 8 - 1 downto 0);
+            --! The last word of BDO of the currect outout type (i.e., "bdo_eot")
+            end_of_block    : out std_logic;
+            --! Tag authentication
+            msg_auth_valid  : out std_logic;
+            msg_auth_ready  : in  std_logic;
+            msg_auth        : out std_logic;
+            --! Two-Pass-FIFO
+            -----------------------------------------------------------------------
+            fdi_data        : in  std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
+            fdi_valid       : in  std_logic;
+            fdi_ready       : out std_logic;
+            fdo_data        : out std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
+            fdo_valid       : out std_logic;
+            fdo_ready       : in  std_logic
+        );
+    end component;
     --==========================================================================
     --!Cipher
     --==========================================================================
     ------!Pre-Processor to Cipher (Key PISO)
-    signal key_cipher_in              : std_logic_vector(CCSW - 1 downto 0);
+    signal key_cipher_in              : std_logic_vector(SDI_SHARES * CCSW - 1 downto 0);
     signal key_valid_cipher_in        : std_logic;
     signal key_ready_cipher_in        : std_logic;
     ------!Pre-Processor to Cipher (DATA PISO)
-    signal bdi_cipher_in              : std_logic_vector(CCW - 1 downto 0);
+    signal bdi_cipher_in              : std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
     signal bdi_valid_cipher_in        : std_logic;
     signal bdi_ready_cipher_in        : std_logic;
     --
@@ -76,7 +121,7 @@ architecture structure of LWC_2pass is
     signal hash_cipher_in             : std_logic;
     signal key_update_cipher_in       : std_logic;
     ------!Cipher(DATA SIPO) to Post-Processor
-    signal bdo_cipher_out             : std_logic_vector(CCW - 1 downto 0);
+    signal bdo_cipher_out             : std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
     signal bdo_valid_cipher_out       : std_logic;
     signal bdo_ready_cipher_out       : std_logic;
     ------!Cipher to Post-Processor
@@ -86,17 +131,20 @@ architecture structure of LWC_2pass is
     signal msg_auth_valid             : std_logic;
     signal msg_auth_ready             : std_logic;
     signal msg_auth                   : std_logic;
+    signal cc_fdi_valid, cc_fdo_valid : std_logic;
+    signal cc_fdi_ready, cc_fdo_ready : std_logic;
+    signal cc_fdi_data, cc_fdo_data   : std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
     --==========================================================================
 
     --==========================================================================
     --!FIFO
     --==========================================================================
     ------!Pre-Processor to FIFO
-    signal cmd_FIFO_in        : std_logic_vector(W - 1 downto 0);
+    signal cmd_FIFO_in        : std_logic_vector(PDI_SHARES * W - 1 downto 0);
     signal cmd_valid_FIFO_in  : std_logic;
     signal cmd_ready_FIFO_in  : std_logic;
     ------!FIFO to Post_Processor
-    signal cmd_FIFO_out       : std_logic_vector(W - 1 downto 0);
+    signal cmd_FIFO_out       : std_logic_vector(PDI_SHARES * W - 1 downto 0);
     signal cmd_valid_FIFO_out : std_logic;
     signal cmd_ready_FIFO_out : std_logic;
     --==========================================================================
@@ -104,22 +152,22 @@ architecture structure of LWC_2pass is
 begin
 
     -- Width parameters sanity checks
-    -- See 'Implementer’s Guide to Hardware Implementations Compliant with the Hardware API for LWC_2pass', sec. 4.3:
+    -- Please see "Implementer's Guide to Hardware Implementations", sec. 4.3 for more information
     -- "The following combinations (w, ccw) are supported in the current version
     --   of the Development Package: (32, 32), (32, 16), (32, 8), (16, 16), and (8, 8).
     --   The following combinations (sw, ccsw) are supported: (32, 32), (32, 16),
     --   (32, 8), (16, 16), and (8, 8). However, w and sw must be always the same."
 
-    assert false report "[LWC_2pass] GW=" & integer'image(W) & ", SW=" & integer'image(SW) & ", CCW=" & integer'image(CCW) & ", CCSW=" & integer'image(CCSW) severity note;
+    assert false report "[LWC_2Pass] GW=" & integer'image(W) & ", SW=" & integer'image(SW) & ", CCW=" & integer'image(CCW) & ", CCSW=" & integer'image(CCSW) severity note;
 
     assert ((W = 32 and (CCW = 32 or CCW = 16 or CCW = 8)) or (W = 16 and CCW = 16) or (W = 8 and CCW = 8))
-    report "[LWC_2pass] Invalid combination of (G_W, CCW)" severity failure;
+    report "[LWC_2Pass] Invalid combination of (G_W, CCW)" severity failure;
 
     assert ((SW = 32 and (CCSW = 32 or CCSW = 16 or CCSW = 8)) or (SW = 16 and CCSW = 16) or (SW = 8 and CCSW = 8))
-    report "[LWC_2pass] Invalid combination of (SW, CCSW)" severity failure;
+    report "[LWC_2Pass] Invalid combination of (SW, CCSW)" severity failure;
 
     -- ASYNC_RSTN notification
-    assert not ASYNC_RSTN report "[LWC_2pass] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
+    assert not ASYNC_RSTN report "[LWC_2Pass] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
 
     Inst_PreProcessor : entity work.PreProcessor
 
@@ -152,7 +200,7 @@ begin
             cmd_ready       => cmd_ready_FIFO_in
         );
 
-    Inst_Cipher : entity work.CryptoCore_2Pass
+    Inst_Cipher : CryptoCore_2Pass
         port map(
             clk             => clk,
             rst             => rst,
@@ -180,12 +228,12 @@ begin
             msg_auth_valid  => msg_auth_valid,
             msg_auth_ready  => msg_auth_ready,
             msg_auth        => msg_auth,
-            fdi_data        => fdi_data,
-            fdi_valid       => fdi_valid,
-            fdi_ready       => fdi_ready,
-            fdo_valid       => fdo_valid,
-            fdo_ready       => fdo_ready,
-            fdo_data        => fdo_data
+            fdi_data        => cc_fdi_data,
+            fdi_valid       => cc_fdi_valid,
+            fdi_ready       => cc_fdi_ready,
+            fdo_valid       => cc_fdo_valid,
+            fdo_ready       => cc_fdo_ready,
+            fdo_data        => cc_fdo_data
         );
     Inst_PostProcessor : entity work.PostProcessor
         port map(
@@ -210,7 +258,7 @@ begin
         );
     Inst_Header_Fifo : entity work.FIFO
         generic map(
-            G_W     => W,
+            G_W     => PDI_SHARES * W,
             G_DEPTH => 1
         )
         port map(
@@ -223,5 +271,42 @@ begin
             dout_valid => cmd_valid_FIFO_out,
             dout_ready => cmd_ready_FIFO_out
         );
+    fdiPISO : entity work.PISO
+    generic map(
+            G_OUT_W      => PDI_SHARES * CCW,
+            G_N          => W / CCW,
+            G_ASYNC_RSTN => ASYNC_RSTN
+        )
+        port map(
+            clk         => clk,
+            rst         => rst,
+            -- PISO Input (from outside LWC)
+            p_in_data   => fdi_data,
+            p_in_valid  => fdi_valid,
+            p_in_ready  => fdi_ready,
+            -- PISO Output (to CryptoCore)
+            s_out_data  => cc_fdi_data,
+            s_out_valid => cc_fdi_valid,
+            s_out_ready => cc_fdi_ready
+        );
 
+    fdoSIPO : entity work.SIPO
+        generic map(
+            G_IN_W       => PDI_SHARES * CCW,
+            G_N          => W / CCW,
+            G_ASYNC_RSTN => ASYNC_RSTN
+        )
+        port map(
+            clk        => clk,
+            rst        => rst,
+            -- SIPO Input (from CryptoCore)
+            sin_data   => cc_fdo_data,
+            sin_last   => '0',
+            sin_valid  => cc_fdo_valid,
+            sin_ready  => cc_fdo_ready,
+            -- PISO Output (to LWC)
+            pout_data  => fdo_data,
+            pout_valid => fdo_valid,
+            pout_ready => fdo_ready
+        );
 end structure;
