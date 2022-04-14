@@ -5,7 +5,7 @@
 --! @copyright         Copyright (c) 2022 Cryptographic Engineering Research Group
 --!                    ECE Department, George Mason University Fairfax, VA, USA
 --!                    All rights Reserved.
---! @license           [GNU Public License v3 (GPL-3.0)](http://www.gnu.org/licenses/gpl-3.0.txt)
+--! @license           GNU Public License v3 ([GPL-3.0](http://www.gnu.org/licenses/gpl-3.0.txt))
 --!--! @vhdl           VHDL 1993, 2002, 2008, and later
 --!
 --! @details           Universal SIPO implementations covering multiple use-cases
@@ -14,7 +14,7 @@
 --! @param G_N         Ratio of the width of output data to input data
 --! @param G_CHANNELS  Input/output come in G_CHANNELS separate data "channels"
 --! @param G_PIPELINED Pipelined, shift-register impl. Data is fully registered
---! @param G_SUBWORD   Support partially filled output word and `_keep` and `_last` I/O signals
+--! @param G_SUBWORD   Support partially filled output word and `_keep` I/O signals
 --!
 --! @note              * All possible value values of G_IN_W, G_N, G_CHANNELS, G_BIGENDIAN and
 --!                        G_ASYNC_RSTN are fully supported
@@ -138,7 +138,7 @@ begin
         & LF & "  G_ASYNC_RSTN     " & boolean'image(G_ASYNC_RSTN) --
         & LF & "  G_BIGENDIAN      " & boolean'image(G_BIGENDIAN) --
         & LF & "  G_PIPELINED      " & boolean'image(G_PIPELINED) --
-        & LF & "  G_SUBWORD      " & boolean'image(G_SUBWORD) --
+        & LF & "  G_SUBWORD        " & boolean'image(G_SUBWORD) --
         & LF & "  G_CLEAR_INVALIDS " & boolean'image(G_CLEAR_INVALIDS) --
         severity NOTE;
 
@@ -177,14 +177,10 @@ begin
                     pout_array(ch)(i) <= data(ch)(i);
                 end generate GEN_BUFF_WORDS;
             end generate GEN_CHANNELS;
-            -- no G_SUBWORD so all outputs bytes are valid
-            pout_keep <= (others => '1');
         end generate GEN_PIPELINED;
         -- Passthrough version, i.e., passes the last input to output
         -- there will be a combinational path from input data to output data
         GEN_NOT_PIPELINED : if not G_PIPELINED generate
-            signal valids : std_logic_vector(0 to BUFF_WORDS - 1);
-        begin
             nx_marker <= INIT_MARKER when out_fire else
                          '0' & marker(0 to BUFF_WORDS - 1) when in_fire else
                          marker;
@@ -208,6 +204,29 @@ begin
                         end if;
                     end if;
                 end process;
+            end generate;
+
+        end generate GEN_NOT_PIPELINED;
+
+        --===================================== output data =====================================--
+        GEN_CHANNELS : for ch in 0 to G_CHANNELS - 1 generate
+            GEN_POUT_DATA : for i in 0 to G_N - 1 generate
+                alias pd_i : std_logic_vector is pout_data((i + ch * G_N + 1) * G_IN_W - 1 downto (i + ch * G_N) * G_IN_W);
+            begin
+                GEN_BIGENDIAN : if G_BIGENDIAN generate
+                    pd_i <= pout_array(ch)(G_N - 1 - i);
+                end generate;
+                GEN_NOT_BIGENDIAN : if not G_BIGENDIAN generate -- else generate
+                    pd_i <= pout_array(ch)(i);
+                end generate;
+            end generate;
+        end generate;
+
+        --===================================== G_SUBWORD =====================================--
+        GEN_SUBWORD : if G_SUBWORD generate
+            signal valids : std_logic_vector(0 to BUFF_WORDS - 1);
+        begin
+            GEN_CHANNELS : for ch in 0 to G_CHANNELS - 1 generate
                 GEN_POUT_ARRAY : for i in 0 to BUFF_WORDS - 1 generate
                     pout_array(ch)(i) <= and_mask(valids(i), data(ch)(i)) or --
                                          and_mask(marker(i), sin_data_arr(ch));
@@ -220,25 +239,22 @@ begin
                 end generate GEN_NOT_CLEAR_INVALIDS;
             end generate;
 
-            GEN_POUT_KEEP : for i in 0 to BUFF_WORDS - 1 generate
+            GEN_POUT_KEEP : for i in 0 to BUFF_WORDS generate
                 signal keep_i : std_logic_vector(sin_keep'range);
             begin
-                keep_i <= and_mask(marker(i), sin_keep) or (sin_keep'range => valids(i));
+                GEN_BUFF_EL : if i /= BUFF_WORDS generate
+                    keep_i <= and_mask(marker(i), sin_keep) or (sin_keep'range => valids(i));
+                end generate;
+                GEN_BUFF_LAST : if i = BUFF_WORDS generate
+                    keep_i <= and_mask(marker(i), sin_keep);
+                end generate;
                 GEN_BIGENDIAN : if G_BIGENDIAN generate
-                begin
-                    pout_keep((i + 1) * sin_keep'length - 1 downto i * sin_keep'length) <= keep_i;
+                    pout_keep((BUFF_WORDS - i + 1) * sin_keep'length - 1 downto (BUFF_WORDS - i) * sin_keep'length) <= keep_i;
                 end generate GEN_BIGENDIAN;
                 GEN_NOT_BIGENDIAN : if not G_BIGENDIAN generate
-                    pout_keep((BUFF_WORDS - i) * sin_keep'length - 1 downto (BUFF_WORDS - i - 1) * sin_keep'length) <= keep_i;
+                    pout_keep((i + 1) * sin_keep'length - 1 downto i * sin_keep'length) <= keep_i;
                 end generate GEN_NOT_BIGENDIAN;
             end generate GEN_POUT_KEEP;
-            GEN_BIGENDIAN : if G_BIGENDIAN generate
-                begin
-                pout_keep((BUFF_WORDS + 1) * sin_keep'length - 1 downto BUFF_WORDS * sin_keep'length) <= sin_keep;
-            end generate GEN_BIGENDIAN;
-            GEN_NOT_BIGENDIAN : if not G_BIGENDIAN generate
-                pout_keep(sin_keep'length - 1 downto 0) <= sin_keep;
-            end generate GEN_NOT_BIGENDIAN;
 
             GEN_CLEAR_INVALIDS : if G_SUBWORD and G_CLEAR_INVALIDS generate
                 process(marker) is
@@ -255,30 +271,29 @@ begin
             GEN_NOT_CLEAR_INVALIDS : if not G_SUBWORD or not G_CLEAR_INVALIDS generate -- else generate
                 valids <= not marker(0 to BUFF_WORDS - 1);
             end generate GEN_NOT_CLEAR_INVALIDS;
-        end generate GEN_NOT_PIPELINED;
-
-        --====================================== pout_data ======================================--
-        GEN_CHANNELS : for ch in 0 to G_CHANNELS - 1 generate
-            GEN_POUT_DATA : for i in 0 to G_N - 1 generate
-                alias pd_i : std_logic_vector is pout_data((i + ch * G_N + 1) * G_IN_W - 1 downto (i + ch * G_N) * G_IN_W);
-            begin
-                GEN_BIGENDIAN : if G_BIGENDIAN generate
-                    pd_i <= pout_array(ch)(G_N - 1 - i);
-                end generate;
-                GEN_NOT_BIGENDIAN : if not G_BIGENDIAN generate -- else generate
-                    pd_i <= pout_array(ch)(i);
-                end generate;
-            end generate;
-        end generate;
-
-        --===================================== G_SUBWORD =====================================--
-        GEN_SUBWORD : if G_SUBWORD generate
             sin_ready_o <= pout_ready = '1' or (sin_last /= '1' and not is_full);
+            -- NOTE: assuming G_PIPELINED = FALSE
             pout_last   <= sin_last;
         end generate GEN_SUBWORD;
         GEN_NOT_SUBWORD : if not G_SUBWORD generate -- else generate
+            signal last : std_logic;
+        begin
+            -- all outputs bytes are valid
+            pout_keep <= (others => '1');
+
+            process(clk) is
+            begin
+                -- NOTE: assuming G_PIPELINED = TRUE
+                if rising_edge(clk) then
+                    if in_fire then
+                        last <= sin_last;
+                        -- elsif out_fire then
+                        -- last <= '0';
+                    end if;
+                end if;
+            end process;
             sin_ready_o <= pout_ready = '1' or not is_full;
-            pout_last   <= '0';
+            pout_last   <= last;
         end generate GEN_NOT_SUBWORD;
 
         --==================================== Regs w/ reset ====================================--

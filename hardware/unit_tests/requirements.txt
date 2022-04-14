@@ -1,0 +1,2 @@
+xeda>=v0.1.0a10
+cocolight>=0.0.2

@@ -37,9 +37,10 @@ def random_bits(n: int) -> BinaryValue:
 
 @cocotest
 async def test_sipo(dut: DUT, num_tests: int = NUM_TV, debug=False):
+    debug |= bool(os.environ.get("DEBUG", False))
     tb = ValidReadyTb(dut, debug=debug)
-    sin_driver = tb.driver("sin", data_suffix=["data", "last"])
-    pout_monitor = tb.monitor("pout", data_suffix=["data", "last"])
+    sin_driver = tb.driver("sin", data_suffix=["data", "keep", "last"])
+    pout_monitor = tb.monitor("pout", data_suffix=["data", "keep", "last"])
     await tb.reset()
     # get bound parameters/generics from the simulator
     G_IN_W = tb.get_value("G_IN_W", int)
@@ -68,38 +69,78 @@ async def test_sipo(dut: DUT, num_tests: int = NUM_TV, debug=False):
         num_tests,
     )
 
-    for test in range(num_tests):
-        num_in_words = random.randint(1, 10 * G_N)
-        if not G_SUBWORD or G_PIPELINED:
-            # round up to multiple of G_N
-            num_in_words = (num_in_words + G_N - 1) // G_N * G_N
-        in_channels = [
-            [random_bits(G_IN_W) for _ in range(num_in_words)]
-            for _ in range(G_CHANNELS)
-        ]
-        in_data = [{"data": concat_words(g), "last": 0} for g in zip(*in_channels)]
+    def valid_bytes(w, total_bytes=None) -> str:
+        num_bytes = w // 8
+        r = total_bytes % num_bytes if total_bytes else 0
+        num_ones = num_bytes if r == 0 else r
+        vb = ("0" * (num_bytes - num_ones)) + ("1" * num_ones)
+        if G_BIGENDIAN:
+            return vb[::-1]
+        return vb
 
+    def div_ceil(n: int, m: int) -> int:
+        """n/m rounded up to next multiple of m"""
+        return (n + m - 1) // m
+
+    OUT_WIDTH = G_IN_W * G_N
+    M = 10  # max num parallel (output) words
+
+    for _test in range(num_tests):
         if G_SUBWORD:
-            in_data[-1]["last"] = 1
+            num_data_bytes = random.randint(1, M * OUT_WIDTH // 8)
+        else:
+            num_data_bytes = random.randint(1, M) * OUT_WIDTH // 8
+        num_in_words = div_ceil(num_data_bytes, G_IN_W // 8)
+        num_out_words = div_ceil(num_data_bytes, OUT_WIDTH // 8)
+        tb.log.debug("bytes:%d in_words:%d out_words:%d", num_data_bytes, num_in_words, num_out_words)
+        data_byte_channels = [
+            [random_bits(8) for _ in range(num_data_bytes)] for _ in range(G_CHANNELS)
+        ]
+        in_channels = [
+            [
+                concat_words(g)
+                for g in grouper(
+                    data_bytes,
+                    G_IN_W // 8,
+                    incomplete=Incomplete.Fill,
+                    fillvalue=BinaryValue(0, n_bits=8),
+                )
+            ]
+            for data_bytes in data_byte_channels
+        ]
+        in_data = [
+            {  #
+                "data": concat_words(g),
+                "keep": valid_bytes(G_IN_W),
+                "last": 0,
+            }
+            for g in zip(*in_channels)
+        ]
+        in_data[-1]["last"] = 1
+        in_data[-1]["keep"] = valid_bytes(G_IN_W, num_data_bytes)
 
         expected_outputs_of_channel = [
             [
                 concat_words(g)
                 for g in grouper(
-                    ch,
-                    G_N,
+                    data_bytes,
+                    OUT_WIDTH // 8,
                     incomplete=Incomplete.Fill,
-                    fillvalue=BinaryValue(0, n_bits=G_IN_W),
+                    fillvalue=BinaryValue(0, n_bits=8),
                 )
             ]
-            for ch in in_channels
+            for data_bytes in data_byte_channels
         ]
         expected_outputs = [
-            {"data": concat_words(per_channel), "last": 0}
+            {
+                "data": concat_words(per_channel),
+                "keep": valid_bytes(OUT_WIDTH),
+                "last": 0,
+            }
             for per_channel in zip(*expected_outputs_of_channel)
         ]
-        if G_SUBWORD and not G_PIPELINED:
-            expected_outputs[-1]["last"] = 1
+        expected_outputs[-1]["last"] = 1
+        expected_outputs[-1]["keep"] = valid_bytes(OUT_WIDTH, num_data_bytes)
 
         stimulus = cocotb.start_soon(sin_driver.enqueue_seq(in_data))
 

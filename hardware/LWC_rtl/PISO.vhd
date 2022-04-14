@@ -5,7 +5,7 @@
 --! @copyright         Copyright (c) 2022 Cryptographic Engineering Research Group
 --!                    ECE Department, George Mason University Fairfax, VA, USA
 --!                    All rights Reserved.
---! @license           [GNU Public License v3 (GPL-3.0)](http://www.gnu.org/licenses/gpl-3.0.txt)
+--! @license           GNU Public License v3 ([GPL-3.0](http://www.gnu.org/licenses/gpl-3.0.txt))
 --!                    
 --! @vhdl              VHDL 1993, 2002, 2008, and later
 --!
@@ -102,9 +102,9 @@ begin
         & LF & "  G_OUT_W       " & integer'image(G_OUT_W) --
         & LF & "  G_N           " & integer'image(G_N) --
         & LF & "  G_CHANNELS    " & integer'image(G_CHANNELS) --
+        & LF & "  G_SUBWORD     " & boolean'image(G_SUBWORD) --
         & LF & "  G_ASYNC_RSTN  " & boolean'image(G_ASYNC_RSTN) --
         & LF & "  G_BIGENDIAN   " & boolean'image(G_BIGENDIAN) --
-        & LF & "  G_SUBWORD     " & boolean'image(G_SUBWORD) --
         severity NOTE;
 
         in_fire       <= p_in_valid = '1' and p_in_ready_o;

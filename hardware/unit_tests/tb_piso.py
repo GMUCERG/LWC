@@ -67,21 +67,32 @@ async def test_piso(dut: DUT, num_tests: int = NUM_TV, debug=False):
 
     assert G_OUT_W % 8 == 0, "G_OUT_W should be multiple of bytes"
 
-    M = 10  # max num parallel words
+    M = 10  # max num parallel (input) words
 
     def div_ceil(n: int, m: int) -> int:
         return (n + m - 1) // m
 
+    def valid_bytes(total_bytes, w, last=False) -> str:
+        num_bytes = w // 8
+        if last:
+            r = total_bytes % num_bytes
+            num_ones = num_bytes if r == 0 else r
+        else:
+            num_ones = num_bytes
+        vb = ("0" * (num_bytes - num_ones)) + ("1" * num_ones)
+        if G_BIGENDIAN:
+            return vb[::-1]
+        return vb
+
     for _test in range(num_tests):
         if G_SUBWORD:
             num_data_bytes = random.randint(1, M * IN_WIDTH // 8)
-            num_out_words = div_ceil(num_data_bytes, G_OUT_W // 8)
-            # round up to next multiple of G_N
-            num_in_words = div_ceil(num_out_words, G_N)
         else:
-            num_in_words = random.randint(1, M)
-            num_out_words = num_in_words * G_N
-            num_data_bytes = num_out_words * G_OUT_W // 8
+            # multiple of input number of bytes
+            num_data_bytes = random.randint(1, M) * IN_WIDTH // 8
+
+        num_in_words = div_ceil(num_data_bytes, IN_WIDTH // 8)
+        num_out_words = div_ceil(num_data_bytes, G_OUT_W // 8)
 
         data_byte_channels = [
             [random_bits(8) for _ in range(num_data_bytes)] for _ in range(G_CHANNELS)
@@ -132,19 +143,10 @@ async def test_piso(dut: DUT, num_tests: int = NUM_TV, debug=False):
             for per_channel in zip(*in_data_channels)
         ]
 
-        def last_valid_bytes(total_bytes, w) -> str:
-            bs = w // 8
-            r = total_bytes % bs
-            x = bs if r == 0 else r
-            vb = ("0" * (bs - x)) + ("1" * x)
-            if G_BIGENDIAN:
-                return vb[::-1]
-            return vb
-
         in_data[-1]["last"] = 1
-        in_data[-1]["keep"] = last_valid_bytes(num_data_bytes, IN_WIDTH)
+        in_data[-1]["keep"] = valid_bytes(num_data_bytes, IN_WIDTH, last=True)
         expected_outputs[-1]["last"] = 1
-        expected_outputs[-1]["keep"] = last_valid_bytes(num_data_bytes, G_OUT_W)
+        expected_outputs[-1]["keep"] = valid_bytes(num_data_bytes, G_OUT_W, last=True)
 
         stimulus = cocotb.start_soon(sin_driver.enqueue_seq(in_data))
 
