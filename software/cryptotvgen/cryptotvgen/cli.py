@@ -31,7 +31,7 @@ def run_cryptotvgen(
 ):
     """main entry function"""
     if args is None:
-        args = []
+        args = sys.argv[1:]
     # Parse options
     parser = get_parser()
     opts = parser.parse_args(args)
@@ -126,4 +126,4 @@ def run_cryptotvgen(
 
 
 if __name__ == "__main__":
-    run_cryptotvgen(sys.argv[1:])
+    run_cryptotvgen()
