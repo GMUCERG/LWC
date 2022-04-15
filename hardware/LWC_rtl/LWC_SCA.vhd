@@ -125,12 +125,14 @@ architecture structure of LWC_SCA is
         port(
             clk             : in  std_logic;
             rst             : in  std_logic;
+            --! Key Input
             key             : in  std_logic_vector(SDI_SHARES * CCSW - 1 downto 0);
             key_valid       : in  std_logic;
             key_ready       : out std_logic;
-            --
+            --! new key
+            -- kept high for the entire duration of key input operation:
             key_update      : in  std_logic;
-            --
+            --! Data Input
             bdi             : in  std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
             bdi_valid       : in  std_logic;
             bdi_ready       : out std_logic;
@@ -140,18 +142,18 @@ architecture structure of LWC_SCA is
             bdi_eot         : in  std_logic;
             bdi_eoi         : in  std_logic;
             bdi_type        : in  std_logic_vector(4 - 1 downto 0);
-            --
+            -- kept stable for the entire duration of data input operation:
             decrypt_in      : in  std_logic;
             hash_in         : in  std_logic;
-            --
+            --! Data Output
             bdo             : out std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
             bdo_valid       : out std_logic;
             bdo_ready       : in  std_logic;
             bdo_type        : out std_logic_vector(4 - 1 downto 0);
             bdo_valid_bytes : out std_logic_vector(CCW / 8 - 1 downto 0);
-            -- The last word of BDO of the currect outout type (i.e., "bdo_eot")
+            --! The last word of BDO of the currect outout type (i.e., "bdo_eot")
             end_of_block    : out std_logic;
-            --
+            --! Tag authentication
             msg_auth_valid  : out std_logic;
             msg_auth_ready  : in  std_logic;
             msg_auth        : out std_logic;
@@ -184,7 +186,6 @@ begin
 
     -- ASYNC_RSTN notification
     assert not ASYNC_RSTN report "[LWC] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
-
 
     Inst_PreProcessor : entity work.PreProcessor
         port map(

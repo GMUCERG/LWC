@@ -15,6 +15,7 @@
 --! @note       This is publicly available encryption source code that falls
 --!             under the License Exception TSU (Technology and software-
 --!             unrestricted)
+--! @vhdl       IEEE 1076-2008 (IEEE 1076-2002 using std_logic_1164_additions)
 --===============================================================================================--
 
 library ieee;
@@ -23,6 +24,11 @@ use ieee.numeric_std.all;
 use std.textio.all;
 
 use work.NIST_LWAPI_pkg.all;
+
+----= If have to use VHDL 2002:
+----=  uncomment the following line and
+----=  include the provided std_logic_1164_additions.vhdl to source list
+-- use work.std_logic_1164_additions.all;
 
 entity LWC_TB IS
     generic(
@@ -293,8 +299,7 @@ begin
             do_data   => do_data,
             do_last   => do_last,
             do_valid  => do_valid,
-            do_ready  => do_ready_delayed
-            ,
+            do_ready  => do_ready_delayed,
             rdi_data  => rdi_data_delayed,
             rdi_valid => rdi_valid_delayed,
             rdi_ready => rdi_ready

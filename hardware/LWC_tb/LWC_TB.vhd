@@ -27,7 +27,7 @@ use work.NIST_LWAPI_pkg.all;
 
 ----= If have to use VHDL 2002:
 ----=  uncomment the following line and
-----=  add std_logic_1164_additions.vhdl to compilation list of work library
+----=  include the provided std_logic_1164_additions.vhdl to source list
 -- use work.std_logic_1164_additions.all;
 
 entity LWC_TB IS
