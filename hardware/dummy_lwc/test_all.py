@@ -1,15 +1,16 @@
 #! /usr/bin/env python3
 
-from copy import deepcopy
-import os
-from pathlib import Path
-import re
-import logging
-from typing import Dict, List, Mapping, Optional, Union
 import csv
+import logging
+import os
+import re
 from argparse import ArgumentParser
+from copy import deepcopy
+from pathlib import Path
+from typing import Dict, List, Mapping, Optional, Union
+
 from cryptotvgen import cli
-from xeda import Design
+from xeda.design import Design, DesignSource
 from xeda.flow_runner import DefaultRunner
 from xeda.flows import GhdlSim, Yosys
 
@@ -53,8 +54,10 @@ tvgen_cand_dir = lwc_root / "software" / "dummy_lwc_ref"
 
 
 def build_libs():
-    args = ["--prepare_libs", "--candidates_dir", str(tvgen_cand_dir)]
-    return cli.run_cryptotvgen(args)
+    """build dynamic libraries of the C reference implementation"""
+    return cli.run_cryptotvgen(
+        ["--prepare_libs", "--candidates_dir", str(tvgen_cand_dir)]
+    )
 
 
 gen_tv_subfolder = Path("generated_tv").resolve()
@@ -74,7 +77,6 @@ def gen_tv(
     args = [
         "--candidates_dir",
         str(tvgen_cand_dir),
-        # '--lib_path', str(tvgen_cand_dir / 'lib'),
         "--aead",
         aead_alg,
         "--hash",
@@ -82,11 +84,7 @@ def gen_tv(
         "--io",
         str(w),
         str(w),
-        # '--key_size', '128',
-        # '--npub_size', '96',
-        # '--nsec_size', '0',
-        # '--message_digest_size', '256',
-        # '--tag_size', '128',
+        # key_size, npub_size, message_digest_size, and tag_size are auto discovered from "api.h"
         "--block_size",
         "128",
         "--block_size_ad",
@@ -123,16 +121,6 @@ def gen_tv(
     return cli.run_cryptotvgen(args, logfile=None)
 
 
-def get_lang(file: str):
-    for ext in ["vhd", "vhdl"]:
-        if file.endswith("." + ext):
-            return "vhdl"
-    if file.endswith(".v"):
-        return "verilog"
-    if file.endswith(".sv"):
-        return "system-verilog"
-
-
 def gen_from_template(orig_filename, gen_filename, changes):
     """create a modified version of orig_filename baseon regex changes"""
     with open(orig_filename, "r") as orig:
@@ -164,7 +152,7 @@ def measure_timing(design: Design, kat_dir: Path):
     }
 
     f = xeda_runner.run_flow(GhdlSim, design)
-    assert f.results["success"]
+    assert f.succeeded
 
     assert timing_report.exists()
 
@@ -250,7 +238,13 @@ def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
     )
     bench = not async_rstn and vhdl_std == "08"
     logger.info(
-        f"*** Testing VHDL:20{vhdl_std} multi-segment:{ms} W:{w} CCW:{ccw} ASYNC_RSTN:{async_rstn} benchmark-KATs:{bench} ***"
+        "*** Testing VHDL:20{%s} multi-segment:%s W:%d CCW:%d ASYNC_RSTN:%s benchmark-KATs:%s ***",
+        vhdl_std,
+        ms,
+        w,
+        ccw,
+        async_rstn,
+        bench,
     )
     kat_dir = gen_tv_subfolder / f'TV{"_MS" if ms else ""}_{w}'
 
@@ -261,16 +255,6 @@ def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
         replaced_design_pkg,
         [(r"(constant\s+CCW\s*:\s*\w+\s*:=\s*)\d+(\s*;)", f"\\g<1>{ccw}\\g<2>")],
     )
-    replace_files_map = {
-        orig_design_pkg: replaced_design_pkg,
-        orig_lwc_config: replaced_lwc_config,
-    }
-
-    def replace_file(f):
-        for orig in replace_files_map.keys():
-            if f.file.resolve().samefile(orig):
-                return replace_files_map[orig]
-        return f
 
     lwc = design.dict().get("lwc")
     assert lwc
@@ -283,7 +267,19 @@ def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
         bench,
     )
     design = deepcopy(design)
-    design.rtl.sources = [replace_file(f) for f in design.rtl.sources]  # type: ignore
+
+    replace_files_map = {
+        orig_design_pkg: replaced_design_pkg,
+        orig_lwc_config: replaced_lwc_config,
+    }
+
+    def replace_file(ds: DesignSource) -> DesignSource:
+        for orig, replacement in replace_files_map.items():
+            if ds.file.resolve().samefile(orig):
+                return DesignSource(replacement)
+        return ds
+
+    design.rtl.sources = [replace_file(f) for f in design.rtl.sources]
 
     design.language.vhdl.standard = vhdl_std
     design.name = (
@@ -303,7 +299,7 @@ def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
     }
 
     f = xeda_runner.run_flow(GhdlSim, design, ghdl_setting)
-    assert f.results["success"]
+    assert f.succeeded
 
 
 def synth_test(design):
@@ -311,7 +307,7 @@ def synth_test(design):
     f = xeda_runner.run_flow(
         Yosys, design, {"fpga": {"vendor": "xilinx", "family": "xc7"}}
     )
-    assert f.results["success"]
+    assert f.succeeded
 
 
 def test_all(args=None):
@@ -323,7 +319,7 @@ def test_all(args=None):
         logger.warning("synth_test failed. Continuing...")
     # first try with original settings
     f = xeda_runner.run_flow(GhdlSim, design)
-    assert f.results["success"]
+    assert f.succeeded
 
     measure_timing(design, gen_tv_subfolder / f"{design.name}_measure")
 

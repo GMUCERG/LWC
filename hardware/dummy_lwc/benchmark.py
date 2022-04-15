@@ -6,10 +6,9 @@ import os
 import re
 from copy import copy
 from pathlib import Path
-from typing import Dict, List, Literal, Mapping, Optional, OrderedDict, Sequence, Union
+from typing import Dict, List, Literal, Optional, Sequence, Union
 
 from cryptotvgen import cli
-from pydantic import conint
 from rich.console import Console
 from rich.table import Table
 from xeda import Design
@@ -19,42 +18,6 @@ from xeda.flow_runner import DefaultRunner as FlowRunner
 from xeda.flows import GhdlSim
 
 console = Console()
-
-
-class InputSequence(BaseModel):
-    encrypt: Optional[Sequence[Literal["ad", "pt", "npub", "tag"]]] = Field(
-        ["npub", "ad", "pt", "tag"], description="Sequence of inputs during encryption"
-    )
-    decrypt: Optional[Sequence[Literal["ad", "ct", "npub", "tag"]]] = Field(
-        ["npub", "ad", "ct", "tag"], description="Sequence of inputs during decryption"
-    )
-
-
-class Aead(BaseModel):
-
-    algorithm: str = Field(
-        None,
-        description="Name of the implemented AEAD algorithm based on [SUPERCOP](https://bench.cr.yp.to/primitives-aead.html) convention",
-        examples=["giftcofb128v1", "romulusn1v12", "gimli24v1"],
-    )
-    key_bits: Optional[int] = Field(description="Size of key in bits.")
-    npub_bits: Optional[int] = Field(description="Size of public nonce in bits.")
-    tag_bits: Optional[int] = Field(description="Size of tag in bits.")
-    input_sequence: Optional[InputSequence] = Field(
-        None,
-        description="Order in which different input segment types should be fed to PDI.",
-    )
-    key_reuse: bool = False
-
-
-class Hash(BaseModel):
-    algorithm: str = Field(
-        description="Name of the hashing algorithm based on [SUPERCOP](https://bench.cr.yp.to/primitives-aead.html) convention. Empty string if hashing is not supported",
-        examples=["", "gimli24v1"],
-    )
-    digest_bits: Optional[int] = Field(
-        description="Size of hash digest (output) in bits."
-    )
 
 
 class Ports(BaseModel):
@@ -88,29 +51,64 @@ class Ports(BaseModel):
     rdi: Optional[Rdi] = Field(None, description="Random Data Input port.")
 
 
-class ScaProtection(BaseModel):
-    class Config:
-        extra = Extra.allow
-
-    target: Optional[Sequence[str]] = Field(
-        None,
-        description="Type of side-channel analysis attack(s) against which this design is assumed to be secure.",
-        examples=[["spa", "dpa", "cpa", "timing"], ["dpa", "sifa", "dfia"]],
-    )
-    masking_schemes: Optional[Sequence[str]] = Field(
-        [],
-        description='Masking scheme(s) applied in this implementation. Could be name/abbreviation of established schemes (e.g., "DOM", "TI") or reference to a publication.',
-        examples=[["TI"], ["DOM", "https://eprint.iacr.org/2022/000.pdf"]],
-    )
-    order: int = Field(
-        ..., description="Claimed order of protectcion. 0 means unprotected."
-    )
-    notes: Optional[Sequence[str]] = Field(
-        [], description="Additional notes or comments on the claimed SCA protection."
-    )
-
-
 class Lwc(BaseModel):
+    """design.lwc"""
+
+    class Aead(BaseModel):
+        class InputSequence(BaseModel):
+            encrypt: Optional[Sequence[Literal["ad", "pt", "npub", "tag"]]] = Field(
+                ["npub", "ad", "pt", "tag"],
+                description="Sequence of inputs during encryption",
+            )
+            decrypt: Optional[Sequence[Literal["ad", "ct", "npub", "tag"]]] = Field(
+                ["npub", "ad", "ct", "tag"],
+                description="Sequence of inputs during decryption",
+            )
+
+        algorithm: str = Field(
+            None,
+            description="Name of the implemented AEAD algorithm based on [SUPERCOP](https://bench.cr.yp.to/primitives-aead.html) convention",
+            examples=["giftcofb128v1", "romulusn1v12", "gimli24v1"],
+        )
+        key_bits: Optional[int] = Field(description="Size of key in bits.")
+        npub_bits: Optional[int] = Field(description="Size of public nonce in bits.")
+        tag_bits: Optional[int] = Field(description="Size of tag in bits.")
+        input_sequence: Optional[InputSequence] = Field(
+            None,
+            description="Order in which different input segment types should be fed to PDI.",
+        )
+        key_reuse: bool = False
+
+    class Hash(BaseModel):
+        algorithm: str = Field(
+            description="Name of the hashing algorithm based on [SUPERCOP](https://bench.cr.yp.to/primitives-aead.html) convention. Empty string if hashing is not supported",
+            examples=["", "gimli24v1"],
+        )
+        digest_bits: Optional[int] = Field(
+            description="Size of hash digest (output) in bits."
+        )
+
+    class ScaProtection(BaseModel):
+        class Config:
+            extra = Extra.allow
+
+        target: Optional[Sequence[str]] = Field(
+            None,
+            description="Type of side-channel analysis attack(s) against which this design is assumed to be secure.",
+            examples=[["spa", "dpa", "cpa", "timing"], ["dpa", "sifa", "dfia"]],
+        )
+        masking_schemes: Optional[Sequence[str]] = Field(
+            [],
+            description='Masking scheme(s) applied in this implementation. Could be name/abbreviation of established schemes (e.g., "DOM", "TI") or reference to a publication.',
+            examples=[["TI"], ["DOM", "https://eprint.iacr.org/2022/000.pdf"]],
+        )
+        order: int = Field(
+            ..., description="Claimed order of protectcion. 0 means unprotected."
+        )
+        notes: Optional[Sequence[str]] = Field(
+            [],
+            description="Additional notes or comments on the claimed SCA protection.",
+        )
 
     aead: Optional[Aead] = Field(
         None, description="Details about the AEAD scheme and its implementation"
@@ -132,6 +130,7 @@ CREF_DIR = SCRIPT_DIR / "cref"
 
 
 class LwcDesign(Design):
+    """A Lightweight Cryptography hardware implementations"""
     lwc: Lwc
 
 
@@ -208,6 +207,7 @@ KATS_DIR = SCRIPT_DIR / "GMU_KAT"
 
 
 def main():
+    """entry"""
     design = LwcDesign.from_toml(SCRIPT_DIR / "dummy_lwc_w32_ccw32.toml")
     tv_dir = KATS_DIR / design.name
     timing_report = Path.cwd() / (design.name + "_timing.txt")
