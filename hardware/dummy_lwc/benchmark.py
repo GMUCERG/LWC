@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 
 import csv
 import logging
@@ -6,7 +6,7 @@ import os
 import re
 from copy import copy
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Sequence, Union
+from typing import Any, Dict, List, Literal, Optional, Sequence, Union
 
 from cryptotvgen import cli
 from rich.console import Console
@@ -18,37 +18,6 @@ from xeda.flow_runner import DefaultRunner as FlowRunner
 from xeda.flows import GhdlSim
 
 console = Console()
-
-
-class Ports(BaseModel):
-    class Pdi(BaseModel):
-        bit_width: Optional[int] = Field(
-            32,
-            ge=8,
-            le=32,
-            description="Width of each word of PDI data in bits (`w`). The width of 'pdi_data' signal would be `pdi.bit_width × pdi.num_shares` (`w × n`) bits.",
-        )
-        num_shares: int = Field(1, description="Number of PDI shares (`n`)")
-
-    class Sdi(BaseModel):
-        bit_width: Optional[int] = Field(
-            32,
-            ge=8,
-            le=32,
-            description="Width of each word of SDI data in bits (`sw`). The width of `sdi_data` signal would be `sdi.bit_width × sdi.num_shares` (`sw × sn`) bits.",
-        )
-        num_shares: int = Field(1, description="Number of SDI shares (`sn`)")
-
-    class Rdi(BaseModel):
-        bit_width: int = Field(
-            ge=0,
-            le=2048,
-            description="Width of the `rdi` port in bits (`rw`), 0 if the port is not used.",
-        )
-
-    pdi: Pdi = Field(description="Public Data Input port")
-    sdi: Sdi = Field(description="Secret Data Input port")
-    rdi: Optional[Rdi] = Field(None, description="Random Data Input port.")
 
 
 class Lwc(BaseModel):
@@ -65,7 +34,7 @@ class Lwc(BaseModel):
                 description="Sequence of inputs during decryption",
             )
 
-        algorithm: str = Field(
+        algorithm: Optional[str] = Field(
             None,
             description="Name of the implemented AEAD algorithm based on [SUPERCOP](https://bench.cr.yp.to/primitives-aead.html) convention",
             examples=["giftcofb128v1", "romulusn1v12", "gimli24v1"],
@@ -87,6 +56,36 @@ class Lwc(BaseModel):
         digest_bits: Optional[int] = Field(
             description="Size of hash digest (output) in bits."
         )
+
+    class Ports(BaseModel):
+        class Pdi(BaseModel):
+            bit_width: Optional[int] = Field(
+                32,
+                ge=8,
+                le=32,
+                description="Width of each word of PDI data in bits (`w`). The width of 'pdi_data' signal would be `pdi.bit_width × pdi.num_shares` (`w × n`) bits.",
+            )
+            num_shares: int = Field(1, description="Number of PDI shares (`n`)")
+
+        class Sdi(BaseModel):
+            bit_width: Optional[int] = Field(
+                32,
+                ge=8,
+                le=32,
+                description="Width of each word of SDI data in bits (`sw`). The width of `sdi_data` signal would be `sdi.bit_width × sdi.num_shares` (`sw × sn`) bits.",
+            )
+            num_shares: int = Field(1, description="Number of SDI shares (`sn`)")
+
+        class Rdi(BaseModel):
+            bit_width: int = Field(
+                ge=0,
+                le=2048,
+                description="Width of the `rdi` port in bits (`rw`), 0 if the port is not used.",
+            )
+
+        pdi: Pdi = Field(description="Public Data Input port")
+        sdi: Sdi = Field(description="Secret Data Input port")
+        rdi: Optional[Rdi] = Field(None, description="Random Data Input port.")
 
     class ScaProtection(BaseModel):
         class Config:
@@ -121,6 +120,12 @@ class Lwc(BaseModel):
     block_size: Dict[str, int] = Field({"xt": 128, "ad": 128, "hm": 128})
 
 
+class LwcDesign(Design):
+    """A Lightweight Cryptography hardware implementations"""
+
+    lwc: Lwc
+
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -128,10 +133,6 @@ SCRIPT_DIR = Path(__file__).parent.resolve()
 
 CREF_DIR = SCRIPT_DIR / "cref"
 
-
-class LwcDesign(Design):
-    """A Lightweight Cryptography hardware implementations"""
-    lwc: Lwc
 
 
 def build_libs(andidates_dir):
@@ -236,7 +237,8 @@ def main():
                 msg_cycles[kv[0]] = int(kv[1])
     results: List[dict[str, Union[int, float, str]]] = []
     with open(timing_kat_dir / "timing_tests.csv") as f:
-        for row in csv.DictReader(f):
+        rows: List[Dict[Any, Any]] = list(csv.DictReader(f))
+        for row in rows:
             msgid = row["msgId"]
             assert isinstance(msgid, str)
             row["Cycles"] = msg_cycles[msgid]

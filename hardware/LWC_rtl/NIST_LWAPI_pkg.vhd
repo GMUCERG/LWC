@@ -146,12 +146,10 @@ package NIST_LWAPI_pkg is
     function maximum(a, b : integer) return integer;
 
     -- Used in simulation
-    procedure lwc_hread(l : inout line; value : out std_logic_vector; good : out boolean);
     function lwc_or_reduce(l : std_logic_vector) return std_logic;
     function lwc_and_reduce(l : std_logic_vector) return std_logic;
     function lwc_or_reduce(u : unsigned) return std_logic;
     function lwc_and_reduce(u : unsigned) return std_logic;
-    function lwc_to_hstring(value : std_logic_vector) return string;
 
     --! return n most significant bits of slv
     function high_bits(slv : std_logic_vector; n : integer) return std_logic_vector;
