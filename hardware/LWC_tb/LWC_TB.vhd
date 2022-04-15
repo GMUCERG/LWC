@@ -7,7 +7,7 @@
 --! @copyright  Copyright (c) 2015, 2020, 2021, 2022 Cryptographic Engineering Research Group
 --!             ECE Department, George Mason University Fairfax, VA, U.S.A.
 --!             All rights Reserved.
---! @version    1.2.0
+--! @version    1.2.1
 --! @license    This project is released under the GNU Public License.
 --!             The license and distribution terms for this file may be
 --!             found in the file LICENSE in this distribution or at
@@ -15,6 +15,7 @@
 --! @note       This is publicly available encryption source code that falls
 --!             under the License Exception TSU (Technology and software-
 --!             unrestricted)
+--! @vhdl       IEEE 1076-2008 (IEEE 1076-2002 using std_logic_1164_additions)
 --===============================================================================================--
 
 library ieee;
@@ -23,6 +24,11 @@ use ieee.numeric_std.all;
 use std.textio.all;
 
 use work.NIST_LWAPI_pkg.all;
+
+----= If have to use VHDL 2002:
+----=  uncomment the following line and
+----=  include the provided std_logic_1164_additions.vhdl to source list
+-- use work.std_logic_1164_additions.all;
 
 entity LWC_TB IS
     generic(
@@ -236,14 +242,7 @@ begin
     -- generate reset
     Reset_PROCESS : process
     begin
-        report LF & " -- Testvectors:  " & G_FNAME_PDI & " " & G_FNAME_SDI & " " & G_FNAME_DO & LF &
-        " -- Clock Period:  " & integer'image(G_CLK_PERIOD_PS) & " ps" & LF &
-        " -- Max Failures:  " & integer'image(G_MAX_FAILURES) & LF & 
-        " -- Timout Cycles: " & integer'image(G_TIMEOUT_CYCLES) & LF &
-        " -- Test Mode:     " & integer'image(G_TEST_MODE) & LF &
-        " -- Random Seed:   " & integer'image(G_RANDOM_SEED) & LF &
-        " -- Test Mode:     " & integer'image(G_TEST_MODE) & LF &
-        CR severity note;
+        report LF & " -- Testvectors:  " & G_FNAME_PDI & " " & G_FNAME_SDI & " " & G_FNAME_DO & LF & " -- Clock Period:  " & integer'image(G_CLK_PERIOD_PS) & " ps" & LF & " -- Max Failures:  " & integer'image(G_MAX_FAILURES) & LF & " -- Timout Cycles: " & integer'image(G_TIMEOUT_CYCLES) & LF & " -- Test Mode:     " & integer'image(G_TEST_MODE) & LF & " -- Random Seed:   " & integer'image(G_RANDOM_SEED) & LF & " -- Test Mode:     " & integer'image(G_TEST_MODE) & LF & CR severity note;
 
         seed(G_RANDOM_SEED);
         wait for G_PRERESET_WAIT_NS * ns;
@@ -329,6 +328,7 @@ begin
             variable rdi_line : line;
             variable rdi_vec  : std_logic_vector(RW - 1 downto 0);
             variable read_ok  : boolean;
+            variable fstatus  : FILE_OPEN_STATUS;
         begin
             report LF & "RW=" & integer'image(RW);
             wait until reset_done and rising_edge(clk);
@@ -344,42 +344,46 @@ begin
                     num_rand_vectors <= num_rand_vectors + 1;
                 end loop;
             else
-                file_open(rdi_file, G_FNAME_RDI, READ_MODE);
-                while not stop_clock loop
-                    loop
-                        if endfile(rdi_file) then
-                            assert num_rand_vectors > 0 report "RDI file is empty!" severity failure;
-                            if G_VERBOSE_LEVEL > 2 then
-                                report "Reached end of " & G_FNAME_RDI & ", reading from the begining.";
+                file_open(fstatus, rdi_file, G_FNAME_RDI, READ_MODE);
+                if fstatus = OPEN_OK then
+                    while not stop_clock loop
+                        loop
+                            if endfile(rdi_file) then
+                                assert num_rand_vectors > 0 report "RDI file is empty!" severity failure;
+                                if G_VERBOSE_LEVEL > 2 then
+                                    report "Reached end of " & G_FNAME_RDI & ", reading from the begining.";
+                                end if;
+                                -- re-read from the biginging
+                                file_close(rdi_file);
+                                file_open(rdi_file, G_FNAME_RDI, READ_MODE);
                             end if;
-                            -- re-read from the biginging
-                            file_close(rdi_file);
-                            file_open(rdi_file, G_FNAME_RDI, READ_MODE);
+                            readline(rdi_file, rdi_line);
+                            if rdi_line'length > 0 then
+                                exit;
+                            end if;
+                        end loop;
+                        if rdi_line'length * 4 < RW then
+                            report "Error: RDI line is shorter than RW " severity failure;
+                            exit;       -- exit the loop
                         end if;
-                        readline(rdi_file, rdi_line);
-                        if rdi_line'length > 0 then
-                            exit;
+                        hread(rdi_line, rdi_vec, read_ok);
+                        if not read_ok then
+                            report "Error while reading " & G_FNAME_RDI severity failure;
+                            exit;       -- exit the loop
                         end if;
+                        for i in 0 to get_stalls(G_RDI_STALLS) - 1 loop
+                            rdi_valid <= '0';
+                            wait until rising_edge(clk);
+                        end loop;
+                        rdi_data         <= rdi_vec;
+                        rdi_valid        <= '1';
+                        wait until rising_edge(clk) and rdi_ready = '1' and rdi_valid_delayed = '1';
+                        num_rand_vectors <= num_rand_vectors + 1;
                     end loop;
-                    if rdi_line'length * 4 < RW then
-                        report "Error: RDI line is shorter than RW " severity failure;
-                        exit;           -- exit the loop
-                    end if;
-                    lwc_hread(rdi_line, rdi_vec, read_ok);
-                    if not read_ok then
-                        report "Error while reading " & G_FNAME_RDI severity failure;
-                        exit;           -- exit the loop
-                    end if;
-                    for i in 0 to get_stalls(G_RDI_STALLS) - 1 loop
-                        rdi_valid <= '0';
-                        wait until rising_edge(clk);
-                    end loop;
-                    rdi_data         <= rdi_vec;
-                    rdi_valid        <= '1';
-                    wait until rising_edge(clk) and rdi_ready = '1' and rdi_valid_delayed = '1';
-                    num_rand_vectors <= num_rand_vectors + 1;
-                end loop;
-                file_close(rdi_file);
+                    file_close(rdi_file);
+                else
+                    report "Failed to open RDI input file: " & G_FNAME_RDI severity FAILURE;
+                end if;
             end if;
             wait;                       -- until simulation ends
         end process;
@@ -409,7 +413,7 @@ begin
             end if;
             if read_ok and (line_head = INS_HEAD or line_head = HDR_HEAD or line_head = DAT_HEAD) then
                 loop
-                    lwc_hread(line_data, word_block, read_ok);
+                    hread(line_data, word_block, read_ok);
                     if not read_ok then
                         exit;
                     end if;
@@ -469,7 +473,7 @@ begin
                 read(line_data, line_head, read_ok);
                 if read_ok and (line_head = INS_HEAD or line_head = HDR_HEAD or line_head = DAT_HEAD) then
                     loop
-                        lwc_hread(line_data, word_block, read_ok);
+                        hread(line_data, word_block, read_ok);
                         if not read_ok then
                             exit;
                         end if;
@@ -548,7 +552,7 @@ begin
                 exit;
             elsif preamble = HDR_HEAD or preamble = DAT_HEAD or preamble = STT_HEAD then -- header, data, or status lines
                 loop                    -- processing single line
-                    lwc_hread(line_data, golden_word, read_ok); -- read the rest of the line to word_block
+                    hread(line_data, golden_word, read_ok); -- read the rest of the line to word_block
                     word_count := 1;
                     if not read_ok then
                         exit;
@@ -569,9 +573,9 @@ begin
                     do_sum     := xor_shares(do_data, PDI_SHARES);
                     if not words_match(do_sum, golden_word) then
                         write(failMsg, string'("Test #") & integer'image(testcase) & " MsgID: " & integer'image(msgid) & " Line: " & integer'image(line_no) & " Word: " & integer'image(word_count));
-                        write(failMsg, string'(" Expected: ") & lwc_to_hstring(golden_word) & "   Received: " & lwc_to_hstring(do_data));
+                        write(failMsg, string'(" Expected: ") & to_hstring(golden_word) & "   Received: " & to_hstring(do_data));
                         if PDI_SHARES > 1 then
-                            write(failMsg, "   Received sum: " & lwc_to_hstring(do_sum));
+                            write(failMsg, "   Received sum: " & to_hstring(do_sum));
                         end if;
                         write(logMsg, string'("[Error] ") & failMsg.all);
                         report LF & logMsg.all & LF severity error;
@@ -584,7 +588,7 @@ begin
                             exit;
                         end if;
                     else
-                        write(logMsg, string'("[Log]     Expected: ") & lwc_to_hstring(golden_word) & string'(" Received: ") & lwc_to_hstring(do_data) & string'(" Matched!"));
+                        write(logMsg, string'("[Log]     Expected: ") & to_hstring(golden_word) & string'(" Received: ") & to_hstring(do_data) & string'(" Matched!"));
                         writeline(log_file, logMsg);
                     end if;
                     word_count := word_count + 1;
@@ -612,7 +616,7 @@ begin
             elsif preamble = TB_HEAD then
                 current_fail := False;
                 testcase     := testcase + 1;
-                lwc_hread(line_data, tb_block, read_ok);
+                hread(line_data, tb_block, read_ok);
                 if not read_ok then
                     exit;
                 end if;
@@ -627,7 +631,7 @@ begin
                     elsif opcode = INST_DEC then
                         write(logMsg, string'("DEC"));
                     else
-                        write(logMsg, string'("UNKNOWN opcode=") & lwc_to_hstring(opcode));
+                        write(logMsg, string'("UNKNOWN opcode=") & to_hstring(opcode));
                     end if;
                     keyid := to_integer(unsigned(tb_block(15 downto 8)));
                     write(logMsg, string'(" KeyID:") & integer'image(keyid));

@@ -2,11 +2,10 @@ name = "dummy_lwc_w32_ccw32"
 description = "Implementation of the dummy_lwc cipher and hash with W=32 and CCW=32"
 
 [language]
-vhdl.standard = "2002"
+vhdl.standard = "2008"
 vhdl.synopsys = false
 
 [rtl]
-
 sources = [
     "src_rtl/v1/design_pkg.vhd",
     "src_rtl/LWC_config_32.vhd",
@@ -25,7 +24,10 @@ clock.port = "clk"
 
 [tb]
 top = 'LWC_TB'
-sources = ["../LWC_tb/LWC_TB.vhd"]
+sources = [
+    # "../LWC_tb/std_logic_1164_additions.vhdl", 
+    "../LWC_tb/LWC_TB.vhd"
+]
 
 [tb.generics]
 G_FNAME_PDI.file = "KAT/32/pdi.txt"
@@ -41,6 +43,7 @@ G_RANDOM_STALL = true               # true
 
 [lwc]
 aead.algorithm = "dummy_lwc"
+aead.key_reuse = true
 hash.algorithm = "dummy_lwc"
 
 ports.pdi.bit_width = 32

@@ -103,7 +103,7 @@ architecture PreProcessor of PreProcessor is
    signal key_valid_p, key_ready_p         : std_logic;
    signal key_update_p                     : std_logic;
    signal hash_s, decrypt_s                : std_logic;
-   signal key_valid_s, key_last_s          : std_logic;
+   signal key_valid_s                      : std_logic;
    signal bdi_last_s, bdi_valid_s          : std_logic;
    --! always 3 bits
    signal bdi_size_p, bdi_size_s           : std_logic_vector(2 downto 0);
@@ -117,7 +117,7 @@ architecture PreProcessor of PreProcessor is
    signal seglen                           : std_logic_vector(SEGLEN_BITS - 1 downto 0);
    signal hdr_seglen                       : std_logic_vector(HDR_LEN_BITS - 1 downto 0);
    signal seglen_is_zero                   : boolean;
-   signal last_flit_of_segment             : boolean;
+   signal last_flit_of_segment             : std_logic;
    signal relay_hdr_to_postproc            : boolean;
    signal bdi_valid_bytes_p, bdi_pad_loc_p : std_logic_vector(W / 8 - 1 downto 0);
    signal bdi_valid_bytes_s, bdi_pad_loc_s : std_logic_vector(CCW / 8 - 1 downto 0);
@@ -144,48 +144,54 @@ begin
    --======================================== Instances ========================================--
    keyPISO : entity work.PISO
       generic map(
-         G_OUT_W      => SDI_SHARES * CCSW,
+         G_OUT_W      => CCSW,
          G_N          => SW / CCSW,
+         G_CHANNELS   => SDI_SHARES,
+         G_SUBWORD    => FALSE,
          G_ASYNC_RSTN => ASYNC_RSTN,
-         G_VALIDBYTES => FALSE
+         G_BIGENDIAN  => TRUE
       )
       port map(
-         clk              => clk,
-         rst              => rst,
+         clk         => clk,
+         rst         => rst,
          -- PISO Input
-         p_in_data        => sdi_data,
-         p_in_validbytes  => (others => '-'),
-         p_in_valid       => key_valid_p,
-         p_in_ready       => key_ready_p,
+         p_in_data   => sdi_data,
+         p_in_keep   => (others => '-'),
+         p_in_last   => '0',
+         p_in_valid  => key_valid_p,
+         p_in_ready  => key_ready_p,
          -- PISO Output
-         s_out_data       => key_data,
-         s_out_validbytes => open,
-         s_out_last       => key_last_s,
-         s_out_valid      => key_valid_s,
-         s_out_ready      => key_ready
+         s_out_data  => key_data,
+         s_out_keep  => open,
+         s_out_last  => open,
+         s_out_valid => key_valid_s,
+         s_out_ready => key_ready
       );
 
    bdiPISO : entity work.PISO
       generic map(
-         G_OUT_W      => PDI_SHARES * CCW,
+         G_OUT_W      => CCW,
          G_N          => W / CCW,
+         G_CHANNELS   => PDI_SHARES,
+         G_SUBWORD    => TRUE,
          G_ASYNC_RSTN => ASYNC_RSTN,
-         G_VALIDBYTES => TRUE
+         G_BIGENDIAN  => TRUE
       )
       port map(
-         clk              => clk,
-         rst              => rst,
+         clk         => clk,
+         rst         => rst,
          -- Parallel Input
-         p_in_data        => pdi_data,
-         p_in_validbytes  => bdi_valid_bytes_p,
-         p_in_valid       => bdi_valid_p,
-         p_in_ready       => bdi_ready_p,
+         p_in_data   => pdi_data,
+         p_in_keep   => bdi_valid_bytes_p,
+         p_in_last   => last_flit_of_segment,
+         p_in_valid  => bdi_valid_p,
+         p_in_ready  => bdi_ready_p,
          -- Serial Output
-         s_out_data       => bdi_data,
-         s_out_validbytes => bdi_valid_bytes_s,
-         s_out_last       => bdi_last_s,
-         s_out_valid      => bdi_valid_s,
-         s_out_ready      => bdi_ready
+         s_out_data  => bdi_data,
+         s_out_keep  => bdi_valid_bytes_s,
+         s_out_last  => bdi_last_s,
+         s_out_valid => bdi_valid_s,
+         s_out_ready => bdi_ready
       );
 
    GEN_W_EQ_CCW : if W = CCW generate
@@ -218,7 +224,7 @@ begin
                   hash    => to_std_logic(hash_op)
                );
             end if;
-            if (key_valid_p and key_ready_p) = '1' or (key_valid_s and key_ready and key_last_s) = '1' then
+            if (key_valid_p and key_ready_p) = '1' or (key_valid_s and key_ready) = '1' then
                key_update <= key_update_p;
             end if;
          end if;
@@ -390,8 +396,10 @@ begin
    end process;
 
    --===========================================================================================--
-   last_flit_of_segment <= is_zero(seglen_counter_hi(seglen_counter_hi'length - 1 downto 1)) and --
-                           (seglen_counter_hi(0) = '0' or is_zero(seglen_counter_lo));
+   last_flit_of_segment <= to_std_logic(
+      is_zero(seglen_counter_hi(seglen_counter_hi'length - 1 downto 1)) and --
+      (seglen_counter_hi(0) = '0' or is_zero(seglen_counter_lo))
+   );
 
    -- bdi number of valid bytes as a binary integer
    bdi_size_p <= std_logic_vector(resize(seglen_counter_hi(0) & seglen_counter_lo, bdi_size_p'length)) when last_flit_of_segment else --
@@ -403,8 +411,8 @@ begin
 
    pdi_fire  <= pdi_valid = '1' and pdi_ready_o = '1';
    sdi_fire  <= sdi_valid = '1' and sdi_ready_o = '1';
-   bdi_eoi_p <= eoi_flag and to_std_logic(last_flit_of_segment);
-   bdi_eot_p <= eot_flag and to_std_logic(last_flit_of_segment);
+   bdi_eoi_p <= eoi_flag and last_flit_of_segment;
+   bdi_eot_p <= eot_flag and last_flit_of_segment;
 
    op_is_actkey   <= pdi_hdr_type = INST_ACTKEY;
    op_is_hash     <= pdi_hdr_type(3) = '1'; -- INST_HASH
@@ -494,7 +502,7 @@ begin
             key_valid_p  <= sdi_valid;
             key_update_p <= '1';
             if sdi_fire then
-               if last_flit_of_segment then
+               if last_flit_of_segment = '1' then
                   nx_state <= S_INST;
                end if;
             end if;
@@ -527,7 +535,7 @@ begin
          when S_PDI_DATA =>
             pdi_ready_o <= bdi_ready_p;
             bdi_valid_p <= pdi_valid;
-            if pdi_fire and last_flit_of_segment then
+            if pdi_fire and last_flit_of_segment = '1' then
                if last_flag = '1' then
                   nx_state <= S_INST;
                else
