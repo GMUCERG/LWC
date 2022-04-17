@@ -189,8 +189,8 @@ package NIST_LWAPI_pkg is
             --! Data out ports
             do_data   : out std_logic_vector(PDI_SHARES * W - 1 downto 0);
             do_last   : out std_logic;
-            do_ready  : in  std_logic;
             do_valid  : out std_logic;
+            do_ready  : in  std_logic;
             --! Random Input
             rdi_data  : in  std_logic_vector(RW - 1 downto 0);
             rdi_valid : in  std_logic;

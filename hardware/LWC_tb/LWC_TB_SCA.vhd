@@ -7,7 +7,7 @@
 --! @copyright  Copyright (c) 2015, 2020, 2021, 2022 Cryptographic Engineering Research Group
 --!             ECE Department, George Mason University Fairfax, VA, U.S.A.
 --!             All rights Reserved.
---! @version    1.2.1
+--! @version    1.2.2
 --! @license    This project is released under the GNU Public License.
 --!             The license and distribution terms for this file may be
 --!             found in the file LICENSE in this distribution or at
@@ -21,6 +21,9 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use ieee.math_real.trunc;
+use ieee.math_real.uniform;
+
 use std.textio.all;
 
 use work.NIST_LWAPI_pkg.all;
@@ -75,49 +78,52 @@ architecture TB of LWC_TB is
 
     --=================================================== Signals ===================================================--
     --! stop clock generation
-    signal stop_clock          : boolean                             := False;
+    signal stop_clock              : boolean                             := False;
     --! initial reset of UUT is complete
-    signal reset_done          : boolean                             := False;
+    signal reset_done              : boolean                             := False;
     --=================================================== Wirings ===================================================--
-    signal clk                 : std_logic                           := '0';
-    signal rst                 : std_logic                           := '0';
+    signal clk                     : std_logic                           := '0';
+    signal rst                     : std_logic                           := '0';
     --! PDI
-    signal pdi_data            : std_logic_vector(W_S - 1 downto 0)  := (others => '0');
-    signal pdi_data_delayed    : std_logic_vector(W_S - 1 downto 0)  := (others => '0');
-    signal pdi_valid           : std_logic                           := '0';
-    signal pdi_valid_delayed   : std_logic                           := '0';
-    signal pdi_ready           : std_logic;
+    signal pdi_data                : std_logic_vector(W_S - 1 downto 0)  := (others => '0');
+    signal pdi_data_delayed        : std_logic_vector(W_S - 1 downto 0)  := (others => '0');
+    signal pdi_valid               : std_logic                           := '0';
+    signal pdi_valid_delayed       : std_logic                           := '0';
+    signal pdi_ready               : std_logic;
     --! SDI
-    signal sdi_data            : std_logic_vector(SW_S - 1 downto 0) := (others => '0');
-    signal sdi_data_delayed    : std_logic_vector(SW_S - 1 downto 0) := (others => '0');
-    signal sdi_valid           : std_logic                           := '0';
-    signal sdi_valid_delayed   : std_logic                           := '0';
-    signal sdi_ready           : std_logic;
+    signal sdi_data                : std_logic_vector(SW_S - 1 downto 0) := (others => '0');
+    signal sdi_data_delayed        : std_logic_vector(SW_S - 1 downto 0) := (others => '0');
+    signal sdi_valid               : std_logic                           := '0';
+    signal sdi_valid_delayed       : std_logic                           := '0';
+    signal sdi_ready               : std_logic;
     --! DO
-    signal do_data             : std_logic_vector(W_S - 1 downto 0);
-    signal do_valid            : std_logic;
-    signal do_last             : std_logic;
-    signal do_ready            : std_logic                           := '0';
-    signal do_ready_delayed    : std_logic                           := '0';
+    signal do_data                 : std_logic_vector(W_S - 1 downto 0);
+    signal do_valid                : std_logic;
+    signal do_last                 : std_logic;
+    signal do_ready                : std_logic                           := '0';
+    signal do_ready_delayed        : std_logic                           := '0';
     -- Used only for protected implementations:
     --   RDI
-    signal rdi_data            : std_logic_vector(RW - 1 downto 0)   := (others => '0');
-    signal rdi_data_delayed    : std_logic_vector(RW - 1 downto 0)   := (others => '0');
-    signal rdi_valid           : std_logic                           := '0';
-    signal rdi_valid_delayed   : std_logic                           := '0';
-    signal rdi_ready           : std_logic;
+    signal rdi_data                : std_logic_vector(RW - 1 downto 0)   := (others => '0');
+    signal rdi_data_delayed        : std_logic_vector(RW - 1 downto 0)   := (others => '0'); -- @suppress "signal rdi_data_delayed is never read"
+    signal rdi_valid               : std_logic                           := '0';
+    signal rdi_valid_delayed       : std_logic                           := '0';
+    signal rdi_ready               : std_logic; -- @suppress "signal rdi_ready is never written"
     -- Counters
-    signal pdi_operation_count : integer                             := 0;
-    signal cycle_counter       : natural                             := 0;
-    signal idle_counter        : natural                             := 0;
-    signal num_rand_vectors    : natural                             := 0;
-    --
-    signal start_cycle         : natural;
-    signal timing_started      : boolean                             := False;
-    signal timing_stopped      : boolean                             := False;
-    -- random number generation (requires VHDL 2000+)
+    signal pdi_operation_count     : integer                             := 0;
+    signal cycle_counter           : natural                             := 0;
+    signal idle_counter            : natural                             := 0;
+    signal rdi_counter, rdi_count0 : natural                             := 0;
+    -- Starting cycle of a timed operation
+    signal start_cycle             : natural;
+    -- PDI stimulus process signals that the timed operation begins.
+    --  stays TRUE for the duration of the timed operation
+    --  deasserted to FALSE right after receiving stop_timing = TRUE
+    signal timing_active           : boolean                             := False;
+    -- DO monitor process signals that the timed operation ends
+    signal stop_timing             : boolean                             := False;
+    -- random number generation (requires VHDL 2000, 2002, 2008, or later)
     -- based on random package from VHDL-extras (http://github.com/kevinpt/vhdl-extras)
-    use ieee.math_real.all;
     type rand_state is protected
         procedure seed(s : in positive);
         impure function random return real;
@@ -142,7 +148,7 @@ architecture TB of LWC_TB is
         end function;
     end protected body;
     --
-    shared variable prng       : rand_state;
+    shared variable prng           : rand_state;
     --
     impure function random return real is
     begin
@@ -318,10 +324,10 @@ begin
         rdi_data_delayed  <= transport rdi_data after input_delay;
         rdi_valid_delayed <= transport rdi_valid after input_delay;
         rdi_proc : process
-            variable rdi_line : line;
-            variable rdi_vec  : std_logic_vector(RW - 1 downto 0);
-            variable read_ok  : boolean;
-            variable fstatus  : FILE_OPEN_STATUS;
+            variable rdi_line  : line;
+            variable rdi_vec   : std_logic_vector(RW - 1 downto 0);
+            variable read_ok   : boolean;
+            variable fo_status : FILE_OPEN_STATUS;
         begin
             report LF & "RW=" & integer'image(RW);
             wait until reset_done and rising_edge(clk);
@@ -331,18 +337,18 @@ begin
                         rdi_valid <= '0';
                         wait until rising_edge(clk);
                     end loop;
-                    rdi_data         <= random(RW);
-                    rdi_valid        <= '1';
+                    rdi_data    <= random(RW);
+                    rdi_valid   <= '1';
                     wait until rising_edge(clk) and rdi_ready = '1' and rdi_valid_delayed = '1';
-                    num_rand_vectors <= num_rand_vectors + 1;
+                    rdi_counter <= rdi_counter + 1;
                 end loop;
             else
-                file_open(fstatus, rdi_file, G_FNAME_RDI, READ_MODE);
-                if fstatus = OPEN_OK then
+                file_open(fo_status, rdi_file, G_FNAME_RDI, READ_MODE);
+                if fo_status = OPEN_OK then
                     while not stop_clock loop
                         loop
                             if endfile(rdi_file) then
-                                assert num_rand_vectors > 0 report "RDI file is empty!" severity failure;
+                                assert rdi_counter > 0 report "RDI file is empty!" severity failure;
                                 if G_VERBOSE_LEVEL > 2 then
                                     report "Reached end of " & G_FNAME_RDI & ", reading from the begining.";
                                 end if;
@@ -368,10 +374,10 @@ begin
                             rdi_valid <= '0';
                             wait until rising_edge(clk);
                         end loop;
-                        rdi_data         <= rdi_vec;
-                        rdi_valid        <= '1';
+                        rdi_data    <= rdi_vec;
+                        rdi_valid   <= '1';
                         wait until rising_edge(clk) and rdi_ready = '1' and rdi_valid_delayed = '1';
-                        num_rand_vectors <= num_rand_vectors + 1;
+                        rdi_counter <= rdi_counter + 1;
                     end loop;
                     file_close(rdi_file);
                 else
@@ -385,65 +391,71 @@ begin
     --===========================================================================================--
     --====================================== PDI Stimulus =======================================--
     tb_read_pdi : process
-        variable line_data  : LINE;
-        variable word_block : std_logic_vector(W_S - 1 downto 0) := (others => '0');
-        variable read_ok    : boolean;
-        variable line_head  : string(1 to 6);
-        variable actkey_ins : boolean;
-        variable hash_ins   : boolean;
-        -- instruction other than actkey or hash was already sent
-        variable op_sent    : boolean                            := False;
+        variable line_data   : LINE;
+        variable word_block  : std_logic_vector(W_S - 1 downto 0) := (others => '0');
+        variable read_ok     : boolean;
+        variable line_head   : string(1 to 6);
+        variable prev_actkey : boolean; -- previous instruction was ACTKEY
+        variable inst_line   : boolean; -- in TIMING_MODE and read line is instruction
     begin
         -- wait for the clock edge after reset is complete
         wait until reset_done;
         wait until rising_edge(clk);
         --
+        prev_actkey := FALSE;
         while not endfile(pdi_file) loop
             readline(pdi_file, line_data);
             read(line_data, line_head, read_ok); --! read line header
             if read_ok and (line_head = INS_HEAD) then
                 pdi_operation_count <= pdi_operation_count + 1;
             end if;
+            inst_line := TIMING_MODE and (line_head = INS_HEAD);
+            if inst_line then           -- line is an instruction
+                if timing_active and not prev_actkey then
+                    if not stop_timing then
+                        pdi_valid <= '0';
+                        -- wait for tb_verify_do process to complete timed operation
+                        wait until rising_edge(clk) and stop_timing;
+                    end if;
+                    -- acknowledge receiving `stop_timing` to tb_verify_do process
+                    timing_active <= FALSE;
+                    -- wait for tb_verify_do process to complete timed operation
+                    wait until rising_edge(clk) and not stop_timing;
+                end if;
+                if not timing_active then -- if wasn't active before or now deactivated
+                    timing_active <= TRUE;
+                    start_cycle   <= cycle_counter;
+                    rdi_count0    <= rdi_counter;
+                end if;
+            end if;
+
             if read_ok and (line_head = INS_HEAD or line_head = HDR_HEAD or line_head = DAT_HEAD) then
                 loop
                     hread(line_data, word_block, read_ok);
                     if not read_ok then
                         exit;
                     end if;
-                    actkey_ins := (line_head = INS_HEAD) and (word_block(W - 1 downto W - 4) = INST_ACTKEY);
-                    hash_ins   := (line_head = INS_HEAD) and (word_block(W - 1 downto W - 4) = INST_HASH);
+
                     for i in 0 to get_stalls(G_PDI_STALLS) - 1 loop
                         pdi_valid <= '0';
                         wait until rising_edge(clk);
                     end loop;
-                    if TIMING_MODE and line_head = INS_HEAD and (actkey_ins or hash_ins or op_sent) and timing_started then
-                        if not timing_stopped then
-                            pdi_valid <= '0';
-                            wait until rising_edge(clk) and timing_stopped; -- wait for tb_verify_do process to complete timed operation
-                        end if;
-                        timing_started <= False; -- ACK receiving timing_stopped = '1' to tb_verify_do process
-                    end if;
 
                     pdi_valid <= '1';
                     pdi_data  <= word_block;
                     wait until rising_edge(clk) and pdi_ready = '1';
-                    -- NOTE: should never stall here
-                    if TIMING_MODE and line_head = INS_HEAD then
-                        op_sent := not actkey_ins and not hash_ins;
-                        if not timing_started then
-                            start_cycle    <= cycle_counter;
-                            timing_started <= True;
-                            wait for 0 ns; -- yield to update timing_started signal as there could be no wait before next read
-                        end if;
+                    if inst_line then
+                        prev_actkey := word_block(word_block'left downto word_block'left - 3) = INST_ACTKEY;
+                        inst_line   := FALSE; -- make sure done just once per line
                     end if;
                 end loop;
             end if;
         end loop;
         --
         pdi_valid <= '0';
-        if timing_started and not timing_stopped then
-            wait until timing_stopped;
-            timing_started <= False;
+        if timing_active and not stop_timing then
+            wait until stop_timing;
+            timing_active <= False;
         end if;
         wait;                           -- until simulation ends
     end process;
@@ -470,9 +482,9 @@ begin
                         if not read_ok then
                             exit;
                         end if;
-                        if TIMING_MODE and not timing_started then
+                        if TIMING_MODE and not timing_active then
                             sdi_valid <= '0';
-                            wait until timing_started;
+                            wait until timing_active;
                         end if;
                         for i in 0 to get_stalls(G_SDI_STALLS) - 1 loop
                             sdi_valid <= '0';
@@ -492,34 +504,37 @@ begin
     --===========================================================================================--
     --=================================== DO Verification =======================================--
     tb_verify_do : process
-        variable line_no      : integer := 0;
-        variable line_data    : LINE;
-        variable logMsg       : LINE;
-        variable logMsg2      : LINE;
-        variable failMsg      : LINE;
-        variable tb_block     : std_logic_vector(20 - 1 downto 0);
-        variable golden_word  : std_logic_vector(W - 1 downto 0);
-        variable read_ok      : boolean;
-        variable preamble     : string(1 to 6);
-        variable word_count   : integer := 1;
-        variable force_exit   : boolean := FALSE;
-        variable msgid        : integer;
-        variable keyid        : integer;
-        variable opcode       : std_logic_vector(3 downto 0);
-        variable num_failures : integer := 0;
-        variable current_fail : boolean := FALSE;
-        variable testcase     : integer := 0;
-        variable cycles       : integer;
-        variable end_cycle    : natural;
-        variable end_time     : TIME;
-        variable do_sum       : std_logic_vector(W - 1 downto 0);
+        variable line_no         : integer := 0;
+        variable line_data       : LINE;
+        variable logMsg          : LINE;
+        variable logMsg2         : LINE;
+        variable failMsg         : LINE;
+        variable tb_block        : std_logic_vector(20 - 1 downto 0);
+        variable golden_word     : std_logic_vector(W - 1 downto 0);
+        variable read_ok         : boolean;
+        variable preamble        : string(1 to 6);
+        variable word_count      : integer := 1;
+        variable force_exit      : boolean := FALSE;
+        variable msgid           : integer;
+        variable keyid           : integer;
+        variable opcode          : std_logic_vector(3 downto 0);
+        variable num_failures    : integer := 0;
+        variable current_fail    : boolean := FALSE;
+        variable testcase        : integer := 0;
+        variable cycles, rdi_cnt : integer;
+        variable end_cycle       : natural;
+        variable end_time        : TIME;
+        variable do_sum          : std_logic_vector(W - 1 downto 0);
+        variable fo_status       : FILE_OPEN_STATUS;
     begin
         wait until reset_done;
         wait until rising_edge(clk);
         if TIMING_MODE then
-            file_open(timing_file, G_FNAME_TIMING, WRITE_MODE);
+            file_open(fo_status, timing_file, G_FNAME_TIMING, WRITE_MODE);
+            assert fo_status = OPEN_OK severity FAILURE;
         end if;
-        file_open(log_file, G_FNAME_LOG, WRITE_MODE);
+        file_open(fo_status, log_file, G_FNAME_LOG, WRITE_MODE);
+        assert fo_status = OPEN_OK severity FAILURE;
         while not endfile(do_file) and not force_exit loop
             loop
                 if endfile(do_file) then
@@ -554,11 +569,11 @@ begin
                         do_ready <= '0';
                         wait until rising_edge(clk);
                     end loop;
-                    if TIMING_MODE and not timing_started then
+                    if TIMING_MODE and not timing_active then
                         -- stall until timing has started from PDI
-                        do_ready       <= '0';
-                        timing_stopped <= False;
-                        wait until timing_started;
+                        do_ready    <= '0';
+                        stop_timing <= False;
+                        wait until timing_active;
                     end if;
                     do_ready   <= '1';
                     wait until rising_edge(clk) and do_valid = '1';
@@ -593,15 +608,23 @@ begin
                             report " [OK]" severity note;
                         end if;
                         if TIMING_MODE then
-                            assert timing_started;
-                            cycles         := cycle_counter - start_cycle;
-                            timing_stopped <= True;
-                            do_ready       <= '0'; -- needed as we wait for de-assertion of timing_started
-                            wait until not timing_started;
+                            assert timing_active;
+                            cycles      := cycle_counter - start_cycle;
+                            rdi_cnt     := rdi_counter - rdi_count0;
+                            stop_timing <= True;
+                            do_ready    <= '0'; -- needed as we wait for de-assertion of `timing_active`
+                            wait until not timing_active;
                             write(logMsg, integer'image(msgid) & "," & integer'image(cycles));
+                            if RW > 0 then
+                                write(logMsg, "," & integer'image(rdi_cnt)); -- TODO rdi_counter can overflow (integer is only 32 bits). Use unsigned.
+                            end if;
                             writeline(timing_file, logMsg);
                             if G_VERBOSE_LEVEL > 0 then
-                                report "[Timing] MsgId: " & integer'image(msgid) & ", cycles: " & integer'image(cycles) severity note;
+                                if RW > 0 then
+                                    report "[Timing] MsgId: " & integer'image(msgid) & ", cycles: " & integer'image(cycles) severity note;
+                                else
+                                    report "[Timing] MsgId: " & integer'image(msgid) & ", cycles: " & integer'image(cycles) & ", RDI words: " & integer'image(rdi_cnt) severity note;
+                                end if;
                             end if;
                         end if;
                     end if;
@@ -639,7 +662,7 @@ begin
         do_ready   <= '0';
         wait until rising_edge(clk);
         if RW > 0 then
-            report "Number of consumed random words: " & integer'image(num_rand_vectors) severity note;
+            report "Number of consumed random words: " & integer'image(rdi_counter) severity note;
         end if;
         --
         if num_failures > 0 then

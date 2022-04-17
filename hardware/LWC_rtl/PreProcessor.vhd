@@ -309,7 +309,7 @@ begin
       seglen <= seglen_msb8 & hdr_seglen(7 downto 0);
    end generate;
    WNOT8_GEN : if W /= 8 generate
-      seglen <= hdr_seglen;
+      seglen <= hdr_seglen(seglen'range);
    end generate;
 
    --============================================================================================--

@@ -28,7 +28,7 @@
 --! Description
 --! bdo_type is not used at the moment.
 --!
---! VHDL standard compatibility: 1993, 2002, 2008
+--! VHDL standard compatibility: VHDL 1993, 2002, 2008, and later
 --!
 --===============================================================================================--
 
@@ -60,7 +60,6 @@ entity PostProcessor is
       cmd_ready       : out std_logic;
       --! Data Output (DO) ==================================================
       do_data         : out std_logic_vector(PDI_SHARES * W - 1 downto 0);
-      do_valid_bytes  : out std_logic_vector(W / 8 - 1 downto 0);
       do_last         : out std_logic;
       do_valid        : out std_logic;
       do_ready        : in  std_logic
@@ -94,7 +93,6 @@ architecture RTL of PostProcessor is
    signal cmd_ready_o, do_valid_o                : std_logic;
    signal bdo_valid_p, bdo_ready_p, bdo_last_p   : std_logic;
    signal bdo_data_p                             : std_logic_vector(PDI_SHARES * W - 1 downto 0);
-   signal bdo_valid_bytes_p                      : std_logic_vector(W / 8 - 1 downto 0);
    signal seglen                                 : std_logic_vector(SEGLEN_BITS - 1 downto 0);
    signal nx_decrypt, nx_eot                     : std_logic;
    -- current header seglen part (8 bits for W=8) is zero
@@ -144,7 +142,7 @@ begin
          sin_ready  => bdo_ready,
          -- parallel output (W)
          pout_data  => bdo_data_p,
-         pout_keep  => bdo_valid_bytes_p,
+         pout_keep  => open,
          pout_last  => bdo_last_p,
          pout_valid => bdo_valid_p,
          pout_ready => bdo_ready_p

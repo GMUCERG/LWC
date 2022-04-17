@@ -12,12 +12,16 @@ from cryptotvgen import cli
 from rich.console import Console
 from rich.table import Table
 from xeda import Design
-from xeda.dataclass import Extra, Field
-from xeda.dataclass import XedaBaseModel as BaseModel
+from xeda.dataclass import Extra, Field, XedaBaseModel as BaseModel
 from xeda.flow_runner import DefaultRunner as FlowRunner
 from xeda.flows import GhdlSim
 
 console = Console()
+
+
+
+logger = logging.getLogger(__name__)
+logger.root.setLevel(logging.INFO)
 
 
 class Lwc(BaseModel):
@@ -78,6 +82,7 @@ class Lwc(BaseModel):
 
         class Rdi(BaseModel):
             bit_width: int = Field(
+                0,
                 ge=0,
                 le=2048,
                 description="Width of the `rdi` port in bits (`rw`), 0 if the port is not used.",
@@ -113,7 +118,7 @@ class Lwc(BaseModel):
         None, description="Details about the AEAD scheme and its implementation"
     )
     hash: Optional[Hash] = None
-    ports: Ports = Field(..., description="Description of LWC ports.")
+    ports: Ports = Field(description="Description of LWC ports.")
     sca_protection: Optional[ScaProtection] = Field(
         None, description="Implemented countermeasures against side-channel attacks."
     )
@@ -126,8 +131,6 @@ class LwcDesign(Design):
     lwc: Lwc
 
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 
@@ -223,9 +226,13 @@ def main():
         "G_FNAME_TIMING": str(timing_report),
         "G_TEST_MODE": 4,
     }
-
-    f = FlowRunner().run_flow(GhdlSim, design)
-    assert f.succeeded
+    debug=True
+    settings = {}
+    if debug:
+        settings["wave"] = "benchmark.ghw"
+    f = FlowRunner().run_flow(GhdlSim, design, settings)
+    if not f.succeeded:
+        raise Exception("Ghdl flow failed")
 
     assert timing_report.exists()
 

@@ -134,29 +134,29 @@ architecture structure of LWC_SCA is
             key_update      : in  std_logic;
             --! Data Input
             bdi             : in  std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
-            bdi_valid       : in  std_logic;
-            bdi_ready       : out std_logic;
             bdi_pad_loc     : in  std_logic_vector(CCW / 8 - 1 downto 0);
             bdi_valid_bytes : in  std_logic_vector(CCW / 8 - 1 downto 0);
             bdi_size        : in  std_logic_vector(3 - 1 downto 0);
             bdi_eot         : in  std_logic;
             bdi_eoi         : in  std_logic;
             bdi_type        : in  std_logic_vector(4 - 1 downto 0);
+            bdi_valid       : in  std_logic;
+            bdi_ready       : out std_logic;
             -- kept stable for the entire duration of data input operation:
             decrypt_in      : in  std_logic;
             hash_in         : in  std_logic;
             --! Data Output
             bdo             : out std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
-            bdo_valid       : out std_logic;
-            bdo_ready       : in  std_logic;
             bdo_type        : out std_logic_vector(4 - 1 downto 0);
             bdo_valid_bytes : out std_logic_vector(CCW / 8 - 1 downto 0);
             --! The last word of BDO of the currect outout type (i.e., "bdo_eot")
             end_of_block    : out std_logic;
+            bdo_valid       : out std_logic;
+            bdo_ready       : in  std_logic;
             --! Tag authentication
+            msg_auth        : out std_logic;
             msg_auth_valid  : out std_logic;
             msg_auth_ready  : in  std_logic;
-            msg_auth        : out std_logic;
             --! Random Input
             rdi             : in  std_logic_vector(CCRW - 1 downto 0);
             rdi_valid       : in  std_logic;
@@ -227,30 +227,36 @@ begin
         port map(
             clk             => clk,
             rst             => rst,
+            --
             key             => key_cipher_in,
             key_valid       => key_valid_cipher_in,
             key_ready       => key_ready_cipher_in,
+            --
+            key_update      => key_update_cipher_in,
+            --
             bdi             => bdi_cipher_in,
-            bdi_valid       => bdi_valid_cipher_in,
-            bdi_ready       => bdi_ready_cipher_in,
             bdi_pad_loc     => bdi_pad_loc_cipher_in,
             bdi_valid_bytes => bdi_valid_bytes_cipher_in,
             bdi_size        => bdi_size_cipher_in,
             bdi_eot         => bdi_eot_cipher_in,
             bdi_eoi         => bdi_eoi_cipher_in,
             bdi_type        => bdi_type_cipher_in,
+            bdi_valid       => bdi_valid_cipher_in,
+            bdi_ready       => bdi_ready_cipher_in,
+            --
             decrypt_in      => decrypt_cipher_in,
-            key_update      => key_update_cipher_in,
             hash_in         => hash_cipher_in,
+            --
             bdo             => bdo_cipher_out,
-            bdo_valid       => bdo_valid_cipher_out,
-            bdo_ready       => bdo_ready_cipher_out,
             bdo_type        => bdo_type_cipher_out,
             bdo_valid_bytes => bdo_valid_bytes_cipher_out,
             end_of_block    => bdo_last_cipher_out,
+            bdo_valid       => bdo_valid_cipher_out,
+            bdo_ready       => bdo_ready_cipher_out,
+            --
+            msg_auth        => msg_auth,
             msg_auth_valid  => msg_auth_valid,
             msg_auth_ready  => msg_auth_ready,
-            msg_auth        => msg_auth,
             rdi             => rdi_data,
             rdi_valid       => rdi_valid,
             rdi_ready       => rdi_ready
@@ -260,18 +266,22 @@ begin
         port map(
             clk             => clk,
             rst             => rst,
+            --
             bdo_data        => bdo_cipher_out,
             bdo_valid_bytes => bdo_valid_bytes_cipher_out,
             bdo_last        => bdo_last_cipher_out,
             bdo_type        => bdo_type_cipher_out,
             bdo_valid       => bdo_valid_cipher_out,
             bdo_ready       => bdo_ready_cipher_out,
+            --
             auth_success    => msg_auth,
             auth_valid      => msg_auth_valid,
             auth_ready      => msg_auth_ready,
+            --
             cmd_data        => cmd_FIFO_out,
             cmd_valid       => cmd_valid_FIFO_out,
             cmd_ready       => cmd_ready_FIFO_out,
+            --
             do_data         => do_fifo_in_data,
             do_last         => do_fifo_in_last,
             do_valid        => do_fifo_in_valid,
@@ -280,8 +290,9 @@ begin
 
     Inst_HeaderFifo : entity work.FIFO
         generic map(
-            G_W     => W,
-            G_DEPTH => 1
+            G_W         => W,
+            G_DEPTH     => 1,
+            G_ELASTIC_2 => TRUE
         )
         port map(
             clk        => clk,
