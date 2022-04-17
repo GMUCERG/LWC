@@ -12,7 +12,7 @@ jobs:
     steps:
     # see https://github.com/actions/virtual-environments/issues/1757
     - name: Run apt update on Ubuntu
-      run: sudo apt update
+      run: sudo apt update -qq
     - uses: ghdl/setup-ghdl-ci@nightly
       with:
         backend: gcc
@@ -22,7 +22,7 @@ jobs:
       run: |
         python3 -m pip install --upgrade setuptools
         cd software/cryptotvgen && python3 -m pip install --upgrade . && cd ../..
-        python3 -m pip install --upgrade xeda==0.1.0a10
+        python3 -m pip install --upgrade xeda==0.1.0a11
     - name: dummy core test_all
       run: |
         cd hardware/dummy_lwc && python3 ./test_all.py
