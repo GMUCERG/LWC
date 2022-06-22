@@ -458,6 +458,9 @@ def get_parser():
     test.add_argument('--with_key_reuse', default=False, action='store_true',
                       help="'--gen_benchmark' blanket tests will include key-reuse test-cases"
                       )
+    test.add_argument('--quickbench', default=False, action='store_true',
+                      help="'--gen_benchmark' don't include timing measurement vectors for AD/PT/CT of 1536 bytes"
+                      )
     test.add_argument(
         '--gen_custom_mode', type=int, default=0, choices=range(3),
         metavar='MODE', help=textwrap.dedent('''\
@@ -754,7 +757,7 @@ def get_parser():
         '--message_digest_size', type=int, default=None, metavar='BITS',
         help='Size of message digest (hash_tag) in bits')
     impops.add_argument(
-        '--block_size', type=int, default=None, metavar='BITS',
+        '--block_size', type=int, default=8, metavar='BITS',
         help='''Algorithm's data block size''')
     impops.add_argument(
         '--block_size_ad', type=int, metavar='BITS',

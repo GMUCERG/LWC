@@ -394,8 +394,10 @@ class TestVector(object):
         self.decrypt = op
         # Input
         self.key = key
-        self.npub = npub[:2*self.opts.npub_size//8]
-        self.nsec_pt = nsec_pt[:2*self.opts.nsec_size//8]
+        if self.opts.npub_size:
+            self.npub = npub[:2*self.opts.npub_size//8]
+        if self.opts.nsec_size:
+            self.nsec_pt = nsec_pt[:2*self.opts.nsec_size//8]
         self.ad = ad
         self.pt = pt
         self.partial = 0
@@ -951,36 +953,40 @@ def gen_dataset(opts, routine, start_msg_no, start_key_no, mode=0):
         return "".join(a)
 
     # print(routine)
-    assert opts.key_size and opts.npub_size is not None, "key_size and npub_size should be set"
     for i, tv in enumerate(routine):
         hashop = tv[4]
+        assert hashop or (opts.key_size and opts.npub_size is not None), "key_size and npub_size should be set"
 
         if hashop:
             new_key = 0
             decrypt = False
+            key = npub = nsec = ad = []
         else:
             new_key = 1 if i == 0 else tv[0]
             decrypt = tv[1]
 
         if mode == 2:
-            key = get_running_value(opts.key_size//8)
-            npub = get_running_value(opts.npub_size//8)
-            nsec = get_running_value(opts.nsec_size//8)
-            ad = get_running_value(tv[2])
+            if not hashop:
+                key = get_running_value(opts.key_size//8)
+                npub = get_running_value(opts.npub_size//8)
+                nsec = get_running_value(opts.nsec_size//8)
+                ad = get_running_value(tv[2])
             data = get_running_value(tv[3])
 
         elif mode == 1:
-            key = '55' * (opts.key_size//8)
-            npub = 'B0' * (opts.npub_size//8)
-            nsec = '66' * (opts.nsec_size//8)
-            ad = 'A0'*tv[2]
+            if not hashop:
+                key = '55' * (opts.key_size//8)
+                npub = 'B0' * (opts.npub_size//8)
+                nsec = '66' * (opts.nsec_size//8)
+                ad = 'A0'*tv[2]
             data = 'FF'*tv[3]
 
         else:
-            key = gen_data(opts.key_size // 8,   mode, '55')
-            npub = gen_data(opts.npub_size // 8,  mode, 'B0')
-            nsec = gen_data(opts.nsec_size // 8,  mode, '66')
-            ad = gen_data(tv[2],          mode, 'A0')
+            if not hashop:
+                key = gen_data(opts.key_size // 8,   mode, '55')
+                npub = gen_data(opts.npub_size // 8,  mode, 'B0')
+                nsec = gen_data(opts.nsec_size // 8,  mode, '66')
+                ad = gen_data(tv[2],          mode, 'A0')
             data = gen_data(tv[3],          mode, 'FF')
 
         if new_key == 0 and not hashop:
@@ -995,14 +1001,15 @@ def gen_dataset(opts, routine, start_msg_no, start_key_no, mode=0):
                 ad = dataset[i-1].ad
                 data = dataset[i-1].pt
 
-        key_id = key_id + new_key
-        if key_id < 0:
-            key_id = 0
+        if not hashop:
+            key_id = key_id + new_key
+            if key_id < 0:
+                key_id = 0
 
         dataset.append(TestVector(opts, i+start_msg_no, key_id,
                                   new_key, decrypt,
                                   key, npub, nsec, ad, data, hashop))
-    return dataset, i+start_msg_no, key_id
+    return dataset, i + start_msg_no, key_id
 
 
 def gen_single(opts, start_msg_no, start_key_no, index):
@@ -1087,9 +1094,7 @@ def gen_test_combined(opts, start_msg_no, key_no):
 def gen_hash(opts, start_msg_no):
     if (opts.verbose):
         print('gen_hash')
-    bsa = opts.block_size_ad if opts.block_size_ad != None else opts.block_size
-    bsd = opts.block_size
-    bsa, bsd = int(bsa/8), int(bsd/8)
+    bsd = opts.block_size // 8 if opts.block_size else 16
     (start, stop, mode) = opts.gen_hash
 
     routine = [[False,     False,      0,         0, True],
@@ -1236,28 +1241,30 @@ def determine_params(opts):
 
 
 def blanket_tests(opts, reuse_key=None):
-    if reuse_key is None:
-        reuse_key = opts.with_key_reuse
-    ad_bs = opts.block_size_ad//8
-    xt_bs = opts.block_size//8
-    msg_sizes = list(range(10)) + [15, 16, 17, 29, 61, 63, 64, 65, 67, 97, 127, 128, 129,
-                                   xt_bs - 1, xt_bs, xt_bs + 1,
-                                   xt_bs // 2 - 1, xt_bs // 2,
-                                   2*xt_bs - 1, 2*xt_bs, 2*xt_bs + 1,
-                                   ]
-    ad_sizes = list(range(10)) + [15, 16, 17, 29, 61, 63,
-                                  ad_bs // 2 - 1, ad_bs // 2,
-                                  ad_bs - 1, ad_bs, ad_bs + 1,
-                                  2*ad_bs - 1, 2*ad_bs, 2*ad_bs + 1
-                                  ]
-    msg_sizes = unique(msg_sizes) + [0] * 5 + [1] * 2
-    ad_sizes = unique(ad_sizes) + [0] * 5 + [1] * 2
-    routine = [
-        [True, dec, ad_size, msg_size, False]
-        for dec in [False, True]
-        for msg_size in msg_sizes
-        for ad_size in ad_sizes
-    ]
+    routine = []
+    if opts.aead:
+        if reuse_key is None:
+            reuse_key = opts.with_key_reuse
+        ad_bs = opts.block_size_ad//8
+        xt_bs = opts.block_size//8
+        msg_sizes = list(range(10)) + [15, 16, 17, 29, 61, 63, 64, 65, 67, 97, 127, 128, 129,
+                                       xt_bs - 1, xt_bs, xt_bs + 1,
+                                       xt_bs // 2 - 1, xt_bs // 2,
+                                       2*xt_bs - 1, 2*xt_bs, 2*xt_bs + 1,
+                                       ]
+        ad_sizes = list(range(10)) + [15, 16, 17, 29, 61, 63,
+                                      ad_bs // 2 - 1, ad_bs // 2,
+                                      ad_bs - 1, ad_bs, ad_bs + 1,
+                                      2*ad_bs - 1, 2*ad_bs, 2*ad_bs + 1
+                                      ]
+        msg_sizes = unique(msg_sizes) + [0] * 5 + [1] * 2
+        ad_sizes = unique(ad_sizes) + [0] * 5 + [1] * 2
+        routine += [
+            [True, dec, ad_size, msg_size, False]
+            for dec in [False, True]
+            for msg_size in msg_sizes
+            for ad_size in ad_sizes
+        ]
     if opts.hash:
         hm_bs = opts.block_size_msg_digest
         hm_sizes = list(range(10)) + [15, 16, 17, 29, 61, 63, 64, 65, 67, 97, 127, 128, 129,
@@ -1291,30 +1298,34 @@ def timing_tests(opts, n=4):
     abs = opts.block_size_ad // 8
     mbs = opts.block_size // 8
 
-    for nk in new_key:
-        for dec in [False, True]:
-            if n:
-                # they go first because we eliminate repeted cases and want these pairs to stay consecutive
-                # on the last field of the second of "long" pairs is set to True
+    if opts.aead:
+        for nk in new_key:
+            for dec in [False, True]:
+                if n:
+                    # they go first because we eliminate repeted cases and want these pairs to stay consecutive
+                    # on the last field of the second of "long" pairs is set to True
+                    ret += [
+                        (nk, dec,           0,     n * mbs, False, False),
+                        (nk, dec,           0, (n+1) * mbs, False,  True),
+                        (nk, dec,     n * abs,           0, False, False),
+                        (nk, dec, (n+1) * abs,           0, False,  True),
+                        (nk, dec, n * abs,         n * mbs, False, False),
+                        (nk, dec, (n+1) * abs, (n+1) * mbs, False,  True),
+                    ]
                 ret += [
-                    (nk, dec,           0,     n * mbs, False, False),
-                    (nk, dec,           0, (n+1) * mbs, False,  True),
-                    (nk, dec,     n * abs,           0, False, False),
-                    (nk, dec, (n+1) * abs,           0, False,  True),
-                    (nk, dec, n * abs,         n * mbs, False, False),
-                    (nk, dec, (n+1) * abs, (n+1) * mbs, False,  True),
+                    (nk, dec,    0,   16, False, False),
+                    (nk, dec,   16,    0, False, False),
+                    (nk, dec,   16,   16, False, False),
+                    (nk, dec,    0,   64, False, False),
+                    (nk, dec,   64,    0, False, False),
+                    (nk, dec,   64,   64, False, False),
                 ]
-            ret += [
-                (nk, dec,    0,   16, False, False),
-                (nk, dec,   16,    0, False, False),
-                (nk, dec,   16,   16, False, False),
-                (nk, dec,    0,   64, False, False),
-                (nk, dec,   64,    0, False, False),
-                (nk, dec,   64,   64, False, False),
-                (nk, dec,    0, 1536, False, False),
-                (nk, dec, 1536,    0, False, False),
-                (nk, dec, 1536, 1536, False, False),
-            ]
+                if not opts.quickbench:
+                    ret += [
+                        (nk, dec,    0, 1536, False, False),
+                        (nk, dec, 1536,    0, False, False),
+                        (nk, dec, 1536, 1536, False, False),
+                    ]
     if opts.hash:
         hbs = opts.block_size_msg_digest // 8
         if n:
