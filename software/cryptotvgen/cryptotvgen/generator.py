@@ -590,7 +590,6 @@ class TestVector(object):
                 log.debug("AD = {}".format(self.ad))
                 log.debug("CT = {}{}".format(self.ct, self.tag))
 
-                assert nsec_pt == self.nsec_pt
                 assert pt == self.pt
                 assert auth_result == 0
 
