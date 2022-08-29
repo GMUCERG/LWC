@@ -511,28 +511,30 @@ begin
     --===========================================================================================--
     --=================================== DO Verification =======================================--
     tb_verify_do : process
-        variable line_no         : integer := 0;
-        variable line_data       : LINE;
-        variable logMsg          : LINE;
-        variable logMsg2         : LINE;
-        variable failMsg         : LINE;
-        variable tb_block        : std_logic_vector(20 - 1 downto 0);
-        variable golden_word     : std_logic_vector(W - 1 downto 0);
-        variable read_ok         : boolean;
-        variable preamble        : string(1 to 6);
-        variable word_count      : integer := 1;
-        variable force_exit      : boolean := FALSE;
-        variable msgid           : integer;
-        variable keyid           : integer;
-        variable opcode          : std_logic_vector(3 downto 0);
-        variable num_failures    : integer := 0;
-        variable current_fail    : boolean := FALSE;
-        variable testcase        : integer := 0;
-        variable cycles, rdi_cnt : integer;
-        variable end_cycle       : natural;
-        variable end_time        : TIME;
-        variable do_sum          : std_logic_vector(W - 1 downto 0);
-        variable fo_status       : FILE_OPEN_STATUS;
+        variable line_no      : integer := 0;
+        variable line_data    : LINE;
+        variable logMsg       : LINE;
+        variable logMsg2      : LINE;
+        variable failMsg      : LINE;
+        variable tb_block     : std_logic_vector(20 - 1 downto 0);
+        variable golden_word  : std_logic_vector(W - 1 downto 0);
+        variable read_ok      : boolean;
+        variable preamble     : string(1 to 6);
+        variable word_count   : integer := 1;
+        variable force_exit   : boolean := FALSE;
+        variable msgid        : integer;
+        variable keyid        : integer;
+        variable opcode       : std_logic_vector(3 downto 0);
+        variable num_failures : integer := 0;
+        variable current_fail : boolean := FALSE;
+        variable testcase     : integer := 0;
+        variable cycles       : integer;
+        variable rdi_cnt      : integer;
+        variable rdi_bits     : unsigned(63 downto 0);
+        variable end_cycle    : natural;
+        variable end_time     : TIME;
+        variable do_sum       : std_logic_vector(W - 1 downto 0);
+        variable fo_status    : FILE_OPEN_STATUS;
     begin
         wait until reset_done;
         wait until rising_edge(clk);
@@ -618,19 +620,20 @@ begin
                             assert timing_active;
                             cycles      := cycle_counter - start_cycle;
                             rdi_cnt     := rdi_counter - rdi_count0;
+                            rdi_bits    := to_unsigned(rdi_cnt, rdi_bits'length / 2) * to_unsigned(RW, rdi_bits'length / 2);
                             stop_timing <= True;
                             do_ready    <= '0'; -- needed as we wait for de-assertion of `timing_active`
                             wait until not timing_active;
                             write(logMsg, integer'image(msgid) & "," & integer'image(cycles));
                             if RW > 0 then
-                                write(logMsg, "," & integer'image(rdi_cnt)); -- TODO rdi_counter can overflow (integer is only 32 bits). Use unsigned.
+                                write(logMsg, "," & to_string(rdi_bits));
                             end if;
                             writeline(timing_file, logMsg);
                             if G_VERBOSE_LEVEL > 0 then
                                 if RW > 0 then
                                     report "[Timing] MsgId: " & integer'image(msgid) & ", cycles: " & integer'image(cycles) severity note;
                                 else
-                                    report "[Timing] MsgId: " & integer'image(msgid) & ", cycles: " & integer'image(cycles) & ", RDI words: " & integer'image(rdi_cnt) severity note;
+                                    report "[Timing] MsgId: " & integer'image(msgid) & ", cycles: " & integer'image(cycles) & ", RDI words: " & integer'image(rdi_cnt) & ", RDI bits: " & to_string(rdi_bits) severity note;
                                 end if;
                             end if;
                         end if;
