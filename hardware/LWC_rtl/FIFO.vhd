@@ -146,7 +146,7 @@ begin
         din_ready_o <= not (filled(0) and filled(1));
         din_ready   <= din_ready_o;
         dout        <= storage(1) when filled(1) = '1' else storage(0);
-        dout_valid  <= filled(0) or filled(1); -- can dequeue input valid or full
+        dout_valid  <= filled(0) or filled(1);
 
         assert false report "Isolating FIFO of depth 2" severity note; -- print information
 

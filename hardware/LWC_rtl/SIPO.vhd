@@ -43,7 +43,7 @@ entity SIPO is
         --! Pipelined (and not passthrough)
         G_PIPELINED           : boolean  := FALSE;
         --! If `FALSE` ignores sin_last/pout_last and assume input data sequence always comes in a multiple of G_N
-        G_SUBWORD             : boolean  := FALSE;
+        G_SUBWORD             : boolean  := TRUE;
         --! zero-out the words in output not filled due to early sin_last.
         --! Only effective when `G_SUBWORD = TRUE`
         G_CLEAR_INVALID_BYTES : boolean  := TRUE
@@ -53,9 +53,9 @@ entity SIPO is
         rst        : in  std_logic;
         --! Serial Input
         sin_data   : in  std_logic_vector(G_CHANNELS * G_IN_W - 1 downto 0);
-        sin_keep   : in  std_logic_vector(G_IN_W / 8 - 1 downto 0);
+        sin_keep   : in  std_logic_vector(G_IN_W / 8 - 1 downto 0) := (others => '0');
         -- last input word. The output will be then ready, even if less than G_IN parts are filled in
-        sin_last   : in  std_logic;
+        sin_last   : in  std_logic                                 := '0';
         sin_valid  : in  std_logic;
         sin_ready  : out std_logic;
         --! Parallel Output
@@ -73,7 +73,7 @@ architecture RTL of SIPO is
         variable k   : natural;
         variable ret : std_logic_vector(slv'range) := (others => '0');
     begin
-        if not G_CLEAR_INVALID_BYTES then
+        if not G_CLEAR_INVALID_BYTES or not G_SUBWORD then
             return slv;
         end if;
         for i in 0 to G_CHANNELS - 1 loop
@@ -162,13 +162,15 @@ begin
         & LF & "  G_CLEAR_INVALID_BYTES " & boolean'image(G_CLEAR_INVALID_BYTES) --
         severity NOTE;
 
-        assert not (                    -- invalid or not supported parameter combinations
-            (G_PIPELINED and (G_SUBWORD or G_CLEAR_INVALID_BYTES) ) or --
-            (G_CLEAR_INVALID_BYTES and not G_SUBWORD) --
-        )
+        assert not (G_PIPELINED and G_SUBWORD)                    -- invalid or not supported parameter combinations
         report "Parameter combination is not supported!"
         severity FAILURE;
 
+        assert not (                    -- invalid or not supported parameter combinations
+            (G_CLEAR_INVALID_BYTES and not G_SUBWORD) --
+        )
+        report "G_CLEAR_INVALID_BYTES will be disabled as G_SUBWORD=FALSE"
+        severity WARNING;
         --==================================== GEN_SPLIT_SIN ====================================--
         GEN_SPLIT_SIN : for i in sin_data_arr'range generate
             sin_data_arr(i) <= sin_data_clr((i + 1) * G_IN_W - 1 downto i * G_IN_W);
