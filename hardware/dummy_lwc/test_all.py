@@ -318,5 +318,5 @@ def test_all(test_base_design, benchmark):
 
 
 if __name__ == "__main__":
-    build_libs()
+    # build_libs()
     test_all(test_base_design=True, benchmark=True)
