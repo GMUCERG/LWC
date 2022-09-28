@@ -12,7 +12,7 @@ import subprocess
 import requests
 
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 try:
     import importlib.resources as pkg_resources
@@ -105,17 +105,17 @@ def get_latest_supercop_version_url(sc_version):
     sc_base_url = "https://bench.cr.yp.to/"
     sc_page_url = sc_base_url + "supercop.html"
 
-    logger.setLevel(logging.INFO)
+    log.setLevel(logging.INFO)
 
     if sc_version == "latest":
-        logger.info(
+        log.info(
             f"Trying to determine the latest version of SUPERCOP from {sc_page_url}..."
         )
         try:
             response = requests.get(sc_page_url)
 
             if response.status_code == 200:
-                logger.info(
+                log.info(
                     f"Last-Modified timestamp from server: {response.headers['Last-Modified']}"
                 )
 
@@ -126,20 +126,20 @@ def get_latest_supercop_version_url(sc_version):
                 if match:
                     url = sc_base_url + match.group(1)
                     version = match.group(2)
-                    logger.info(
+                    log.info(
                         f"Latest version of SUPERCOP is {version} available from {url}"
                     )
                     return (version, url)
                 else:
-                    logger.error(
+                    log.error(
                         f"Failed to find URL for downloading the latest SUPERCOP"
                     )
             else:
-                logger.error(
+                log.error(
                     f"Error accessing {sc_page_url} Status code: {response.status_code}"
                 )
         except Exception:
-            logger.error(f"Failed to retrieve SUPERCOP webpage: {sc_page_url}")
+            log.error(f"Failed to retrieve SUPERCOP webpage: {sc_page_url}")
         return sc_version, None
     else:
         return (sc_version, sc_base_url + f"supercop/supercop-{sc_version}.tar.xz")
@@ -160,7 +160,7 @@ def ctgen_get_supercop_dir():
 
 
 def prepare_libs(sc_version, libs, candidates_dir, lib_path):
-    logger.info(f"candidates_dir={candidates_dir}")
+    log.info(f"candidates_dir={candidates_dir}")
     # default ctgen data dir root, make sure exists or create
     ctgen_includes_dir = ctgen_get_dir("includes")
     ctgen_mkfile = ctgen_get_dir()
@@ -171,12 +171,12 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
 
     def build_variants(variants, candidates_dir):
         for vname, vtype in variants:
-            logger.debug(
+            log.debug(
                 f"running make CRYPTO_VARIANT={vname} CRYPTO_TYPE={vtype} in {candidates_dir}"
             )
             for src_dir in impl_src_dirs:
                 src_path = Path(candidates_dir) / ("crypto_" + vtype) / vname / src_dir
-                logger.info(f"building sources in {src_path}")
+                log.info(f"building sources in {src_path}")
                 if src_path.exists() and src_path.is_dir():
                     cmd = [
                         "make",
@@ -188,27 +188,28 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
                         f"IMPL_SRC_DIR={src_dir}",
                     ]
                     if lib_path:
-                        logger.info(
-                            f"binaries will be available in lib_path={lib_path}"
+                        lib_path_rel = os.path.relpath(lib_path, candidates_dir)
+                        log.info(
+                            f"binaries will be available in lib_path={lib_path_rel}"
                         )
-                        cmd.append(f"LIB_PATH={lib_path}")
+                        cmd.append(f"LIB_PATH={lib_path_rel}")
                     cp = subprocess.run(cmd, cwd=candidates_dir)
                     try:
                         cp.check_returncode()
                     except:
-                        logger.critical(
+                        log.critical(
                             f'`{" ".join(cmd)}` failed! (exit code: {cp.returncode})'
                         )
                         sys.exit(1)
 
     def filter_variants(variants):
         if not libs or libs == "all" or libs == ["all"]:
-            logger.info(
+            log.info(
                 f"building all libs in `crypto_aead` and `crypto_hash` subfolders of candidates_dir={candidates_dir} \n variants={variants}"
             )
         else:
             variants = [v for v in variants if any(v[0].startswith(l) for l in libs)]
-            logger.info(f"building only the following variants: {variants}")
+            log.info(f"building only the following variants: {variants}")
         return variants  # TODO
 
     def get_sc_tar(sc_version):
@@ -219,11 +220,11 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
         cache_dir = ctgen_get_dir("cache")
         tar_path = cache_dir / sc_filename
         if tar_path.exists():
-            logger.warn(f"Using already cached version of supercop at {tar_path}")
+            log.warn(f"Using already cached version of supercop at {tar_path}")
             return tarfile.open(tar_path), sc_version
-        logger.info(f"Downloading supercop from {sc_url}")
+        log.info(f"Downloading supercop from {sc_url}")
         tar_path = urllib.request.urlretrieve(sc_url, filename=tar_path)[0]
-        logger.info(f"Download successfull! Archive saved to {tar_path}")
+        log.info(f"Download successfull! Archive saved to {tar_path}")
         return tarfile.open(tar_path), sc_version
 
     with open(ctgen_includes_dir / "crypto_aead.h", "w") as f:
@@ -268,7 +269,7 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
                                 incl_candidates.add(cnd)
                                 return
 
-        logger.info(
+        log.info(
             "decompressing archive and determining the list of files to extract..."
         )
         for tarinfo in sc_tar:
@@ -281,10 +282,10 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
             not candidates_not_found
         ), f"The following candidates were not found in the SUPERCOP archive: {candidates_not_found}"
 
-        logger.info("extracting files...")
+        log.info("extracting files...")
         tmp_dir = tempfile.mkdtemp()
         sc_tar.extractall(path=tmp_dir, members=extract_list)
-        logger.info("extraction complete")
+        log.info("extraction complete")
 
         if os.path.exists(candidates_dir):
             shutil.rmtree(candidates_dir)
@@ -294,23 +295,23 @@ def prepare_libs(sc_version, libs, candidates_dir, lib_path):
             symlinks=True,
         )
         shutil.rmtree(tmp_dir)
-        logger.info("moved sources to cryptotvgen data dir")
+        log.info("moved sources to cryptotvgen data dir")
     else:
         candidates_dir = pathlib.Path(candidates_dir)
         for crypto_type in ["aead", "hash"]:
             try:
                 dir_iter = (candidates_dir / f"crypto_{crypto_type}").iterdir()
                 for sub in dir_iter:
-                    logger.debug(f"sub={sub}")
+                    log.debug(f"sub={sub}")
                     if sub.is_dir():
                         for impl_dir in impl_src_dirs:
                             impl = sub / impl_dir
                             if impl.exists() and impl.is_dir():
                                 vname = sub.name
-                                logger.debug(f"found variant:{vname} ({crypto_type})")
+                                log.debug(f"found variant:{vname} ({crypto_type})")
                                 variants.add((vname, crypto_type))
             except FileNotFoundError as e:
-                logger.warn(
+                log.warn(
                     f"{e}\ncandidates_dir={candidates_dir} does not have a crypto_{crypto_type}/{impl_src_dirs} sub directory!\n"
                 )
 

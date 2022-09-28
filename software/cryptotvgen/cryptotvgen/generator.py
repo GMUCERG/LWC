@@ -379,7 +379,7 @@ def build_status(iowidth):
     return txt
 
 
-def get_cffi_path(opts, hashop):
+def get_cffi_path(opts, hashop) -> Path:
     if opts.lib_path:
         lib_path = Path(opts.lib_path)
     else:
@@ -404,6 +404,7 @@ def get_cffi_path(opts, hashop):
     libname = f"{name}{lib_ext}"
     cffi_path = lib_path / f"crypto_{op}" / libname
     if not cffi_path.exists():
+        log.warning("Dynamic library %s does not exist. Trying to build the library.", cffi_path)
         prepare_libs(
             sc_version=opts.supercop_version,
             libs=opts.prepare_libs,
@@ -411,14 +412,10 @@ def get_cffi_path(opts, hashop):
             lib_path=opts.lib_path,
         )
 
-    if not cffi_path.exists():
-        sys.exit(
-            f"Dynamic library: {cffi_path} does not exist! Please make sure `lib_path` is correct and that you have already run `cryptotvgen --prepare_libs [--cadidates_dir=<PATH>]`?"
-        )
-    return str(cffi_path)
+    return cffi_path
 
 
-class TestVector(object):
+class TestVector:
     """TestVector class"""
 
     BUFFER = "00" * 128
@@ -430,8 +427,13 @@ class TestVector(object):
         self.hashop = hashop
         cffi_path = get_cffi_path(opts, hashop)
 
-        self.lib = ffi.dlopen(cffi_path)
-        assert self.lib
+        if not cffi_path.exists():
+            sys.exit(
+                f"Dynamic library {cffi_path} does not exist. Please make sure `lib_path` is correct and that you have already run `cryptotvgen --prepare_libs [--cadidates_dir=<PATH>]`?"
+            )
+
+        self.lib = ffi.dlopen(str(cffi_path))
+        assert self.lib, f"error opening shared library {cffi_path}"
 
         self.key_id = 0 if hashop else key_id
         self.opts = opts
