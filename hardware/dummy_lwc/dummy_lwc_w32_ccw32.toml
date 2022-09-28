@@ -19,7 +19,8 @@ sources = [
     "src_rtl/LWC/PostProcessor.vhd",
     "src_rtl/LWC/LWC.vhd",
 ]
-top = 'LWC'
+top = "LWC"
+# top = "LWC_wrapper" # if using LWC_wrapper
 clock.port = "clk"
 
 [tb]
@@ -33,13 +34,16 @@ sources = [
 G_FNAME_PDI.file = "KAT/32/pdi.txt"
 G_FNAME_SDI.file = "KAT/32/sdi.txt"
 G_FNAME_DO.file = "KAT/32/do.txt"
-G_TEST_MODE = 4                     # 1: stall both inputs and output
+G_TEST_MODE = 0                     # 0: no stalls, 1: stall both inputs and output, 4: timing
 G_MAX_FAILURES = 0
-G_TIMEOUT_CYCLES = 1000
+G_TIMEOUT_CYCLES = 1_000
 G_PDI_STALLS = 7
 G_SDI_STALLS = 13
 G_DO_STALLS = 21
-G_RANDOM_STALL = true               # true
+G_RANDOM_STALL = false              # true
+# G_PRERESET_WAIT_PS = 100_000
+G_CLK_PERIOD_PS = 10_000
+# G_INPUT_DELAY_PS = 2_500
 
 [lwc]
 aead.algorithm = "dummy_lwc"

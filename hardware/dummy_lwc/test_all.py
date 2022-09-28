@@ -12,8 +12,9 @@ from typing import Dict, List, Mapping, Optional, Union
 from cryptotvgen import cli
 from xeda.design import Design, DesignSource
 from xeda.flow_runner import DefaultRunner
-from xeda.flows import GhdlSim, Yosys
+from xeda.flows import GhdlSim, VivadoSim, YosysSynth
 
+logging.getLogger().setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -23,7 +24,7 @@ xeda_runner = DefaultRunner()
 script_dir = Path(__file__).parent.resolve()
 print(f"script_dir={script_dir}")
 
-ghdl_setting = {
+ghdl_settings = {
     "warn_flags": [
         "-Wno-runtime-error",
         "--warn-binding",
@@ -48,16 +49,16 @@ ghdl_setting = {
 # TODO add argeparse for settings?
 core_src_path = script_dir
 lwc_root = script_dir.parents[1]
+vivado_sim = False
 
+sim_flow = VivadoSim if vivado_sim else GhdlSim
 
 tvgen_cand_dir = lwc_root / "software" / "dummy_lwc_ref"
 
 
 def build_libs():
-    """build dynamic libraries of the C reference implementation"""
-    return cli.run_cryptotvgen(
-        ["--prepare_libs", "--candidates_dir", str(tvgen_cand_dir)]
-    )
+    args = ["--prepare_libs", "--candidates_dir", str(tvgen_cand_dir)]
+    return cli.run_cryptotvgen(args)
 
 
 gen_tv_subfolder = Path("generated_tv").resolve()
@@ -77,14 +78,19 @@ def gen_tv(
     args = [
         "--candidates_dir",
         str(tvgen_cand_dir),
+        # '--lib_path', str(tvgen_cand_dir / 'lib'),
         "--aead",
-        aead_alg,
+        design.lwc["aead"]["algorithm"],
         "--hash",
-        hash_alg,
+        design.lwc["hash"]["algorithm"],
         "--io",
         str(w),
         str(w),
-        # key_size, npub_size, message_digest_size, and tag_size are auto discovered from "api.h"
+        # '--key_size', '128',
+        # '--npub_size', '96',
+        # '--nsec_size', '0',
+        # '--message_digest_size', '256',
+        # '--tag_size', '128',
         "--block_size",
         "128",
         "--block_size_ad",
@@ -118,7 +124,7 @@ def gen_tv(
     # args += gen_hash
     print(args)
 
-    return cli.run_cryptotvgen(args, logfile=None)
+    return cli.run_cryptotvgen(args, logfile=None)  # type: ignore
 
 
 def gen_from_template(orig_filename, gen_filename, changes):
@@ -151,8 +157,8 @@ def measure_timing(design: Design, kat_dir: Path):
         "G_TEST_MODE": 4,
     }
 
-    f = xeda_runner.run_flow(GhdlSim, design)
-    assert f.succeeded
+    f = xeda_runner.run_flow(sim_flow, design)
+    assert f.results["success"]
 
     assert timing_report.exists()
 
@@ -212,9 +218,9 @@ def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
     orig_design_pkg = None
     orig_lwc_config = None
     for src in design.rtl.sources:
-        if src.file.name == "design_pkg.vhd":
+        if "design_pkg" in src.file.name.lower():
             orig_design_pkg = src.file
-        elif src.file.name == "LWC_config_32.vhd":
+        elif src.file.name.lower().startswith("LWC_config".lower()):
             orig_lwc_config = src.file
     assert orig_design_pkg
     assert orig_lwc_config
@@ -236,15 +242,9 @@ def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
             ),
         ],
     )
-    bench = not async_rstn and vhdl_std == "08"
+    bench = w == ccw and not async_rstn and vhdl_std == "08" and not ms
     logger.info(
-        "*** Testing VHDL:20{%s} multi-segment:%s W:%d CCW:%d ASYNC_RSTN:%s benchmark-KATs:%s ***",
-        vhdl_std,
-        ms,
-        w,
-        ccw,
-        async_rstn,
-        bench,
+        f"*** Testing VHDL:20{vhdl_std} multi-segment:{ms} W:{w} CCW:{ccw} ASYNC_RSTN:{async_rstn} benchmark-KATs:{bench} ***"
     )
     kat_dir = gen_tv_subfolder / f'TV{"_MS" if ms else ""}_{w}'
 
@@ -254,17 +254,6 @@ def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
         orig_design_pkg,
         replaced_design_pkg,
         [(r"(constant\s+CCW\s*:\s*\w+\s*:=\s*)\d+(\s*;)", f"\\g<1>{ccw}\\g<2>")],
-    )
-
-    lwc = design.dict().get("lwc")
-    assert lwc
-    gen_tv(
-        w,
-        2 if ms else None,
-        kat_dir,
-        lwc["aead"]["algorithm"],
-        lwc["hash"]["algorithm"],
-        bench,
     )
     design = deepcopy(design)
 
@@ -298,34 +287,34 @@ def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
         "G_RANDOM_STALL": True,
     }
 
-    f = xeda_runner.run_flow(GhdlSim, design, ghdl_setting)
-    assert f.succeeded
+    f = xeda_runner.run_flow(
+        sim_flow, design, flow_settings=ghdl_settings if sim_flow == GhdlSim else {}
+    )
+    assert f.results["success"]
 
 
 def synth_test(design):
-    """synthesize using Yosys"""
-    f = xeda_runner.run_flow(
-        Yosys, design, {"fpga": {"vendor": "xilinx", "family": "xc7"}}
-    )
-    assert f.succeeded
+    f = xeda_runner.run_flow(YosysSynth, design, {"fpga": {"vendor": "xilinx"}})
+    assert f.results["success"]
 
 
-def test_all(args=None):
-    """main entry"""
+def test_all(test_base_design, benchmark):
     design = Design.from_toml(script_dir / "dummy_lwc_w32_ccw32.toml")
     try:
         synth_test(design)
     except:
         logger.warning("synth_test failed. Continuing...")
     # first try with original settings
-    f = xeda_runner.run_flow(GhdlSim, design)
-    assert f.succeeded
+    if test_base_design:
+        f = xeda_runner.run_flow(sim_flow, design)
+        assert f.results["success"]
 
-    measure_timing(design, gen_tv_subfolder / f"{design.name}_measure")
+    if benchmark:
+        measure_timing(design)
 
     param_variants = [(32, 32), (32, 16), (32, 8), (16, 16), (8, 8)]
 
-    for vhdl_std in ["08"]:  # , '02']: # FIXME
+    for vhdl_std in ["08", "02"]:
         for ms in [False, True]:
             for w, ccw in param_variants:
                 for async_rstn in [False, True]:

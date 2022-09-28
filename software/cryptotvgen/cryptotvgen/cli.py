@@ -58,10 +58,13 @@ def run_cryptotvgen(
                     """
         )
         sys.exit(error_txt)
-
     if not opts.candidates_dir:
-        opts.candidates_dir = ctgen_get_supercop_dir()
-
+        d = ctgen_get_supercop_dir()
+        if not d.exists():
+            print("here")
+            prepare_libs(sc_version=opts.supercop_version, libs=opts.prepare_libs,
+             candidates_dir=opts.candidates_dir, lib_path=opts.lib_path)
+        opts.candidates_dir = d
     # Automatically fill in any missing parameters from 'api.h'
     determine_params(opts)
 

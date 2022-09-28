@@ -465,7 +465,9 @@ begin
             -- When a bdiP=-PISO exists (W != CCW), wait for it to drain. The mux is optimized out when W = CCW.
             if bdi_valid_s = '0' then
                cmd_valid   <= pdi_valid and not to_std_logic(op_is_actkey);
-               pdi_ready_o <= cmd_ready or to_std_logic(op_is_actkey);
+               -- pdi_ready_o <= cmd_ready or to_std_logic(op_is_actkey);
+               -- Wait for cmd FIFO, even when op_is_actkey = FALSE, in order to avoid combinational loop from pdi_data to pdi_ready
+               pdi_ready_o <= cmd_ready;
 
                if pdi_fire then
                   if op_is_actkey then

@@ -1,5 +1,5 @@
 --===============================================================================================--
---! @file       LWC.vhd (CAESAR API for Lightweight)
+--! @file       LWC.vhd (Hardware API for NIST Lightweight Cryptography)
 --!
 --! @brief      LWC top level file
 --!
@@ -53,7 +53,12 @@ use work.NIST_LWAPI_pkg.all;
 --/-
 entity LWC is
     generic(
-        G_DO_FIFO_DEPTH : natural := 1  -- 0: disable output FIFO, 1 or 2 (elastic FIFO)
+        -- To ensure no part of the internal state is observable from do_data (due to glitches), set to 1 or 2
+        -- It's recommended to set G_DO_FIFO_DEPTH to 2 or 1.
+        -- The resource overhead is minimal, and would at most add 1 cycle of delay for output of a single standalone operation.
+        -- Additionally, it can help with meeting timing constraints, resulting in a higher maximum clock frequency.
+        G_DO_FIFO_DEPTH  : natural range 0 to 2 := 0; -- 0: disable output FIFO, 1 or 2 (elastic FIFO)
+        G_CMD_FIFO_DEPTH : natural range 1 to 2 := 1  -- Set to 2 to prevent combinational path from do_ready to pdi_ready
     );
     port(
         --! Global ports
@@ -115,11 +120,11 @@ architecture structure of LWC is
     signal msg_auth_ready             : std_logic;
     signal msg_auth                   : std_logic;
     ------!Pre-Processor to FIFO
-    signal cmd_FIFO_in                : std_logic_vector(W - 1 downto 0);
+    signal cmd_fifo_in                : std_logic_vector(W - 1 downto 0);
     signal cmd_valid_FIFO_in          : std_logic;
     signal cmd_ready_FIFO_in          : std_logic;
     ------!FIFO to Post_Processor
-    signal cmd_FIFO_out               : std_logic_vector(W - 1 downto 0);
+    signal cmd_fifo_out               : std_logic_vector(W - 1 downto 0);
     signal cmd_valid_FIFO_out         : std_logic;
     signal cmd_ready_FIFO_out         : std_logic;
     ------! Optional output FIFO
@@ -190,6 +195,8 @@ begin
     -- The following combinations (SW, CCSW) are supported: (32, 32), (32, 16),
     -- (32, 8), (16, 16), and (8, 8). In addition, W and SW must be always the same.
 
+    assert G_CMD_FIFO_DEPTH >= 1 report "G_CMD_FIFO_DEPTH must be >=1" severity failure;
+
     assert ((W = 32 and (CCW = 32 or CCW = 16 or CCW = 8)) or (W = 16 and CCW = 16) or (W = 8 and CCW = 8))
     report "[LWC] Invalid combination of (G_W, CCW)" severity failure;
     --
@@ -236,7 +243,7 @@ begin
             decrypt         => decrypt_cipher_in,
             hash            => hash_cipher_in,
             --
-            cmd_data        => cmd_FIFO_in,
+            cmd_data        => cmd_fifo_in,
             cmd_valid       => cmd_valid_FIFO_in,
             cmd_ready       => cmd_ready_FIFO_in
         );
@@ -299,8 +306,7 @@ begin
             auth_success    => msg_auth,
             auth_valid      => msg_auth_valid,
             auth_ready      => msg_auth_ready,
-            --
-            cmd_data        => cmd_FIFO_out,
+            cmd_data        => cmd_fifo_out,
             cmd_valid       => cmd_valid_FIFO_out,
             cmd_ready       => cmd_ready_FIFO_out,
             --
@@ -312,17 +318,16 @@ begin
 
     Inst_HeaderFifo : entity work.FIFO
         generic map(
-            G_W         => W,
-            G_DEPTH     => 1,
-            G_ELASTIC_2 => TRUE
+            G_W     => W,
+            G_DEPTH => G_CMD_FIFO_DEPTH
         )
         port map(
             clk        => clk,
             rst        => rst,
-            din        => cmd_FIFO_in,
+            din        => cmd_fifo_in,
             din_valid  => cmd_valid_FIFO_in,
             din_ready  => cmd_ready_FIFO_in,
-            dout       => cmd_FIFO_out,
+            dout       => cmd_fifo_out,
             dout_valid => cmd_valid_FIFO_out,
             dout_ready => cmd_ready_FIFO_out
         );
