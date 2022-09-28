@@ -70,8 +70,7 @@ def gen_tv(
     w: int,
     blocks_per_segment: Optional[int],
     dest_dir: Union[str, os.PathLike],
-    aead_alg: str,
-    hash_alg: str,
+    design: Design,
     bench: bool,
 ):
     """generate testvectors using cryptotvgen"""
@@ -137,15 +136,14 @@ def gen_from_template(orig_filename, gen_filename, changes):
         gen.write(content)
 
 
-def measure_timing(design: Design, kat_dir: Path):
+def measure_timing(design: Design):
     """measure number of cycles for different operations and input sizes"""
     design = deepcopy(design)  # passed by reference, don't change the original
     w = 32
     ccw = 32
     design.name = f"generated_timing_w{w}_ccw{ccw}"
-    lwc = design.dict().get("lwc")
-    assert lwc
-    gen_tv(w, None, kat_dir, lwc["aead"]["algorithm"], lwc["hash"]["algorithm"], True)
+    kat_dir = Path("generated_tv")
+    gen_tv(w, None, kat_dir, design, True)
     kat_subdir = kat_dir / "timing_tests"
     timing_report = Path.cwd() / (design.name + "_timing.txt")
     design.tb.parameters = {
@@ -268,7 +266,10 @@ def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
                 return DesignSource(replacement)
         return ds
 
+    gen_tv(w, 2 if ms else None, kat_dir, design, bench)
+
     design.rtl.sources = [replace_file(f) for f in design.rtl.sources]
+    design.tb.sources = [replace_file(f) for f in design.tb.sources]
 
     design.language.vhdl.standard = vhdl_std
     design.name = (
@@ -298,23 +299,23 @@ def synth_test(design):
     assert f.results["success"]
 
 
-def test_all(test_base_design, benchmark):
+def test_all(args):
     design = Design.from_toml(script_dir / "dummy_lwc_w32_ccw32.toml")
     try:
         synth_test(design)
     except:
         logger.warning("synth_test failed. Continuing...")
     # first try with original settings
-    if test_base_design:
+    if args.test_base_design:
         f = xeda_runner.run_flow(sim_flow, design)
         assert f.results["success"]
 
-    if benchmark:
+    if args.benchmark:
         measure_timing(design)
 
     param_variants = [(32, 32), (32, 16), (32, 8), (16, 16), (8, 8)]
 
-    for vhdl_std in ["08", "02"]:
+    for vhdl_std in ["08"]:  # disabling VHDL < 2008 tests TODO
         for ms in [False, True]:
             for w, ccw in param_variants:
                 for async_rstn in [False, True]:
@@ -324,6 +325,8 @@ def test_all(test_base_design, benchmark):
 if __name__ == "__main__":
     argparser = ArgumentParser()
     argparser.add_argument("--build-libs", default=True)
+    argparser.add_argument("--benchmark", default=True)
+    argparser.add_argument("--test-base-design", default=True)
 
     args = argparser.parse_args()
     if args.build_libs:
