@@ -1,0 +1,16 @@
+name = "LWC_SCA"
+
+rtl.sources = [
+    "LWC_rtl/NIST_LWAPI_pkg.vhd",
+    "LWC_rtl/PISO.vhd",
+    "LWC_rtl/SIPO.vhd",
+    "LWC_rtl/FIFO.vhd",
+    "LWC_rtl/PreProcessor.vhd",
+    "LWC_rtl/PostProcessor.vhd",
+    "LWC_rtl/LWC_SCA.vhd",
+]
+rtl.top = "LWC_SCA"
+
+tb.sources = [
+    "LWC_tb/LWC_TB_SCA.vhd"
+]
