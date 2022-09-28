@@ -47,7 +47,7 @@ entity LWC_TB IS
         G_FNAME_SDI        : string   := "../KAT/v1/sdi.txt";      --! Path to the input file containing cryptotvgen SDI testvector data
         G_FNAME_DO         : string   := "../KAT/v1/do.txt";       --! Path to the input file containing cryptotvgen DO testvector data
         G_FNAME_RDI        : string   := "../KAT/v1/rdi.txt";      --! Path to the input file containing random data
-        G_PRNG_RDI         : boolean  := false;                    --! Use testbench's internal PRNG to generate RDI input instead of the file `G_FNAME_RDI`
+        G_PRNG_RDI         : boolean  := TRUE;                     --! Use testbench's internal PRNG to generate RDI input instead of the file `G_FNAME_RDI`
         G_RANDOM_SEED      : positive := 1;                        --! Internal PRNG seed, must be positive
         G_FNAME_LOG        : string   := "log.txt";                --! Path to the generated log file
         G_FNAME_TIMING     : string   := "timing.txt";             --! Path to the generated timing measurements (when G_TEST_MODE=4)
@@ -625,14 +625,14 @@ begin
                             wait until not timing_active;
                             write(logMsg, integer'image(msgid) & "," & integer'image(cycles));
                             if RW > 0 then
-                                write(logMsg, "," & to_string(rdi_bits));
+                                write(logMsg, "," & to_hstring(rdi_bits));
                             end if;
                             writeline(timing_file, logMsg);
                             if G_VERBOSE_LEVEL > 0 then
                                 if RW > 0 then
                                     report "[Timing] MsgId: " & integer'image(msgid) & ", cycles: " & integer'image(cycles) severity note;
                                 else
-                                    report "[Timing] MsgId: " & integer'image(msgid) & ", cycles: " & integer'image(cycles) & ", RDI words: " & integer'image(rdi_cnt) & ", RDI bits: " & to_string(rdi_bits) severity note;
+                                    report "[Timing] MsgId: " & integer'image(msgid) & ", cycles: " & integer'image(cycles) & ", RDI words: " & integer'image(rdi_cnt) & ", RDI bits: " & to_hstring(rdi_bits) severity note;
                                 end if;
                             end if;
                         end if;
