@@ -7,7 +7,7 @@
 --! @copyright  Copyright (c) 2015, 2020, 2021, 2022 Cryptographic Engineering Research Group
 --!             ECE Department, George Mason University Fairfax, VA, U.S.A.
 --!             All rights Reserved.
---! @version    1.2.2
+--! @version    1.3
 --! @license    This project is released under the GNU Public License.
 --!             The license and distribution terms for this file may be
 --!             found in the file LICENSE in this distribution or at
@@ -41,7 +41,7 @@ entity LWC_TB IS
         G_SDI_STALLS       : natural  := 3;                        --! Number of cycles to stall sdi_valid
         G_DO_STALLS        : natural  := 3;                        --! Number of cycles to stall do_ready
         G_RDI_STALLS       : natural  := 3;                        --! Number of cycles to stall rdi_valid
-        G_RANDOM_STALL     : boolean  := false;                    --! Stall for a random number of cycles in the range [0..G_xx_STALLS], when G_TEST_MODE = 4
+        G_RANDOM_STALL     : boolean  := FALSE;                    --! Stall for a random number of cycles in the range [0..G_xx_STALLS], when G_TEST_MODE = 4
         G_CLK_PERIOD_PS    : positive := 10_000;                   --! Simulation clock period in picoseconds
         G_FNAME_PDI        : string   := "../KAT/v1/pdi.txt";      --! Path to the input file containing cryptotvgen PDI testvector data
         G_FNAME_SDI        : string   := "../KAT/v1/sdi.txt";      --! Path to the input file containing cryptotvgen SDI testvector data
@@ -53,9 +53,9 @@ entity LWC_TB IS
         G_FNAME_TIMING     : string   := "timing.txt";             --! Path to the generated timing measurements (when G_TEST_MODE=4)
         G_FNAME_FAILED_TVS : string   := "failed_testvectors.txt"; --! Path to the generated log of failed testvector words
         G_FNAME_RESULT     : string   := "result.txt";             --! Path to the generated result file containing 0 or 1  -- REDUNDANT / NOT USED
-        G_PRERESET_WAIT_NS : natural  := 0;                        --! Time (in nanoseconds) to wait before reseting UUT. Xilinx GSR takes 100ns, required for post-synth simulation
-        G_INPUT_DELAY_NS   : natural  := 0;                        --! Input delay in nanoseconds
-        G_TIMEOUT_CYCLES   : integer  := 0;                        --! Fail simulation after this many consecutive cycles of data I/O inactivity, 0: disable timeout
+        G_PRERESET_WAIT_PS : natural  := 0;                        --! Time (in picoseconds) to wait before reseting UUT. NOTE: Xilinx simulation library has a GSR reset time of 100_000 ps. Set to 100_000 (or higher) for Vivado/Xilinx post-synthesis/timing simulations.
+        G_INPUT_DELAY_PS   : natural  := 0;                        --! Input delay in picoseconds
+        G_TIMEOUT_CYCLES   : integer  := 10_000;                   --! Fail simulation after this many consecutive cycles of data I/O inactivity, 0: disable timeout
         G_VERBOSE_LEVEL    : integer  := 0                         --! Verbosity level
     );
 end LWC_TB;
@@ -64,7 +64,7 @@ architecture TB of LWC_TB is
     --================================================== Constants ==================================================--
     constant W_S         : positive       := W * PDI_SHARES;
     constant SW_S        : positive       := SW * SDI_SHARES;
-    constant input_delay : TIME           := G_INPUT_DELAY_NS * ns;
+    constant input_delay : TIME           := G_INPUT_DELAY_PS * ps;
     constant clk_period  : TIME           := G_CLK_PERIOD_PS * ps;
     constant TB_HEAD     : string(1 to 6) := "# TB :";
     constant INS_HEAD    : string(1 to 6) := "INS = ";
@@ -78,37 +78,37 @@ architecture TB of LWC_TB is
 
     --=================================================== Signals ===================================================--
     --! stop clock generation
-    signal stop_clock          : boolean                             := False;
+    signal stop_clock              : boolean                             := False;
     --! initial reset of UUT is complete
-    signal reset_done          : boolean                             := False;
+    signal reset_done              : boolean                             := False;
     --=================================================== Wirings ===================================================--
-    signal clk                 : std_logic                           := '0';
-    signal rst                 : std_logic                           := '0';
+    signal clk                     : std_logic                           := '0';
+    signal rst                     : std_logic                           := '0';
     --! PDI
-    signal pdi_data            : std_logic_vector(W_S - 1 downto 0)  := (others => '0');
-    signal pdi_data_delayed    : std_logic_vector(W_S - 1 downto 0)  := (others => '0');
-    signal pdi_valid           : std_logic                           := '0';
-    signal pdi_valid_delayed   : std_logic                           := '0';
-    signal pdi_ready           : std_logic;
+    signal pdi_data                : std_logic_vector(W_S - 1 downto 0)  := (others => '0');
+    signal pdi_data_delayed        : std_logic_vector(W_S - 1 downto 0)  := (others => '0');
+    signal pdi_valid               : std_logic                           := '0';
+    signal pdi_valid_delayed       : std_logic                           := '0';
+    signal pdi_ready               : std_logic;
     --! SDI
-    signal sdi_data            : std_logic_vector(SW_S - 1 downto 0) := (others => '0');
-    signal sdi_data_delayed    : std_logic_vector(SW_S - 1 downto 0) := (others => '0');
-    signal sdi_valid           : std_logic                           := '0';
-    signal sdi_valid_delayed   : std_logic                           := '0';
-    signal sdi_ready           : std_logic;
+    signal sdi_data                : std_logic_vector(SW_S - 1 downto 0) := (others => '0');
+    signal sdi_data_delayed        : std_logic_vector(SW_S - 1 downto 0) := (others => '0');
+    signal sdi_valid               : std_logic                           := '0';
+    signal sdi_valid_delayed       : std_logic                           := '0';
+    signal sdi_ready               : std_logic;
     --! DO
-    signal do_data             : std_logic_vector(W_S - 1 downto 0);
-    signal do_valid            : std_logic;
-    signal do_last             : std_logic;
-    signal do_ready            : std_logic                           := '0';
-    signal do_ready_delayed    : std_logic                           := '0';
+    signal do_data                 : std_logic_vector(W_S - 1 downto 0);
+    signal do_valid                : std_logic;
+    signal do_last                 : std_logic;
+    signal do_ready                : std_logic                           := '0';
+    signal do_ready_delayed        : std_logic                           := '0';
     -- Used only for protected implementations:
     --   RDI
-    signal rdi_data            : std_logic_vector(RW - 1 downto 0)   := (others => '0');
-    signal rdi_data_delayed    : std_logic_vector(RW - 1 downto 0)   := (others => '0');
-    signal rdi_valid           : std_logic                           := '0';
-    signal rdi_valid_delayed   : std_logic                           := '0';
-    signal rdi_ready           : std_logic;
+    signal rdi_data                : std_logic_vector(RW - 1 downto 0)   := (others => '0');
+    signal rdi_data_delayed        : std_logic_vector(RW - 1 downto 0)   := (others => '0'); -- @suppress "signal rdi_data_delayed is never read"
+    signal rdi_valid               : std_logic                           := '0';
+    signal rdi_valid_delayed       : std_logic                           := '0';
+    signal rdi_ready               : std_logic; -- @suppress "signal rdi_ready is never written"
     -- Counters
     signal pdi_operation_count     : integer                             := 0;
     signal cycle_counter           : natural                             := 0;
@@ -257,7 +257,7 @@ begin
         CR severity note;
 
         seed(G_RANDOM_SEED);
-        wait for G_PRERESET_WAIT_NS * ns;
+        wait for G_PRERESET_WAIT_PS * ps;
         if ASYNC_RSTN then
             rst <= '0';
             wait for 2 * clk_period;
