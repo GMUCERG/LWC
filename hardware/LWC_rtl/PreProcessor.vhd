@@ -402,7 +402,7 @@ begin
    );
 
    -- bdi number of valid bytes as a binary integer
-   bdi_size_p <= std_logic_vector(resize(seglen_counter_hi(0) & seglen_counter_lo, bdi_size_p'length)) when last_flit_of_segment else --
+   bdi_size_p <= std_logic_vector(resize(seglen_counter_hi(0) & seglen_counter_lo, bdi_size_p'length)) when last_flit_of_segment = '1' else --
                  std_logic_vector(to_unsigned(W / 8, bdi_size_p'length));
    -- bdi padding location
    bdi_pad_loc_p     <= reverse_bits(to_1H(bdi_size_p, bdi_pad_loc_p'length));
