@@ -1131,7 +1131,7 @@ def gen_random(opts, start_msg_no, start_key_no):
     if opts.verbose:
         print("gen_random")
     routine = []
-    for i in range(opts.gen_random):
+    for _ in range(opts.gen_random):
         new_key = random.randrange(2)
         operation = random.randrange(2)
         sizeAd = random.randrange(opts.min_ad, opts.max_ad + 1)
@@ -1222,7 +1222,7 @@ def gen_hash(opts, start_msg_no):
 
 def gen_test_routine(opts, start_msg_no, start_key_no):
     if not opts.block_size:
-        opts.block_size = 8
+        opts.block_size = 128
         log.warn(
             f"--block_size not specified. Using a default value of {opts.block_size}"
         )
