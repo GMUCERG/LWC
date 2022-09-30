@@ -131,9 +131,6 @@ architecture structure of LWC_2Pass is
     signal msg_auth_valid             : std_logic;
     signal msg_auth_ready             : std_logic;
     signal msg_auth                   : std_logic;
-    signal cc_fdi_valid, cc_fdo_valid : std_logic;
-    signal cc_fdi_ready, cc_fdo_ready : std_logic;
-    signal cc_fdi_data, cc_fdo_data   : std_logic_vector(PDI_SHARES * CCW - 1 downto 0);
     --==========================================================================
 
     --==========================================================================
@@ -228,12 +225,12 @@ begin
             msg_auth_valid  => msg_auth_valid,
             msg_auth_ready  => msg_auth_ready,
             msg_auth        => msg_auth,
-            fdi_data        => cc_fdi_data,
-            fdi_valid       => cc_fdi_valid,
-            fdi_ready       => cc_fdi_ready,
-            fdo_valid       => cc_fdo_valid,
-            fdo_ready       => cc_fdo_ready,
-            fdo_data        => cc_fdo_data
+            fdi_data        => fdi_data,
+            fdi_valid       => fdi_valid,
+            fdi_ready       => fdi_ready,
+            fdo_valid       => fdo_valid,
+            fdo_ready       => fdo_ready,
+            fdo_data        => fdo_data
         );
     Inst_PostProcessor : entity work.PostProcessor
         port map(
@@ -271,44 +268,5 @@ begin
             dout_valid => cmd_valid_FIFO_out,
             dout_ready => cmd_ready_FIFO_out
         );
-    fdiPISO : entity work.PISO
-    generic map(
-            G_OUT_W      => PDI_SHARES * CCW,
-            G_N          => W / CCW,
-            G_ASYNC_RSTN => ASYNC_RSTN
-        )
-        port map(
-            clk         => clk,
-            rst         => rst,
-            -- PISO Input (from outside LWC)
-            p_in_data   => fdi_data,
-            p_in_keep   => (others => '1'),
-            p_in_last   => '0',
-            p_in_valid  => fdi_valid,
-            p_in_ready  => fdi_ready,
-            -- PISO Output (to CryptoCore)
-            s_out_data  => cc_fdi_data,
-            s_out_valid => cc_fdi_valid,
-            s_out_ready => cc_fdi_ready
-        );
 
-    fdoSIPO : entity work.SIPO
-        generic map(
-            G_IN_W       => PDI_SHARES * CCW,
-            G_N          => W / CCW,
-            G_ASYNC_RSTN => ASYNC_RSTN
-        )
-        port map(
-            clk        => clk,
-            rst        => rst,
-            -- SIPO Input (from CryptoCore)
-            sin_data   => cc_fdo_data,
-            sin_last   => '0',
-            sin_valid  => cc_fdo_valid,
-            sin_ready  => cc_fdo_ready,
-            -- PISO Output (to LWC)
-            pout_data  => fdo_data,
-            pout_valid => fdo_valid,
-            pout_ready => fdo_ready
-        );
 end structure;
