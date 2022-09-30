@@ -282,6 +282,8 @@ begin
             rst         => rst,
             -- PISO Input (from outside LWC)
             p_in_data   => fdi_data,
+            p_in_keep   => (others => '1'),
+            p_in_last   => '0',
             p_in_valid  => fdi_valid,
             p_in_ready  => fdi_ready,
             -- PISO Output (to CryptoCore)

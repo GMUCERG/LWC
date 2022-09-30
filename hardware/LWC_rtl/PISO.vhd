@@ -45,8 +45,8 @@ entity PISO is
         rst         : in  std_logic;
         --! Parallel input
         p_in_data   : in  std_logic_vector(G_CHANNELS * G_OUT_W * G_N - 1 downto 0);
-        p_in_keep   : in  std_logic_vector((G_OUT_W + 7) / 8 * G_N - 1 downto 0);
-        p_in_last   : in  std_logic;
+        p_in_keep   : in  std_logic_vector((G_OUT_W + 7) / 8 * G_N - 1 downto 0) := (others => '1');
+        p_in_last   : in  std_logic := '0';
         p_in_valid  : in  std_logic;
         p_in_ready  : out std_logic;
         --! Serial output

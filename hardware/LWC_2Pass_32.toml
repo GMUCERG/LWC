@@ -1,0 +1,5 @@
+name = "LWC_2Pass_32"
+
+dependencies = [{ uri = "./LWC_2Pass.toml", rtl.pos = -1 }]
+
+rtl.sources = ["LWC_config_32.vhd"]
