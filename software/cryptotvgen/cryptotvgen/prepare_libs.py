@@ -131,9 +131,7 @@ def get_latest_supercop_version_url(sc_version):
                     )
                     return (version, url)
                 else:
-                    log.error(
-                        f"Failed to find URL for downloading the latest SUPERCOP"
-                    )
+                    log.error(f"Failed to find URL for downloading the latest SUPERCOP")
             else:
                 log.error(
                     f"Error accessing {sc_page_url} Status code: {response.status_code}"

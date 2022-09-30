@@ -6,8 +6,8 @@
 # Based on aeadtvgen 2.0.0 by Ekawat Homsirikamol (GMU CERG)
 
 from collections import OrderedDict
-from typing import Any, List, Tuple
-from .__init__ import __version__
+from typing import Any, List
+from . import __version__
 import binascii
 import cffi
 import math
