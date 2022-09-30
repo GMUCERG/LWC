@@ -538,7 +538,7 @@ begin
             pdi_ready_o <= bdi_ready_p;
             bdi_valid_p <= pdi_valid;
             if pdi_fire and last_flit_of_segment = '1' then
-               if last_flag = '1' then
+               if last_flag = '1' or (hash_op and eoi_flag = '1') then
                   nx_state <= S_INST;
                else
                   nx_state <= S_PDI_HDR;
