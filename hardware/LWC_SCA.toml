@@ -14,3 +14,5 @@ rtl.top = "LWC_SCA"
 tb.sources = [
     "LWC_tb/LWC_TB_SCA.vhd"
 ]
+
+tb.top = "LWC_TB"
