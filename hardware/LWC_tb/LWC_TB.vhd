@@ -654,7 +654,7 @@ begin
                 end if;
                 opcode       := tb_block(19 downto 16);
                 msgid        := to_integer(unsigned(tb_block(7 downto 0)));
-                write(logMsg, "Testcase #" & integer'image(testcase) & " MsgID:" & integer'image(testcase) & " Op:");
+                write(logMsg, "Testcase #" & integer'image(testcase) & " MsgID:" & integer'image(msgid) & " Op:");
                 if (opcode = INST_HASH) then
                     write(logMsg, string'("HASH"));
                 else
