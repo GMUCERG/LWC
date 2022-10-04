@@ -73,13 +73,13 @@ parser.add_argument('--pdi-width', default=None, type=int,
                     help='width of PDI data port in bits (W)')
 parser.add_argument('--sdi-width', default=None, type=int,
                     help='width of SDI data port in bits (SW)')
-parser.add_argument('--pdi-shares', default=None, required='--pdi-file' in sys.argv, type=int,
+parser.add_argument('--pdi-shares', default=None, required='--pdi-file' in sys.argv and not '--design' in sys.argv, type=int,
                     help='number of PDI shares')
 parser.add_argument('--sdi-shares', default=None, type=int,
                     help='number of SDI shares')
 parser.add_argument('--rdi-words', default=200000,
                     type=int, help='number of RDI words')
-parser.add_argument('--design', default=None, type=argparse.FileType('r'),
+parser.add_argument('--design', default=None, type=argparse.FileType('rb'),
                     help="""TOML description file for the protected LWC design.
                      If provided, all parameters will be extracted from this file.""")
 
@@ -96,10 +96,11 @@ if len(sys.argv) == 1:
 
 if args.design:
     try:
-        import toml
+        import tomllib  # type: ignore # pyright: reportMissingImports=none
     except ModuleNotFoundError:
-        print("toml package needs to be installed. Try running: 'python3 -m pip install -U toml'")
-    design = toml.load(args.design)
+        # python_version < "3.11":
+        import tomli as tomllib  # type: ignore
+    design = tomllib.load(args.design)
     lwc = design.get('lwc', {})
     ports = lwc.get('ports', {})
     pdi = ports.get('pdi', {})
