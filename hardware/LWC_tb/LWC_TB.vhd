@@ -517,7 +517,7 @@ begin
     --===========================================================================================--
     --=================================== DO Verification =======================================--
     tb_verify_do : process
-        variable line_no      : integer := 0;
+        variable line_no      : integer := 1; -- starting from 1 like most text editors
         variable line_data    : LINE;
         variable logMsg       : LINE;
         variable logMsg2      : LINE;
@@ -592,7 +592,7 @@ begin
                     end if;
                     do_ready   <= '1';
                     wait until rising_edge(clk) and do_valid = '1';
-                    assert preamble /= STT_HEAD or do_last = '1' report "Status word received, but do_last was not '1'" severity error;
+                    assert preamble /= STT_HEAD or do_last = '1' report "Expected status word, but do_last was not '1'" severity error;
                     do_sum     := xor_shares(do_data, PDI_SHARES);
                     if not words_match(do_sum, golden_word) then
                         write(failMsg, string'("Test #") & integer'image(testcase) & " MsgID: " & integer'image(msgid) & " Line: " & integer'image(line_no) & " Word: " & integer'image(word_count));

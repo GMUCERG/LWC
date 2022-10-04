@@ -41,7 +41,7 @@ entity LWC_TB IS
         G_SDI_STALLS       : natural  := 3;                        --! Number of cycles to stall sdi_valid
         G_DO_STALLS        : natural  := 3;                        --! Number of cycles to stall do_ready
         G_RDI_STALLS       : natural  := 3;                        --! Number of cycles to stall rdi_valid
-        G_RANDOM_STALL     : boolean  := FALSE;                    --! Stall for a random number of cycles in the range [0..G_xx_STALLS], when G_TEST_MODE = 4
+        G_RANDOM_STALL     : boolean  := FALSE;                    --! Stall for a random number of cycles in the range [0..G_xx_STALLS], when G_TEST_MODE is 1, 2, or 3
         G_CLK_PERIOD_PS    : positive := 10_000;                   --! Simulation clock period in picoseconds
         G_FNAME_PDI        : string   := "../KAT/v1/pdi.txt";      --! Path to the input file containing cryptotvgen PDI testvector data
         G_FNAME_SDI        : string   := "../KAT/v1/sdi.txt";      --! Path to the input file containing cryptotvgen SDI testvector data
@@ -510,7 +510,7 @@ begin
     --===========================================================================================--
     --=================================== DO Verification =======================================--
     tb_verify_do : process
-        variable line_no      : integer := 1; -- starting from 1 as most text editors
+        variable line_no      : integer := 1; -- starting from 1 like most text editors
         variable line_data    : LINE;
         variable logMsg       : LINE;
         variable logMsg2      : LINE;
