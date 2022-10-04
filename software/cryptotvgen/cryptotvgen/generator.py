@@ -1346,26 +1346,23 @@ def determine_params(opts):
 
 
 def blanket_tests(opts, reuse_key=None):
-    routine = []
+    aead_routine = []
+    hash_routine = []
+    ad_bs = opts.block_size_ad // 8 if opts.block_size_ad is not None else 0
+    xt_bs = opts.block_size // 8 if opts.block_size is not None else 0
+    hm_bs = opts.block_size_msg_digest  // 8 if opts.block_size_msg_digest is not None else 0
+    if reuse_key is None:
+        reuse_key = opts.aead and opts.with_key_reuse
     if opts.aead:
-        if reuse_key is None:
-            reuse_key = opts.with_key_reuse
-        ad_bs = opts.block_size_ad // 8
-        xt_bs = opts.block_size // 8
-        msg_sizes = list(range(10)) + [
+        msg_sizes = [
+            0,
+            1,
             15,
             16,
             17,
             29,
-            61,
             63,
             64,
-            65,
-            67,
-            97,
-            127,
-            128,
-            129,
             xt_bs - 1,
             xt_bs,
             xt_bs + 1,
@@ -1373,44 +1370,37 @@ def blanket_tests(opts, reuse_key=None):
             xt_bs // 2,
             2 * xt_bs - 1,
             2 * xt_bs,
-            2 * xt_bs + 1,
         ]
-        ad_sizes = list(range(10)) + [
+        ad_sizes = [
+            0,
+            1,
             15,
             16,
-            17,
-            29,
-            61,
             63,
-            ad_bs // 2 - 1,
-            ad_bs // 2,
+            64,
             ad_bs - 1,
             ad_bs,
             ad_bs + 1,
-            2 * ad_bs - 1,
-            2 * ad_bs,
-            2 * ad_bs + 1,
         ]
-        msg_sizes = unique(msg_sizes) + [0] * 5 + [1] * 2
-        ad_sizes = unique(ad_sizes) + [0] * 5 + [1] * 2
-        routine += [
+        msg_sizes = unique(msg_sizes)
+        ad_sizes = unique(ad_sizes)
+        if opts.random_shuffle:
+            msg_sizes += [0] * 4
+            ad_sizes += [0] * 4
+        aead_routine = [
             [True, dec, ad_size, msg_size, False]
             for dec in [False, True]
             for msg_size in msg_sizes
             for ad_size in ad_sizes
         ]
     if opts.hash:
-        hm_bs = opts.block_size_msg_digest
         hm_sizes = list(range(10)) + [
             15,
             16,
-            17,
             29,
-            61,
             63,
             64,
             65,
-            67,
             97,
             127,
             128,
@@ -1418,29 +1408,57 @@ def blanket_tests(opts, reuse_key=None):
             hm_bs - 1,
             hm_bs,
             hm_bs + 1,
-            hm_bs // 2 - 1,
-            hm_bs // 2,
             2 * hm_bs - 1,
             2 * hm_bs,
             2 * hm_bs + 1,
         ]
-        hm_sizes = unique(hm_sizes) + [0] * 5
-        random.shuffle(hm_sizes)
-        routine += [(True, False, 0, mess_size, True) for mess_size in hm_sizes]
-
+        hm_sizes = unique(hm_sizes)
+        if opts.random_shuffle:
+            hm_sizes += [0] * 3
+        hash_routine = [(True, False, 0, mess_size, True) for mess_size in hm_sizes]
+    routine = aead_routine + hash_routine
     if opts.random_shuffle:
+        log.info("shuffling testvectors")
         random.shuffle(routine)
     if reuse_key:
         for i in range(1, len(routine)):
             if (
                 routine[i][4] == False and routine[i - 1][4] == False
             ):  # consequetive enc/dec
-                routine[i][0] = bool(random.randint(0, 1))
+                routine[i][0] = bool(random.randint(0, 1))  # set new key for some testvectors to 0
+        msg_sizes = [
+            0,
+            15,
+            16,
+            64,
+            xt_bs,
+            xt_bs + 1,
+        ]
+        ad_sizes = [
+            0,
+            15,
+            16,
+            63,
+            64,
+            ad_bs - 1,
+            ad_bs,
+        ]
+        msg_sizes = unique(msg_sizes)
+        ad_sizes = unique(ad_sizes)
+        aead_reuse_key_routine = [
+            [True, dec, ad_size, msg_size, False]
+            for dec in [False, True]
+            for msg_size in msg_sizes
+            for ad_size in ad_sizes
+        ]
+        if opts.random_shuffle:
+            random.shuffle(aead_reuse_key_routine)
+        routine += aead_reuse_key_routine
     log.debug(f"blanket_tests: generated {len(routine)} testvectors")
     return routine
 
 
-def timing_tests(opts, n=4):
+def timing_tests(opts, n=4, m=None):
     # should always start with new key
     new_key = [True]
     if opts.with_key_reuse:
@@ -1448,6 +1466,9 @@ def timing_tests(opts, n=4):
     ret = []
     abs = opts.block_size_ad // 8
     mbs = opts.block_size // 8
+
+    if n and m is None:
+        m = 2 * n
 
     if opts.aead:
         for nk in new_key:
@@ -1457,11 +1478,11 @@ def timing_tests(opts, n=4):
                     # on the last field of the second of "long" pairs is set to True
                     ret += [
                         (nk, dec, 0, n * mbs, False, False),
-                        (nk, dec, 0, (n + 1) * mbs, False, True),
+                        (nk, dec, 0, m * mbs, False, True),
                         (nk, dec, n * abs, 0, False, False),
-                        (nk, dec, (n + 1) * abs, 0, False, True),
+                        (nk, dec, m * abs, 0, False, True),
                         (nk, dec, n * abs, n * mbs, False, False),
-                        (nk, dec, (n + 1) * abs, (n + 1) * mbs, False, True),
+                        (nk, dec, m * abs, m * mbs, False, True),
                     ]
                 ret += [
                     (nk, dec, 0, 16, False, False),
@@ -1482,9 +1503,12 @@ def timing_tests(opts, n=4):
         if n:
             ret += [
                 (False, False, 0, n * hbs, True, False),
-                (False, False, 0, (n + 1) * hbs, True, True),
+                (False, False, 0, m * hbs, True, True),
             ]
-        ret += [(False, False, 0, hm_sz, True, False) for hm_sz in [16, 64, 1536]]
+        hm_sizes = [16, 64]
+        if not opts.quickbench:
+            hm_sizes.append(1536)
+        ret += [(False, False, 0, hm_sz, True, False) for hm_sz in hm_sizes]
     ret = unique(ret)
     dest = Path(opts.dest)
     if not dest.exists():

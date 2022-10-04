@@ -559,6 +559,7 @@ def get_parser():
     test.add_argument(
         "--random_shuffle",
         default=True,
+        type=bool,
         help="'--gen_benchmark' blanket tests are shuffled into a randomized order",
     )
     test.add_argument(
