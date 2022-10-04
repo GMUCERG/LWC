@@ -402,7 +402,7 @@ begin
    );
 
    -- bdi number of valid bytes as a binary integer
-   bdi_size_p <= std_logic_vector(resize(seglen_counter_hi(0) & seglen_counter_lo, bdi_size_p'length)) when last_flit_of_segment else --
+   bdi_size_p <= std_logic_vector(resize(seglen_counter_hi(0) & seglen_counter_lo, bdi_size_p'length)) when last_flit_of_segment = '1' else --
                  std_logic_vector(to_unsigned(W / 8, bdi_size_p'length));
    -- bdi padding location
    bdi_pad_loc_p     <= reverse_bits(to_1H(bdi_size_p, bdi_pad_loc_p'length));
@@ -433,7 +433,7 @@ begin
       seglen_is_zero, hdr_first, hdr_last, op_is_actkey, last_flag, bdi_valid_bytes_p, hash_s, --
       relay_hdr_to_postproc, bdi_valid_s, bdi_ready, bdi_valid_bytes_s, decrypt_op, bdi_eot_p, --
       bdi_size_s, bdi_eoi_s, bdi_pad_loc_s, bdi_type_s, bdi_eoi_p, decrypt_s, bdi_pad_loc_p, --
-      hash_op, bdi_size_p, cur_hdr_last)
+      hash_op, bdi_size_p, cur_hdr_last, eoi_flag)
    begin
       -- Default Values
       sdi_ready_o           <= to_std_logic(reading_sdi_hdr);
@@ -538,7 +538,7 @@ begin
             pdi_ready_o <= bdi_ready_p;
             bdi_valid_p <= pdi_valid;
             if pdi_fire and last_flit_of_segment = '1' then
-               if last_flag = '1' then
+               if last_flag = '1' or (hash_op and eoi_flag = '1') then
                   nx_state <= S_INST;
                else
                   nx_state <= S_PDI_HDR;
@@ -560,11 +560,7 @@ begin
                bdi_eot         <= bdi_eot_p; -- = true
                bdi_type        <= bdi_type_p;
                if bdi_ready = '1' then
-                  if last_flag = '1' then -- generalize
-                     nx_state <= S_INST;
-                  else
-                     nx_state <= S_PDI_HDR;
-                  end if;
+                  nx_state <= S_INST;
                end if;
             end if;
 

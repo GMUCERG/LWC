@@ -1,26 +1,25 @@
-# -*- coding: utf-8 -*-
+"""
+cryptotvgen
+Ekawat (Ice) Homsirikimal and William Diehl
+Based on aeadtvgen 2.0.0 by Ekawat Homsirikamol (GMU CERG)
+"""
 
-# cryptotvgen
-# Ekawat (Ice) Homsirikimal and William Diehl
-#
-# Based on aeadtvgen 2.0.0 by Ekawat Homsirikamol (GMU CERG)
-
-from collections import OrderedDict
-from typing import Any, List, Tuple
-from .__init__ import __version__
 import binascii
-import cffi
+import logging
 import math
 import os
 import random
-import math
 import sys
-from pathlib import Path
+from collections import OrderedDict
 from enum import Enum
-import logging
-from .options import routines
-from .prepare_libs import ctgen_get_supercop_dir, AEAD_HEADER, HASH_HEADER, prepare_libs
+from pathlib import Path
+from typing import Any, List
 
+import cffi
+
+from .options import routines
+from .prepare_libs import AEAD_HEADER, HASH_HEADER, ctgen_get_supercop_dir, prepare_libs
+from .version import __version__
 
 log = logging.getLogger(__name__)
 
@@ -404,7 +403,9 @@ def get_cffi_path(opts, hashop) -> Path:
     libname = f"{name}{lib_ext}"
     cffi_path = lib_path / f"crypto_{op}" / libname
     if not cffi_path.exists():
-        log.warning("Dynamic library %s does not exist. Trying to build the library.", cffi_path)
+        log.warning(
+            "Dynamic library %s does not exist. Trying to build the library.", cffi_path
+        )
         prepare_libs(
             sc_version=opts.supercop_version,
             libs=opts.prepare_libs,
@@ -442,8 +443,8 @@ class TestVector:
         self.decrypt = op
         # Input
         self.key = key
-        self.npub = npub[:2*self.opts.npub_size//8]
-        self.nsec_pt = nsec_pt[:2*self.opts.nsec_size//8]
+        self.npub = npub[: 2 * self.opts.npub_size // 8]
+        self.nsec_pt = nsec_pt[: 2 * self.opts.nsec_size // 8]
         self.ad = ad
         self.pt = pt
         self.partial = 0
@@ -1025,7 +1026,9 @@ def gen_dataset(opts, routine, start_msg_no, start_key_no, mode=0):
     # print(routine)
     for i, tv in enumerate(routine):
         hashop = tv[4]
-        assert hashop or (opts.key_size and opts.npub_size is not None), "key_size and npub_size should be set"
+        assert hashop or (
+            opts.key_size and opts.npub_size is not None
+        ), "key_size and npub_size should be set"
 
         if hashop:
             new_key = 0
@@ -1045,19 +1048,19 @@ def gen_dataset(opts, routine, start_msg_no, start_key_no, mode=0):
 
         elif mode == 1:
             if not hashop:
-                key = '55' * (opts.key_size//8)
-                npub = 'B0' * (opts.npub_size//8)
-                nsec = '66' * (opts.nsec_size//8)
-                ad = 'A0'*tv[2]
-            data = 'FF'*tv[3]
+                key = "55" * (opts.key_size // 8)
+                npub = "B0" * (opts.npub_size // 8)
+                nsec = "66" * (opts.nsec_size // 8)
+                ad = "A0" * tv[2]
+            data = "FF" * tv[3]
 
         else:
             if not hashop:
-                key = gen_data(opts.key_size // 8,   mode, '55')
-                npub = gen_data(opts.npub_size // 8,  mode, 'B0')
-                nsec = gen_data(opts.nsec_size // 8,  mode, '66')
-                ad = gen_data(tv[2],          mode, 'A0')
-            data = gen_data(tv[3],          mode, 'FF')
+                key = gen_data(opts.key_size // 8, mode, "55")
+                npub = gen_data(opts.npub_size // 8, mode, "B0")
+                nsec = gen_data(opts.nsec_size // 8, mode, "66")
+                ad = gen_data(tv[2], mode, "A0")
+            data = gen_data(tv[3], mode, "FF")
 
         if new_key == 0 and not hashop:
             key = dataset[i - 1].key
@@ -1128,7 +1131,7 @@ def gen_random(opts, start_msg_no, start_key_no):
     if opts.verbose:
         print("gen_random")
     routine = []
-    for i in range(opts.gen_random):
+    for _ in range(opts.gen_random):
         new_key = random.randrange(2)
         operation = random.randrange(2)
         sizeAd = random.randrange(opts.min_ad, opts.max_ad + 1)
@@ -1185,8 +1188,8 @@ def gen_test_combined(opts, start_msg_no, key_no):
 
 
 def gen_hash(opts, start_msg_no):
-    if (opts.verbose):
-        print('gen_hash')
+    if opts.verbose:
+        print("gen_hash")
     bsd = opts.block_size // 8 if opts.block_size else 16
     (start, stop, mode) = opts.gen_hash
 
@@ -1219,7 +1222,7 @@ def gen_hash(opts, start_msg_no):
 
 def gen_test_routine(opts, start_msg_no, start_key_no):
     if not opts.block_size:
-        opts.block_size = 8
+        opts.block_size = 128
         log.warn(
             f"--block_size not specified. Using a default value of {opts.block_size}"
         )
@@ -1347,18 +1350,47 @@ def blanket_tests(opts, reuse_key=None):
     if opts.aead:
         if reuse_key is None:
             reuse_key = opts.with_key_reuse
-        ad_bs = opts.block_size_ad//8
-        xt_bs = opts.block_size//8
-        msg_sizes = list(range(10)) + [15, 16, 17, 29, 61, 63, 64, 65, 67, 97, 127, 128, 129,
-                                       xt_bs - 1, xt_bs, xt_bs + 1,
-                                       xt_bs // 2 - 1, xt_bs // 2,
-                                       2*xt_bs - 1, 2*xt_bs, 2*xt_bs + 1,
-                                       ]
-        ad_sizes = list(range(10)) + [15, 16, 17, 29, 61, 63,
-                                      ad_bs // 2 - 1, ad_bs // 2,
-                                      ad_bs - 1, ad_bs, ad_bs + 1,
-                                      2*ad_bs - 1, 2*ad_bs, 2*ad_bs + 1
-                                      ]
+        ad_bs = opts.block_size_ad // 8
+        xt_bs = opts.block_size // 8
+        msg_sizes = list(range(10)) + [
+            15,
+            16,
+            17,
+            29,
+            61,
+            63,
+            64,
+            65,
+            67,
+            97,
+            127,
+            128,
+            129,
+            xt_bs - 1,
+            xt_bs,
+            xt_bs + 1,
+            xt_bs // 2 - 1,
+            xt_bs // 2,
+            2 * xt_bs - 1,
+            2 * xt_bs,
+            2 * xt_bs + 1,
+        ]
+        ad_sizes = list(range(10)) + [
+            15,
+            16,
+            17,
+            29,
+            61,
+            63,
+            ad_bs // 2 - 1,
+            ad_bs // 2,
+            ad_bs - 1,
+            ad_bs,
+            ad_bs + 1,
+            2 * ad_bs - 1,
+            2 * ad_bs,
+            2 * ad_bs + 1,
+        ]
         msg_sizes = unique(msg_sizes) + [0] * 5 + [1] * 2
         ad_sizes = unique(ad_sizes) + [0] * 5 + [1] * 2
         routine += [
@@ -1424,25 +1456,25 @@ def timing_tests(opts, n=4):
                     # they go first because we eliminate repeted cases and want these pairs to stay consecutive
                     # on the last field of the second of "long" pairs is set to True
                     ret += [
-                        (nk, dec,           0,     n * mbs, False, False),
-                        (nk, dec,           0, (n+1) * mbs, False,  True),
-                        (nk, dec,     n * abs,           0, False, False),
-                        (nk, dec, (n+1) * abs,           0, False,  True),
-                        (nk, dec, n * abs,         n * mbs, False, False),
-                        (nk, dec, (n+1) * abs, (n+1) * mbs, False,  True),
+                        (nk, dec, 0, n * mbs, False, False),
+                        (nk, dec, 0, (n + 1) * mbs, False, True),
+                        (nk, dec, n * abs, 0, False, False),
+                        (nk, dec, (n + 1) * abs, 0, False, True),
+                        (nk, dec, n * abs, n * mbs, False, False),
+                        (nk, dec, (n + 1) * abs, (n + 1) * mbs, False, True),
                     ]
                 ret += [
-                    (nk, dec,    0,   16, False, False),
-                    (nk, dec,   16,    0, False, False),
-                    (nk, dec,   16,   16, False, False),
-                    (nk, dec,    0,   64, False, False),
-                    (nk, dec,   64,    0, False, False),
-                    (nk, dec,   64,   64, False, False),
+                    (nk, dec, 0, 16, False, False),
+                    (nk, dec, 16, 0, False, False),
+                    (nk, dec, 16, 16, False, False),
+                    (nk, dec, 0, 64, False, False),
+                    (nk, dec, 64, 0, False, False),
+                    (nk, dec, 64, 64, False, False),
                 ]
                 if not opts.quickbench:
                     ret += [
-                        (nk, dec,    0, 1536, False, False),
-                        (nk, dec, 1536,    0, False, False),
+                        (nk, dec, 0, 1536, False, False),
+                        (nk, dec, 1536, 0, False, False),
                         (nk, dec, 1536, 1536, False, False),
                     ]
     if opts.hash:

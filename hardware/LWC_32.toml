@@ -1,18 +1,18 @@
-name = "LWC_SCA"
+name = "LWC_32"
 
 rtl.sources = [
+    "LWC_config_32.vhd",
     "LWC_rtl/NIST_LWAPI_pkg.vhd",
     "LWC_rtl/PISO.vhd",
     "LWC_rtl/SIPO.vhd",
     "LWC_rtl/FIFO.vhd",
     "LWC_rtl/PreProcessor.vhd",
     "LWC_rtl/PostProcessor.vhd",
-    "LWC_rtl/LWC_SCA.vhd",
+    "LWC_rtl/LWC.vhd",
 ]
-rtl.top = "LWC_SCA"
+rtl.top = "LWC"
 
 tb.sources = [
-    "LWC_tb/LWC_TB_SCA.vhd"
+    "LWC_tb/LWC_TB.vhd"
 ]
-
 tb.top = "LWC_TB"

@@ -282,7 +282,7 @@ def variant_test(design: Design, vhdl_std, w, ccw, ms, async_rstn):
         "G_FNAME_PDI": {"file": kat_dir / "pdi.txt"},
         "G_FNAME_SDI": {"file": kat_dir / "sdi.txt"},
         "G_FNAME_DO": {"file": kat_dir / "do.txt"},
-        "G_TEST_MODE": 1 if bench else 0,
+        "G_TEST_MODE": 1, # if bench else 0,
         "G_MAX_FAILURES": 0,
         "G_TIMEOUT_CYCLES": 1000,
         "G_RANDOM_STALL": True,

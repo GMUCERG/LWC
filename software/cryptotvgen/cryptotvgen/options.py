@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
-'''
+"""
 options extraction.
-'''
+"""
 
 # cryptotvgen
 # Ekawat (Ice) Homsirikimal and William Diehl
@@ -15,6 +13,8 @@ import sys
 from enum import Enum
 import pathlib
 
+from .version import __version__
+
 
 class AlgorithmClass(Enum):
     AEAD = 0
@@ -22,7 +22,7 @@ class AlgorithmClass(Enum):
 
 
 class UseDebugLibrary(argparse.Action):
-    ''' Validate block_size_ad '''
+    """Validate block_size_ad"""
 
     def __call__(self, parser, args, values, option_string=None):
         # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
@@ -32,7 +32,7 @@ class UseDebugLibrary(argparse.Action):
 
 
 class ValidateMsgFormat(argparse.Action):
-    ''' Validate message format '''
+    """Validate message format"""
 
     def __call__(self, parser, args, values, option_string=None):
         # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
@@ -45,48 +45,71 @@ class ValidateMsgFormat(argparse.Action):
 
         # Check invalid segment
         valid_segments = (
-            'npub', 'nsec', 'ad', 'ad_npub', 'npub_ad',
-            'data', 'data_tag', 'tag', 'hash_tag')
+            "npub",
+            "nsec",
+            "ad",
+            "ad_npub",
+            "npub_ad",
+            "data",
+            "data_tag",
+            "tag",
+            "hash_tag",
+        )
         for value in values:
             if value.lower() not in valid_segments:
                 raise argparse.ArgumentError(
-                    self, 'Invalid segment type {s!r}'.format(s=value))
+                    self, "Invalid segment type {s!r}".format(s=value)
+                )
 
         setattr(args, self.dest, values)
 
 
-routines = ('gen_random', 'gen_custom', 'gen_test_routine', 'gen_single',
-            'gen_hash', 'gen_test_combined', 'gen_benchmark', 'prepare_libs')
+routines = (
+    "gen_random",
+    "gen_custom",
+    "gen_test_routine",
+    "gen_single",
+    "gen_hash",
+    "gen_test_combined",
+    "gen_benchmark",
+    "prepare_libs",
+)
 
 
 class ValidateGenRandom(argparse.Action):
-    ''' Validate gen_random option '''
+    """Validate gen_random option"""
 
     def __call__(self, parser, args, values, option_string=None):
         if args.hash is not None:
-            sys.exit('`--gen_random` can only be used in for AEAD test vectors')
+            sys.exit("`--gen_random` can only be used in for AEAD test vectors")
 
-        if (values < 1 or values > 1000):
+        if values < 1 or values > 1000:
             raise argparse.ArgumentError(
-                self, textwrap.dedent('''\
-                Number of test has to between 1 and 1000: {s!r}'''
-                                      .format(s=values)))
+                self,
+                textwrap.dedent(
+                    """\
+                Number of test has to between 1 and 1000: {s!r}""".format(
+                        s=values
+                    )
+                ),
+            )
         try:
-            routine = getattr(args, 'routines')
+            routine = getattr(args, "routines")
             routine.append(routines.index(self.dest))
         except AttributeError:
-            routine = [routines.index(self.dest), ]
-        setattr(args, 'routines', routine)
+            routine = [
+                routines.index(self.dest),
+            ]
+        setattr(args, "routines", routine)
         setattr(args, self.dest, values)
 
 
 class ValidatePrepareLibs(argparse.Action):
     def __init__(self, option_strings, dest, nargs, **kwargs):
-        super(ValidatePrepareLibs, self).__init__(
-            option_strings, dest, nargs, **kwargs)
+        super(ValidatePrepareLibs, self).__init__(option_strings, dest, nargs, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, values if values else 'all')
+        setattr(namespace, self.dest, values if values else "all")
 
 
 class ValidateCandidatesDir(argparse.Action):
@@ -94,26 +117,27 @@ class ValidateCandidatesDir(argparse.Action):
         if nargs:
             raise ValueError("nargs not allowed")
         super(ValidateCandidatesDir, self).__init__(
-            option_strings, dest, nargs, **kwargs)
+            option_strings, dest, nargs, **kwargs
+        )
 
     def __call__(self, parser, namespace, value, option_string=None):
         value = pathlib.Path(value)
         if not (value.exists() and value.is_dir()):
-            sys.exit(
-                f"candidate_dir {value} does not exist or is not a directory!")
+            sys.exit(f"candidate_dir {value} does not exist or is not a directory!")
         setattr(namespace, self.dest, value)
 
 
 class ValidateGenCustom(argparse.Action):
-    ''' Validate gen_custom option '''
+    """Validate gen_custom option"""
 
     def __call__(self, parser, args, values, option_string=None):
         # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
 
         # Create string list from an input string
         list = [
-            [item.strip() for item in array.strip().split(',')]
-            for array in values.split(':')]
+            [item.strip() for item in array.strip().split(",")]
+            for array in values.split(":")
+        ]
 
         # Convert string to int
         for list_ind in range(len(list)):
@@ -125,130 +149,156 @@ class ValidateGenCustom(argparse.Action):
                     continue
                 # check boolean
                 inv_data = 0
-                if (item_ind == 1):
+                if item_ind == 1:
                     inv_data = 1
-                if (item_ind == 4):
-                    if val.lower == 'true':
+                if item_ind == 4:
+                    if val.lower == "true":
                         list[list_ind][item_ind] = 1
-                    elif val.lower() == 'false':
+                    elif val.lower() == "false":
                         list[list_ind][item_ind] = 0
-                elif (item_ind < 4):
-                    if val.lower() == 'true':
+                elif item_ind < 4:
+                    if val.lower() == "true":
                         list[list_ind][item_ind] = 0 ^ inv_data
-                    elif val.lower() == 'false':
+                    elif val.lower() == "false":
                         list[list_ind][item_ind] = 1 ^ inv_data
                 else:
                     raise argparse.ArgumentError(
-                        self, textwrap.dedent('''\
+                        self,
+                        textwrap.dedent(
+                            """\
                         Invalid argument for --{dest}:\t{s}
-                        '''.format(dest=self.dest, s=list)))
+                        """.format(
+                                dest=self.dest, s=list
+                            )
+                        ),
+                    )
         try:
-            routine = getattr(args, 'routines')
+            routine = getattr(args, "routines")
             routine.append(routines.index(self.dest))
         except AttributeError:
-            routine = [routines.index(self.dest), ]
-        setattr(args, 'routines', routine)
+            routine = [
+                routines.index(self.dest),
+            ]
+        setattr(args, "routines", routine)
         setattr(args, self.dest, list)
 
 
 class ValidateGenTestRoutine(argparse.Action):
-    ''' Validate gen_test_routine option '''
+    """Validate gen_test_routine option"""
 
     def __call__(self, parser, args, values, option_string=None):
         # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
 
         min = 1
         max = 22
-        if (values[0] < min or values[0] > max):
+        if values[0] < min or values[0] > max:
             raise argparse.ArgumentError(
-                self, 'Values of out bound (BEGIN={})'.format(values[0]))
-        if (values[1] < min or values[1] > max):
+                self, "Values of out bound (BEGIN={})".format(values[0])
+            )
+        if values[1] < min or values[1] > max:
             raise argparse.ArgumentError(
-                self, 'Values of out bound (END={})'.format(values[1]))
-        if (values[0] > values[1]):
+                self, "Values of out bound (END={})".format(values[1])
+            )
+        if values[0] > values[1]:
             raise argparse.ArgumentError(
-                self, 'BEGIN > END ({v[0]} > {v[1]})'.format(v=values))
-        if (values[2] not in [0, 1, 2]):
+                self, "BEGIN > END ({v[0]} > {v[1]})".format(v=values)
+            )
+        if values[2] not in [0, 1, 2]:
             raise argparse.ArgumentError(
-                self, 'Valid MODE is [0, 1, 2]. (MODE={v[2]})'.format(v=values))
+                self, "Valid MODE is [0, 1, 2]. (MODE={v[2]})".format(v=values)
+            )
         try:
-            routine = getattr(args, 'routines')
+            routine = getattr(args, "routines")
             routine.append(routines.index(self.dest))
         except AttributeError:
-            routine = [routines.index(self.dest), ]
-        setattr(args, 'routines', routine)
+            routine = [
+                routines.index(self.dest),
+            ]
+        setattr(args, "routines", routine)
         setattr(args, self.dest, values)
 
 
 class ValidateGenTestCombinedRoutine(argparse.Action):
-    ''' Validate gen_test_routine option '''
+    """Validate gen_test_routine option"""
 
     def __call__(self, parser, args, values, option_string=None):
         # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
 
         min = 1
         max = 33
-        if (values[0] < min or values[0] > max):
+        if values[0] < min or values[0] > max:
             raise argparse.ArgumentError(
-                self, 'Values of out bound (BEGIN={})'.format(values[0]))
-        if (values[1] < min or values[1] > max):
+                self, "Values of out bound (BEGIN={})".format(values[0])
+            )
+        if values[1] < min or values[1] > max:
             raise argparse.ArgumentError(
-                self, 'Values of out bound (END={})'.format(values[1]))
-        if (values[0] > values[1]):
+                self, "Values of out bound (END={})".format(values[1])
+            )
+        if values[0] > values[1]:
             raise argparse.ArgumentError(
-                self, 'BEGIN > END ({v[0]} > {v[1]})'.format(v=values))
-        if (values[2] not in [0, 1, 2]):
+                self, "BEGIN > END ({v[0]} > {v[1]})".format(v=values)
+            )
+        if values[2] not in [0, 1, 2]:
             raise argparse.ArgumentError(
-                self, 'Valid MODE is [0, 1, 2]. (MODE={v[2]})'.format(v=values))
+                self, "Valid MODE is [0, 1, 2]. (MODE={v[2]})".format(v=values)
+            )
         try:
-            routine = getattr(args, 'routines')
+            routine = getattr(args, "routines")
             routine.append(routines.index(self.dest))
         except AttributeError:
-            routine = [routines.index(self.dest), ]
-        setattr(args, 'routines', routine)
+            routine = [
+                routines.index(self.dest),
+            ]
+        setattr(args, "routines", routine)
         setattr(args, self.dest, values)
 
 
 class ValidateHash(argparse.Action):
-    ''' Validate gen_hash_routine option '''
+    """Validate gen_hash_routine option"""
 
     def __call__(self, parser, args, values, option_string=None):
-        #print ( '{n} {v} {o}'.format(n=args, v=values, o=option_string))
+        # print ( '{n} {v} {o}'.format(n=args, v=values, o=option_string))
 
         min = 1
         max = 22
-        if (values[0] < min or values[0] > max):
+        if values[0] < min or values[0] > max:
             raise argparse.ArgumentError(
-                self, 'Values of out bound (BEGIN={})'.format(values[0]))
-        if (values[1] < min or values[1] > max):
+                self, "Values of out bound (BEGIN={})".format(values[0])
+            )
+        if values[1] < min or values[1] > max:
             raise argparse.ArgumentError(
-                self, 'Values of out bound (END={})'.format(values[1]))
-        if (values[0] > values[1]):
+                self, "Values of out bound (END={})".format(values[1])
+            )
+        if values[0] > values[1]:
             raise argparse.ArgumentError(
-                self, 'BEGIN > END ({v[0]} > {v[1]})'.format(v=values))
-        if (values[2] not in [0, 1, 2]):
+                self, "BEGIN > END ({v[0]} > {v[1]})".format(v=values)
+            )
+        if values[2] not in [0, 1, 2]:
             raise argparse.ArgumentError(
-                self, 'Valid MODE is [0, 1, 2]. (MODE={v[2]})'.format(v=values))
+                self, "Valid MODE is [0, 1, 2]. (MODE={v[2]})".format(v=values)
+            )
         try:
-            routine = getattr(args, 'routines')
+            routine = getattr(args, "routines")
             routine.append(routines.index(self.dest))
         except AttributeError:
-            routine = [routines.index(self.dest), ]
-        setattr(args, 'routines', routine)
+            routine = [
+                routines.index(self.dest),
+            ]
+        setattr(args, "routines", routine)
         setattr(args, self.dest, values)
 
 
 class ValidateGenSingle(argparse.Action):
-    ''' Validate gen_single option '''
+    """Validate gen_single option"""
 
     def __call__(self, parser, args, values, option_string=None):
         # print '{n} {v} {o}'.format(n=args, v=values, o=option_string)
 
         if values[0].isdigit():
             values[0] = int(values[0])
-        elif values[0].lower() == 'true':
+        elif values[0].lower() == "true":
             values[0] = 1
-        elif values[0].lower() == 'false':
+        elif values[0].lower() == "false":
             values[0] = 0
 
         # Check hex
@@ -258,65 +308,75 @@ class ValidateGenSingle(argparse.Action):
             int(val, 16)
 
         # Only validate these parameters for AEAD encrypt/decrypt
-        if (values[0] == 0 or values[0] == 1):
-            txt = ['KEY', 'NPUB', 'NSEC']
+        if values[0] == 0 or values[0] == 1:
+            txt = ["KEY", "NPUB", "NSEC"]
             exp = [args.key_size, args.npub_size, args.nsec_size]
             for j, val in enumerate(exp):
-                i = j+1  # offset to KEY
-                if (val > 0 and len(values[i])*4 != val):
+                i = j + 1  # offset to KEY
+                if val > 0 and len(values[i]) * 4 != val:
                     raise argparse.ArgumentError(
-                        self, '{}:{}(size={}) must have the size of {}'
-                        .format(txt[j], values[i], len(values[i])*4, val))
+                        self,
+                        "{}:{}(size={}) must have the size of {}".format(
+                            txt[j], values[i], len(values[i]) * 4, val
+                        ),
+                    )
 
         # Check
         try:
-            routine = getattr(args, 'routines')
+            routine = getattr(args, "routines")
             routine.append(routines.index(self.dest))
-            input = getattr(args, 'gen_single')
+            input = getattr(args, "gen_single")
             input.append(values)
         except AttributeError:
-            routine = [routines.index(self.dest), ]
-            input = [values, ]
-        setattr(args, 'routines', routine)
+            routine = [
+                routines.index(self.dest),
+            ]
+            input = [
+                values,
+            ]
+        setattr(args, "routines", routine)
         setattr(args, self.dest, input)
 
 
 class ValidateGenBenchmarkRoutine(argparse.Action):
-    ''' Validate gen_benchmark_routine option '''
+    """Validate gen_benchmark_routine option"""
 
     def __call__(self, parser, args, values, option_string=None):
         try:
-            routine = getattr(args, 'routines')
+            routine = getattr(args, "routines")
             routine.append(routines.index(self.dest))
         except AttributeError:
-            routine = [routines.index(self.dest), ]
-        setattr(args, 'routines', routine)
+            routine = [
+                routines.index(self.dest),
+            ]
+        setattr(args, "routines", routine)
 
 
 class InvalidateArgument(argparse.Action):
     def __call__(self, parser, args, values, option_string=None):
-        raise argparse.ArgumentError(
-            self, 'This argument is not yet supported.')
+        raise argparse.ArgumentError(self, "This argument is not yet supported.")
 
 
 # ============================================================================
 # Reference: http://stackoverflow.com/questions/34544752/argparse-and-argumentdefaultshelpformatter-formatting-of-default-values-when-sy
-class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
-                      argparse.RawTextHelpFormatter):
-    ''' RawTextHelpFromatter + ArgumentDefaultsHelpFormatter class'''
+class CustomFormatter(
+    argparse.ArgumentDefaultsHelpFormatter, argparse.RawTextHelpFormatter
+):
+    """RawTextHelpFromatter + ArgumentDefaultsHelpFormatter class"""
 
     def _get_help_string(self, action):
         help = action.help
-        if '%(default)' not in action.help:
+        if "%(default)" not in action.help:
             if action.default is not argparse.SUPPRESS:
                 defaulting_nargs = [argparse.OPTIONAL, argparse.ZERO_OR_MORE]
                 if action.option_strings or action.nargs in defaulting_nargs:
                     if type(action.default) == type(sys.stdin):
                         print(action.default.name)
-                        help += ' (default: '+str(action.default.name)+')'
+                        help += " (default: " + str(action.default.name) + ")"
                     else:
-                        help += ' (default: %(default)s)'
+                        help += " (default: %(default)s)"
         return help
+
 
 # ============================================================================
 # Argument parsing
@@ -327,55 +387,76 @@ def get_parser():
     parser = argparse.ArgumentParser(
         add_help=False,
         formatter_class=CustomFormatter,
-        prog='cryptotvgen',
-        description=textwrap.dedent('''\
-            Test vectors generator for NIST Lightweight Cryptography candidates.\n\n'''))
+        prog="cryptotvgen",
+        description=textwrap.dedent(
+            """\
+            Test vectors generator for NIST Lightweight Cryptography candidates.\n\n"""
+        ),
+    )
 
     mainop = parser.add_argument_group(
-        textwrap.dedent('''\
-            :::::Path specifiers:::'''),
-        'Not required if using `--prepare_libs` in automatic mode (see below and README)')
+        textwrap.dedent(
+            """\
+            :::::Path specifiers:::"""
+        ),
+        "Not required if using `--prepare_libs` in automatic mode (see below and README)",
+    )
 
     mainop.add_argument(
-        '--candidates_dir',
+        "--candidates_dir",
         action=ValidateCandidatesDir,
         default=None,
-        metavar='<PATH/TO/CANDIDATES/SOURCE/DIRECTORY>',
-        help=textwrap.dedent('''\
+        metavar="<PATH/TO/CANDIDATES/SOURCE/DIRECTORY>",
+        help=textwrap.dedent(
+            """\
            Relative or absolute path to the top _directory_ where the `crypto_aead `crypto_hash` folders candidates directory,
            Source directory structure in this folder must follow SUPERCOP directory structure.
-           (default: %(default)s, which will use $HOME/.cryptotvgen)''')
+           (default: %(default)s, which will use $HOME/.cryptotvgen)"""
+        ),
     )
     mainop.add_argument(
-        '--lib_path',
+        "--lib_path",
         default=None,
-        metavar='<PATH/TO/LIBRARY/DIRECTORY>',
-        help=textwrap.dedent('''\
+        metavar="<PATH/TO/LIBRARY/DIRECTORY>",
+        help=textwrap.dedent(
+            """\
             Relative or absolute path to the top _directory_ where `crypto_aead` and `crypto_hash` folders with the dynamic shared libraries (*.so or *.dll) reside.
             e.g. `../software/dummy_lwc_ref/lib` 
             (default: %(default)s, which means if candidates_dir option is specified will use `candidates_dir`/lib 
-                    and if neither candidates_dir nor lib_path are specified will use  $HOME/.cryptotvgen/lib)''')
+                    and if neither candidates_dir nor lib_path are specified will use  $HOME/.cryptotvgen/lib)"""
+        ),
     )
     secondaryop = parser.add_argument_group(
-        textwrap.dedent('''\
-            :::::At least one of these parameters are required:::'''),
-        'Library name specifier::')
+        textwrap.dedent(
+            """\
+            :::::At least one of these parameters are required:::"""
+        ),
+        "Library name specifier::",
+    )
     secondaryop.add_argument(
-        '--aead',
-        metavar='<ALGORITHM_VARIANT_NAME>',
-        help=textwrap.dedent('''\
+        "--aead",
+        metavar="<ALGORITHM_VARIANT_NAME>",
+        help=textwrap.dedent(
+            """\
             Name of a the variant of an AEAD algorithm for which to generate test-vectors, e.g. gimli24v1
-            Note: The library should have been be generated previously by running in `--prepare_libs`.'''))
+            Note: The library should have been be generated previously by running in `--prepare_libs`."""
+        ),
+    )
 
     secondaryop.add_argument(
-        '--hash',
-        metavar='<ALGORITHM_VARIANT_NAME>',
-        help=textwrap.dedent('''\
+        "--hash",
+        metavar="<ALGORITHM_VARIANT_NAME>",
+        help=textwrap.dedent(
+            """\
             Name of a the variant of a hash algorithm for which to generate test-vectors, e.g. asconxofv12
-            Note: The library should have been be generated previously by running in `--prepare_libs`.'''))
+            Note: The library should have been be generated previously by running in `--prepare_libs`."""
+        ),
+    )
 
-    test = parser.add_argument_group(':::::Test Generation Parameters:::',
-                                     textwrap.dedent('''\
+    test = parser.add_argument_group(
+        ":::::Test Generation Parameters:::",
+        textwrap.dedent(
+            """\
             Test vectors generation modes (use at least one from the list
             below)::
             Common notation and convetions:
@@ -394,17 +475,30 @@ def get_parser():
 
             For Boolean arguments, 0 can be used instead of False,
             and 1 can be used instead of True.
-            '''))
+            """
+        ),
+    )
     # run_mutex = test.add_mutually_exclusive_group(required=True)
     test.add_argument(
-        '--gen_random', type=int, default=0, metavar='N',
+        "--gen_random",
+        type=int,
+        default=0,
+        metavar="N",
         action=ValidateGenRandom,
-        help=textwrap.dedent('''\
+        help=textwrap.dedent(
+            """\
             Randomly generates N test vectors with
-            varying AD_LEN, PT_LEN, and operation (For use only with AEAD)'''))
+            varying AD_LEN, PT_LEN, and operation (For use only with AEAD)"""
+        ),
+    )
     test.add_argument(
-        '--prepare_libs', default=None, metavar='<variant_prefix>', nargs='*', action=ValidatePrepareLibs,
-        help=textwrap.dedent('''\
+        "--prepare_libs",
+        default=None,
+        metavar="<variant_prefix>",
+        nargs="*",
+        action=ValidatePrepareLibs,
+        help=textwrap.dedent(
+            """\
             Build dynamically shared libraries required for testvector generation.
             If one or more <variant_prefix> arguments are given, only build variants
             whose name starts with either of these prefixes, otherwise will build
@@ -418,18 +512,26 @@ def get_parser():
                             libraries found in sources directories of `candidates_dir`
                             (uses SUPERCOP directory structure)
             (default: %(default)s)\
-            See also `--supercop_version`''')
+            See also `--supercop_version`"""
+        ),
     )
     test.add_argument(
-        '--supercop_version', default='latest',
-        help=textwrap.dedent('''\
+        "--supercop_version",
+        default="latest",
+        help=textwrap.dedent(
+            """\
             'SUPERCOP version to download and use. 
             Either use specific version with `YYYYMMDD` format or use `latest`
-            to automatically determine the latest available version from the SUPERCOP website.''')
+            to automatically determine the latest available version from the SUPERCOP website."""
+        ),
     )
     test.add_argument(
-        '--gen_benchmark', default=False, action=ValidateGenBenchmarkRoutine, nargs=0,
-        help=textwrap.dedent('''\
+        "--gen_benchmark",
+        default=False,
+        action=ValidateGenBenchmarkRoutine,
+        nargs=0,
+        help=textwrap.dedent(
+            """\
             This mode generates several the following sets of test vectors
             1) generic_aead_sizes_new_key: encryption and decryption of the following sizes
                 using a new key every time. Also generic_aead_sizes_reuse_key.
@@ -451,19 +553,34 @@ def get_parser():
 
             Optional arguments --hash and --block_size_msg_digest allow for the generation
             of the hash test vectors
-        '''))
-    test.add_argument('--random_shuffle', default=True,
-                      help="'--gen_benchmark' blanket tests are shuffled into a randomized order"
-                      )
-    test.add_argument('--with_key_reuse', default=False, action='store_true',
-                      help="'--gen_benchmark' blanket tests will include key-reuse test-cases"
-                      )
-    test.add_argument('--quickbench', default=False, action='store_true',
-                      help="'--gen_benchmark' don't include timing measurement vectors for AD/PT/CT of 1536 bytes"
-                      )
+        """
+        ),
+    )
     test.add_argument(
-        '--gen_custom_mode', type=int, default=0, choices=range(3),
-        metavar='MODE', help=textwrap.dedent('''\
+        "--random_shuffle",
+        default=True,
+        help="'--gen_benchmark' blanket tests are shuffled into a randomized order",
+    )
+    test.add_argument(
+        "--with_key_reuse",
+        default=False,
+        action="store_true",
+        help="'--gen_benchmark' blanket tests will include key-reuse test-cases",
+    )
+    test.add_argument(
+        "--quickbench",
+        default=False,
+        action="store_true",
+        help="'--gen_benchmark' don't include timing measurement vectors for AD/PT/CT of 1536 bytes",
+    )
+    test.add_argument(
+        "--gen_custom_mode",
+        type=int,
+        default=0,
+        choices=range(3),
+        metavar="MODE",
+        help=textwrap.dedent(
+            """\
             The mode of test vector generation used by the --gen_custom option.
 
             Meaning of MODE values:
@@ -474,11 +591,17 @@ def get_parser():
                 2 = Same as option 1, except an input is now a running
                     value (each subsequent byte is a previous byte
                     incremented by 1).
-            '''))
+            """
+        ),
+    )
 
     test.add_argument(
-        '--gen_custom', type=str, metavar=('<parameters[:parameters]*>'), action=ValidateGenCustom,
-        help=textwrap.dedent('''\
+        "--gen_custom",
+        type=str,
+        metavar=("<parameters[:parameters]*>"),
+        action=ValidateGenCustom,
+        help=textwrap.dedent(
+            """\
             Randomly generate multiple test vectors, with each test vector
             specified using the following fields:
                NEW_KEY (Boolean), DECRYPT (Boolean), AD_LEN, PT_LEN or CT_LEN or
@@ -493,9 +616,18 @@ def get_parser():
             create a new key and perform an encryption with a dataset that
             has AD_LEN and PT_LEN of 0 and 20 bytes, respectively.  The
             second vector performs a HASH on a message with HASH_LEN of 24
-            bytes.'''))
+            bytes."""
+        ),
+    )
     test.add_argument(
-        '--gen_hash', type=int, nargs=3, default=None, metavar=('BEGIN', 'END', 'MODE'), action=ValidateHash, help=textwrap.dedent('''\
+        "--gen_hash",
+        type=int,
+        nargs=3,
+        default=None,
+        metavar=("BEGIN", "END", "MODE"),
+        action=ValidateHash,
+        help=textwrap.dedent(
+            """\
             This mode generates 20 test vectors for HASH only.
             The test vectors are specified using the following array:
                [NEW_KEY (boolean),  # Ignored due to hash operation
@@ -553,10 +685,18 @@ def get_parser():
 
             --gen_hash 5 5 1
 
-            Generates test 5 with MODE=1.''')
+            Generates test 5 with MODE=1."""
+        ),
     )
     test.add_argument(
-        '--gen_test_combined', type=int, nargs=3, default=None, metavar=('BEGIN', 'END', 'MODE'), action=ValidateGenTestCombinedRoutine, help=textwrap.dedent('''
+        "--gen_test_combined",
+        type=int,
+        nargs=3,
+        default=None,
+        metavar=("BEGIN", "END", "MODE"),
+        action=ValidateGenTestCombinedRoutine,
+        help=textwrap.dedent(
+            """
             This mode generates 33 test vectors for the common sizes of AD and
             PT that the hardware designer should, at a minimum, verify. It also
             combines AEAD and hash test vectors into one set of test
@@ -627,13 +767,19 @@ def get_parser():
 
             --gen_test_combined 5 5 1
 
-            Generates test 5 with MODE=1.''')
+            Generates test 5 with MODE=1."""
+        ),
     )
 
     test.add_argument(
-        '--gen_test_routine', type=int, nargs=3, default=None,
-        metavar=('BEGIN', 'END', 'MODE'), action=ValidateGenTestRoutine,
-        help=textwrap.dedent('''\
+        "--gen_test_routine",
+        type=int,
+        nargs=3,
+        default=None,
+        metavar=("BEGIN", "END", "MODE"),
+        action=ValidateGenTestRoutine,
+        help=textwrap.dedent(
+            """\
             This mode generates test vectors for the common sizes of AD and
             PT that the hardware designer should, at a minimum, verify.
             Only AEAD test vectors are generated, hashes are not generated.
@@ -691,12 +837,16 @@ def get_parser():
             --gen_test_routine 5 5 1
 
             Generates test 5 with MODE=1.
-            '''))
+            """
+        ),
+    )
     test.add_argument(
-        '--gen_single', nargs=6,
-        metavar=('MODE', 'KEY', 'NPUB', 'NSEC', 'AD', 'PT'),
+        "--gen_single",
+        nargs=6,
+        metavar=("MODE", "KEY", "NPUB", "NSEC", "AD", "PT"),
         action=ValidateGenSingle,
-        help=textwrap.dedent('''\
+        help=textwrap.dedent(
+            """\
             Generate a single test vector based on the provided values of
             all inputs expressed in the hexadecimal notation. (For use only
             with AEAD)
@@ -712,84 +862,141 @@ def get_parser():
             digits, e.g., 00 is valid; 0 is invalid.
             
             IS_DECRYPT, KEY, NPUB, NSEC, AD parameters are ignored in HASH mode.
-            '''))
+            """
+        ),
+    )
 
-    optops = parser.add_argument_group(':::::Optional Parameters::::',
-                                       'Debugging options::')
-    optops.add_argument("-h", "--help", action="help",
-                        help="Show this help message and exit.")
+    optops = parser.add_argument_group(
+        ":::::Optional Parameters::::", "Debugging options::"
+    )
+    optops.add_argument(
+        "-h", "--help", action="help", help="Show this help message and exit."
+    )
 
     optops.add_argument(
-        '--verify_lib', default=False, action='store_true',
-        help=textwrap.dedent('''\
+        "--verify_lib",
+        default=False,
+        action="store_true",
+        help=textwrap.dedent(
+            """\
             This operation will verify the generated test vectors
             via the decryption operation.
 
             Note: This option provides an additional check against possible
                   mismatch of results between encryption and decryption
                   in the reference software.
-            '''))
+            """
+        ),
+    )
 
-    optops.add_argument('-V', '--version', action="version",
-                        version="%(prog)s 1.0")
-    optops.add_argument('-v', '--verbose', default=False, action='store_true',
-                        help=('Verbose for script debugging purposes.'))
+    optops.add_argument(
+        "-V", "--version", action="version", version=f"%(prog)s {__version__}"
+    )
+    optops.add_argument(
+        "-v",
+        "--verbose",
+        default=False,
+        action="store_true",
+        help=("Verbose for script debugging purposes."),
+    )
 
     impops = parser.add_argument_group(
-        '', 'Algorithm and implementation specific options::')
+        "", "Algorithm and implementation specific options::"
+    )
     impops.add_argument(
-        '--io', nargs=2, type=int, default=(32, 32),
-        metavar=('PUBLIC_PORTS_WIDTH', 'SECRET_PORT_WIDTH'),
-        help='Size of PDI/DO and SDI port in bits.')
+        "--io",
+        nargs=2,
+        type=int,
+        default=(32, 32),
+        metavar=("PUBLIC_PORTS_WIDTH", "SECRET_PORT_WIDTH"),
+        help="Size of PDI/DO and SDI port in bits.",
+    )
     impops.add_argument(
-        '--key_size', type=int, default=None, metavar='BITS',
-        help='Size of key in bits')
+        "--key_size", type=int, default=None, metavar="BITS", help="Size of key in bits"
+    )
     impops.add_argument(
-        '--npub_size', type=int, default=None, metavar='BITS',
-        help='Size of public message number in bits')
+        "--npub_size",
+        type=int,
+        default=None,
+        metavar="BITS",
+        help="Size of public message number in bits",
+    )
     impops.add_argument(
-        '--nsec_size', type=int, default=None, metavar='BITS',
-        help='Size of secret message number in bits')
+        "--nsec_size",
+        type=int,
+        default=None,
+        metavar="BITS",
+        help="Size of secret message number in bits",
+    )
     impops.add_argument(
-        '--tag_size', type=int, default=None, metavar='BITS',
-        help='Size of authentication tag in bits')
+        "--tag_size",
+        type=int,
+        default=None,
+        metavar="BITS",
+        help="Size of authentication tag in bits",
+    )
     impops.add_argument(
-        '--message_digest_size', type=int, default=None, metavar='BITS',
-        help='Size of message digest (hash_tag) in bits')
+        "--message_digest_size",
+        type=int,
+        default=None,
+        metavar="BITS",
+        help="Size of message digest (hash_tag) in bits",
+    )
     impops.add_argument(
-        '--block_size', type=int, default=8, metavar='BITS',
-        help='''Algorithm's data block size''')
+        "--block_size",
+        type=int,
+        default=8,
+        metavar="BITS",
+        help="""Algorithm's data block size""",
+    )
     impops.add_argument(
-        '--block_size_ad', type=int, metavar='BITS',
-        help='''Algorithm's associated data block size.
-        This parameter is assumed to be equal to block_size if unspecified.''')
+        "--block_size_ad",
+        type=int,
+        metavar="BITS",
+        help="""Algorithm's associated data block size.
+        This parameter is assumed to be equal to block_size if unspecified.""",
+    )
     impops.add_argument(
-        '--block_size_msg_digest', type=int, default=None,
-        help='''Algorithm's hash data block size''')
+        "--block_size_msg_digest",
+        type=int,
+        default=None,
+        help="""Algorithm's hash data block size""",
+    )
     impops.add_argument(
-        '--ciph_exp', default=False,
-        action='store_true',
-        help=textwrap.dedent('''\
+        "--ciph_exp",
+        default=False,
+        action="store_true",
+        help=textwrap.dedent(
+            """\
             Ciphertext expansion algorithm. When this option is set, the last
             block will have its own segment. This is required for a correct
             operation of the accompanied PostProcessor.
 
             Currently, we assume that PAD_AD and PAD_D are both set to 4
             when this mode is used.
-            '''))
+            """
+        ),
+    )
     impops.add_argument(
-        '--ciph_exp_noext', default=False, action='store_true',
-        help=textwrap.dedent('''\
+        "--ciph_exp_noext",
+        default=False,
+        action="store_true",
+        help=textwrap.dedent(
+            """\
             [requires --ciph_exp]
 
             Additional option for the ciphertext expansion mode. This option
             indicates that the algorithm does not expand the ciphertext
             (i.e., does not make the ciphertext size greater than the message
-            size) if the message size is a multiple of a block size.'''))
+            size) if the message size is a multiple of a block size."""
+        ),
+    )
     impops.add_argument(
-        '--add_partial', default=False,
-        action='store_true',
-        help=textwrap.dedent('''\
+        "--add_partial",
+        default=False,
+        action="store_true",
+        help=textwrap.dedent(
+            """\
             [requires --ciph_exp]
 
             For use with --ciph_exp flag. When this option is set, a PARTIAL
@@ -797,30 +1004,36 @@ def get_parser():
             if the size of this segment is not a multiple of a block size.
 
             Note: This option is required for algorithms such as AES_COPA
-            '''))
+            """
+        ),
+    )
 
-# Not supported in this version
-#    impops.add_argument(
-#        '--reverse_ciph', default=False,
-#        #action='store_true',
-#        action=InvalidateArgument,
-#        help=textwrap.dedent('''\
-#            Note: Not yet supported. Coming soon ~~~
-#
-#            [requires --ciph_exp]
-#
-#            Reversed ciphertext. When this option is set, the input ciphertext
-#            is provided in a reversed order (including the possible length
-#            segment).
-#            Note: Only used by PRIMATEs-APE.')
-#            '''))
+    # Not supported in this version
+    #    impops.add_argument(
+    #        '--reverse_ciph', default=False,
+    #        #action='store_true',
+    #        action=InvalidateArgument,
+    #        help=textwrap.dedent('''\
+    #            Note: Not yet supported. Coming soon ~~~
+    #
+    #            [requires --ciph_exp]
+    #
+    #            Reversed ciphertext. When this option is set, the input ciphertext
+    #            is provided in a reversed order (including the possible length
+    #            segment).
+    #            Note: Only used by PRIMATEs-APE.')
+    #            '''))
 
-    tvops = parser.add_argument_group(
-        '', 'Formatting options::')
+    tvops = parser.add_argument_group("", "Formatting options::")
     tvops.add_argument(
-        '--msg_format', '--enc_msg_format', nargs='+', action=ValidateMsgFormat,
-        default=('npub', 'ad', 'data', 'tag'), metavar='SEGMENT_TYPE',
-        help=textwrap.dedent('''\
+        "--msg_format",
+        "--enc_msg_format",
+        nargs="+",
+        action=ValidateMsgFormat,
+        default=("npub", "ad", "data", "tag"),
+        metavar="SEGMENT_TYPE",
+        help=textwrap.dedent(
+            """\
             Specify the order of segment types in the input to encryption.
             If --msg_dec_format is not specified, the specified order is used 
             for decryption as well.
@@ -866,11 +1079,17 @@ def get_parser():
             separated by segments of another type e.g., header and trailer,
             treated as two segments of the type AD, separated by the message segments
 
-            '''))
+            """
+        ),
+    )
     tvops.add_argument(
-        '--dec_msg_format', nargs='+', action=ValidateMsgFormat,
-        default=None, metavar='SEGMENT_TYPE',
-        help=textwrap.dedent('''\
+        "--dec_msg_format",
+        nargs="+",
+        action=ValidateMsgFormat,
+        default=None,
+        metavar="SEGMENT_TYPE",
+        help=textwrap.dedent(
+            """\
             Specify the order of segment types in the input to decryption.
             If not specified, the order specifed in `--msg_format` (or its default value) is used.
 
@@ -894,36 +1113,66 @@ def get_parser():
             Example:
                 --msg_dec_format npub tag data ad
 
-            '''))
+            """
+        ),
+    )
     tvops.add_argument(
-        '--offline', default=False,
-        action='store_true',
-        help=textwrap.dedent('''\
+        "--offline",
+        default=False,
+        action="store_true",
+        help=textwrap.dedent(
+            """\
             Indicate that the cipher is offline, i.e., the length of AD and
             DATA must be known before the encryption/decryption starts. If this
             option is used, the length segment will be automatically added as
             a first segment in the input to encryption and decryption.
             Otherwise, the length segment will not be generated for either
             encryption or decryption.
-            '''))
+            """
+        ),
+    )
     tvops.add_argument(
-        '--min_ad', type=int, default=0, metavar='BYTES',
-        help='Minimum randomly generated AD length')
+        "--min_ad",
+        type=int,
+        default=0,
+        metavar="BYTES",
+        help="Minimum randomly generated AD length",
+    )
     tvops.add_argument(
-        '--max_ad', type=int, default=1000, metavar='BYTES',
-        help='Maximum randomly generated AD length')
+        "--max_ad",
+        type=int,
+        default=1000,
+        metavar="BYTES",
+        help="Maximum randomly generated AD length",
+    )
     tvops.add_argument(
-        '--min_d', type=int, default=0, metavar='BYTES',
-        help='Minimum randomly generated data length')
+        "--min_d",
+        type=int,
+        default=0,
+        metavar="BYTES",
+        help="Minimum randomly generated data length",
+    )
     tvops.add_argument(
-        '--max_d', type=int, default=1000, metavar='BYTES',
-        help='Maximum randomly generated data length')
+        "--max_d",
+        type=int,
+        default=1000,
+        metavar="BYTES",
+        help="Maximum randomly generated data length",
+    )
     tvops.add_argument(
-        '--max_block_per_sgmt', type=int, default=None, metavar='COUNT',
-        help='Maximum data block per segment (based on --block_size) parameter')
+        "--max_block_per_sgmt",
+        type=int,
+        default=None,
+        metavar="COUNT",
+        help="Maximum data block per segment (based on --block_size) parameter",
+    )
     tvops.add_argument(
-        '--max_io_per_line', type=int, default=9999, metavar='COUNT',
-        help=textwrap.dedent('''\
+        "--max_io_per_line",
+        type=int,
+        default=9999,
+        metavar="COUNT",
+        help=textwrap.dedent(
+            """\
             Maximum data length in multiples of I/O width in a data line of test
             file. This option helps readability when a test vector is large.
 
@@ -939,23 +1188,37 @@ def get_parser():
 
             DAT = 0001020304050607
             DAT = 08090A0B0C0D0E0F
-            '''))
+            """
+        ),
+    )
 
     tvops.add_argument(
-        '--pdi_file', default='pdi.txt', metavar='FILENAME',
-        help='Public data input filename')
+        "--pdi_file",
+        default="pdi.txt",
+        metavar="FILENAME",
+        help="Public data input filename",
+    )
     tvops.add_argument(
-        '--sdi_file', default='sdi.txt', metavar='FILENAME',
-        help='Secret data input filename')
+        "--sdi_file",
+        default="sdi.txt",
+        metavar="FILENAME",
+        help="Secret data input filename",
+    )
     tvops.add_argument(
-        '--do_file', default='do.txt', metavar='FILENAME',
-        help='Data output filename')
+        "--do_file", default="do.txt", metavar="FILENAME", help="Data output filename"
+    )
     tvops.add_argument(
-        '--dest', metavar='PATH_TO_DEST', default='KAT',
-        help='Destination folder where the files should be written to.')
+        "--dest",
+        metavar="PATH_TO_DEST",
+        default="KAT",
+        help="Destination folder where the files should be written to.",
+    )
     tvops.add_argument(
-        '--human_readable', default=False, action='store_true',
-        help=textwrap.dedent('''\
+        "--human_readable",
+        default=False,
+        action="store_true",
+        help=textwrap.dedent(
+            """\
             Create a human readable file (tests_vectors.txt) for each
             test vector in the format similar to NIST test vectors
             used in SHA-3, i.e.:
@@ -971,27 +1234,42 @@ def get_parser():
             CT       = HEXSTR    # if AEAD
             TAG      = HEXSTR    # if AEAD
             HASH_TAG = HEXSTR    # if hash
-            '''))
+            """
+        ),
+    )
 
-    ccops = parser.add_argument_group(
-        '', '[Experimental] CryptoCore options::')
+    ccops = parser.add_argument_group("", "[Experimental] CryptoCore options::")
     ccops.add_argument(
-        '--cc_hls', default=False,
-        action='store_true',
-        help=textwrap.dedent('''\
+        "--cc_hls",
+        default=False,
+        action="store_true",
+        help=textwrap.dedent(
+            """\
             Generates test vectors for CryptoCore in C (used by HLS)
-            '''))
+            """
+        ),
+    )
     ccops.add_argument(
-        '--cc_pad_enable', default=False,
-        action='store_true',
-        help='Enable padding operation')
+        "--cc_pad_enable",
+        default=False,
+        action="store_true",
+        help="Enable padding operation",
+    )
     ccops.add_argument(
-        '--cc_pad_ad', type=int, default=0, metavar='PAD_AD_MODE',
-        help='Associated data padding mode')
+        "--cc_pad_ad",
+        type=int,
+        default=0,
+        metavar="PAD_AD_MODE",
+        help="Associated data padding mode",
+    )
     ccops.add_argument(
-        '--cc_pad_d', type=int, default=0, metavar='PAD_D_MODE',
-        help='Data input padding mode')
+        "--cc_pad_d",
+        type=int,
+        default=0,
+        metavar="PAD_D_MODE",
+        help="Data input padding mode",
+    )
     ccops.add_argument(
-        '--cc_pad_style', type=int, default=1, metavar='PAD_STYLE',
-        help='Padding style')
+        "--cc_pad_style", type=int, default=1, metavar="PAD_STYLE", help="Padding style"
+    )
     return parser

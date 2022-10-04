@@ -3,11 +3,11 @@ use ieee.std_logic_1164.all;
 
 use work.NIST_LWAPI_pkg.all;
 
-entity LWC_TB_2Pass_uut is
+entity LWC is
     generic (
         --! Assumed maximum length of input plaintext/ciphertext in bytes, which determines the size of the 2Pass FIFO.
         --! In a masked 2Pass implementation the actual FIFO size will be PDI_SHARES * G_MAX_SEGMENT_BYTES
-        G_MAX_SEGMENT_BYTES : integer := 4 * 1024
+        G_MAX_SEGMENT_BYTES : integer := 16 * 1024
     );
     port (
         clk             : in  std_logic;
@@ -15,7 +15,7 @@ entity LWC_TB_2Pass_uut is
         pdi_data        : in  std_logic_vector(PDI_SHARES * W - 1 downto 0);
         pdi_valid       : in  std_logic;
         pdi_ready       : out std_logic;
-        sdi_data        : in  std_logic_vector(PDI_SHARES * SW - 1 downto 0);
+        sdi_data        : in  std_logic_vector(SDI_SHARES * SW - 1 downto 0);
         sdi_valid       : in  std_logic;
         sdi_ready       : out std_logic;
         do_data         : out std_logic_vector(PDI_SHARES * W - 1 downto 0);
@@ -25,7 +25,7 @@ entity LWC_TB_2Pass_uut is
     );
 end entity;
 
-architecture structural of LWC_TB_2Pass_uut is
+architecture structural of LWC is
 
     --! fdi/o
     signal fdi_data             : std_logic_vector(PDI_SHARES * W - 1 downto 0);
