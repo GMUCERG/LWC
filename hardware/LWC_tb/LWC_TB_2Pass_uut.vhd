@@ -7,7 +7,7 @@ entity LWC is
     generic (
         --! Assumed maximum length of input plaintext/ciphertext in bytes, which determines the size of the 2Pass FIFO.
         --! In a masked 2Pass implementation the actual FIFO size will be PDI_SHARES * G_MAX_SEGMENT_BYTES
-        G_MAX_SEGMENT_BYTES : integer := 16 * 1024
+        G_MAX_MSG_BYTES : integer := 64 * 1024
     );
     port (
         clk             : in  std_logic;
@@ -59,7 +59,7 @@ architecture structural of LWC is
     end component;
 begin
 
-    assert False report "Using LWC_2Pass with G_MAX_SEGMENT_BYTES=" & integer'image(G_MAX_SEGMENT_BYTES) severity warning;
+    assert False report "Using LWC_2Pass with G_MAX_SEGMENT_BYTES=" & integer'image(G_MAX_MSG_BYTES) severity warning;
     
     uut: LWC_2Pass
         port map(
@@ -86,7 +86,7 @@ begin
     twoPassfifo : entity work.FIFO
         generic map(
             G_W              => PDI_SHARES * W,
-            G_DEPTH          => G_MAX_SEGMENT_BYTES / (W/8) -- G_MAX_SEGMENT_BYTES is the size of each share
+            G_DEPTH          => G_MAX_MSG_BYTES / (W/8) -- G_MAX_SEGMENT_BYTES is the size of each share
         )
         port map(
             clk              => clk,

@@ -167,7 +167,6 @@ begin
     assert not ASYNC_RSTN report "[LWC_2Pass] ASYNC_RSTN=True: reset is configured as asynchronous and active-low" severity note;
 
     Inst_PreProcessor : entity work.PreProcessor
-
         port map(
             clk             => clk,
             rst             => rst,
@@ -255,7 +254,7 @@ begin
         );
     Inst_Header_Fifo : entity work.FIFO
         generic map(
-            G_W     => PDI_SHARES * W,
+            G_W     => W,
             G_DEPTH => 1
         )
         port map(

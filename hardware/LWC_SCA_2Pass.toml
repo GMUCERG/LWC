@@ -1,13 +1,13 @@
-name = "LWC_2Pass"
+name = "LWC_SCA_2Pass"
 
 dependencies = [{ uri = "./LWC_common.toml", rtl.pos = 0 }]
 rtl.sources = [
-    "LWC_rtl/LWC_2Pass.vhd",
+    "LWC_rtl/LWC_SCA_2Pass.vhd",
 ]
 rtl.top = "LWC"
 
 tb.sources = [
-    "LWC_tb/LWC_TB_2Pass_uut.vhd",
-    "LWC_tb/LWC_TB.vhd"
+    "LWC_tb/LWC_TB_SCA_2Pass_uut.vhd",
+    "LWC_tb/LWC_TB_SCA.vhd"
 ]
 tb.top = "LWC_TB"
