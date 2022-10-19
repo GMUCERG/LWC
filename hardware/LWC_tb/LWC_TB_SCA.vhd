@@ -567,9 +567,9 @@ begin
                 force_exit := True;
                 exit;
             elsif preamble = HDR_HEAD or preamble = DAT_HEAD or preamble = STT_HEAD then -- header, data, or status lines
+                word_count := 1;
                 loop                    -- processing single line
                     hread(line_data, golden_word, read_ok); -- read the rest of the line to word_block
-                    word_count := 1;
                     if not read_ok then
                         exit;
                     end if;
