@@ -8,7 +8,7 @@
 --!                ECE Department, George Mason University Fairfax, VA, U.S.A.
 --!                All rights Reserved.
 --!
---! @license       This work is dual-licensed under Solderpad Hardware License v2.1 (SHL-2.1) and 
+--! @license       This work is dual-licensed under Solderpad Hardware License v2.1 (SHL-2.1) and
 --!                   GNU General Public License v3.0 (GPL-3.0)
 --!                For more information please see:
 --!                   Solderpad Hardware License v2.1:  https://spdx.org/licenses/SHL-2.1.html and
@@ -43,7 +43,8 @@ entity FIFO is
     generic(
         G_W         : natural;
         G_DEPTH     : natural;
-        G_ELASTIC_2 : boolean := TRUE
+        G_ELASTIC_2 : boolean := TRUE;
+        G_RAM_STYLE : string  := "distributed"
     );
     port(
         clk        : in  std_logic;
@@ -65,6 +66,9 @@ architecture RTL of FIFO is
     type t_storage is array (0 to G_DEPTH - 1) of std_logic_vector(G_W - 1 downto 0);
     -- registers
     signal storage      : t_storage;
+
+    attribute ram_style : string;
+    attribute ram_style of storage : signal is G_RAM_STYLE;
 begin
 
     assert G_DEPTH = 0 or 2 ** DEPTH_BITS = G_DEPTH report "G_DEPTH must be either 0 or a power of 2" severity failure;
