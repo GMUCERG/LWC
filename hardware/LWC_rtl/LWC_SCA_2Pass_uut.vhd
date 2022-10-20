@@ -43,7 +43,7 @@ architecture structural of LWC_SCA is
     signal fdi_ready            : std_logic;
     signal fdo_ready            : std_logic;
 
-    component LWC_SCA_2pass
+    component LWC_SCA_2Pass
         port (
             --! Global ports
             clk             : in  std_logic;
@@ -79,7 +79,7 @@ begin
 
     assert False report "Using LWC_2Pass with G_MAX_SEGMENT_BYTES=" & integer'image(G_MAX_MSG_BYTES) severity warning;
     
-    uut: LWC_SCA_2pass
+    uut: LWC_SCA_2Pass
         port map(
             clk          => clk,
             rst          => rst,
