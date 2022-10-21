@@ -36,7 +36,7 @@ use work.NIST_LWAPI_pkg.all;
 entity LWC_TB IS
     generic(
         G_MAX_FAILURES     : natural  := 0;                        --! Maximum number of failures before stopping the simulation
-        G_TEST_MODE        : natural  := 0;                        --! 0: normal, 1: stall both sdi/pdi_valid and do_ready, 2: stall sdi/pdi_valid, 3: stall do_ready, 4: Timing (cycle) measurement 
+        G_TEST_MODE        : natural  := 0;                        --! 0: normal, 1: stall both sdi/pdi_valid and do_ready, 2: stall sdi/pdi_valid, 3: stall do_ready, 4: Timing (cycle) measurement
         G_PDI_STALLS       : natural  := 3;                        --! Number of cycles to stall pdi_valid
         G_SDI_STALLS       : natural  := 3;                        --! Number of cycles to stall sdi_valid
         G_DO_STALLS        : natural  := 3;                        --! Number of cycles to stall do_ready
@@ -250,7 +250,7 @@ begin
     begin
         report LF & " -- Testvectors:  " & G_FNAME_PDI & " " & G_FNAME_SDI & " " & G_FNAME_DO & LF &
         " -- Clock Period:  " & integer'image(G_CLK_PERIOD_PS) & " ps" & LF &
-        " -- Max Failures:  " & integer'image(G_MAX_FAILURES) & LF & 
+        " -- Max Failures:  " & integer'image(G_MAX_FAILURES) & LF &
         " -- Timout Cycles: " & integer'image(G_TIMEOUT_CYCLES) & LF &
         " -- Test Mode:     " & integer'image(G_TEST_MODE) & LF &
         " -- Random Seed:   " & integer'image(G_RANDOM_SEED) & LF &
@@ -316,11 +316,11 @@ begin
             do_last   => do_last,
             do_valid  => do_valid,
             do_ready  => do_ready_delayed
-            --/++++
-            -- ,
-            -- rdi_data  => rdi_data_delayed,
-            -- rdi_valid => rdi_valid_delayed,
-            -- rdi_ready => rdi_ready
+        --/++++
+        -- ,
+        -- rdi_data  => rdi_data_delayed,
+        -- rdi_valid => rdi_valid_delayed,
+        -- rdi_ready => rdi_ready
         );
     --***********--
 
@@ -517,7 +517,7 @@ begin
     --===========================================================================================--
     --=================================== DO Verification =======================================--
     tb_verify_do : process
-        variable line_no      : integer := 1; -- starting from 1 like most text editors
+        variable line_no      : natural := 0;
         variable line_data    : LINE;
         variable logMsg       : LINE;
         variable logMsg2      : LINE;
@@ -557,8 +557,8 @@ begin
                     read_ok := False;
                     exit;
                 end if;
+                line_no := line_no + 1; -- Line number starts from 1
                 readline(do_file, line_data);
-                line_no := line_no + 1;
                 if line_data'length > 0 then
                     read(line_data, preamble, read_ok);
                     if read_ok then

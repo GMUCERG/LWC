@@ -510,7 +510,7 @@ begin
     --===========================================================================================--
     --=================================== DO Verification =======================================--
     tb_verify_do : process
-        variable line_no      : integer := 1; -- starting from 1 like most text editors
+        variable line_no      : natural := 0;
         variable line_data    : LINE;
         variable logMsg       : LINE;
         variable logMsg2      : LINE;
@@ -550,8 +550,8 @@ begin
                     read_ok := False;
                     exit;
                 end if;
+                line_no := line_no + 1; -- Line number starts from 1
                 readline(do_file, line_data);
-                line_no := line_no + 1;
                 if line_data'length > 0 then
                     read(line_data, preamble, read_ok);
                     if read_ok then
