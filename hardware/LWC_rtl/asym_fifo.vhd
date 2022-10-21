@@ -12,7 +12,7 @@
 --!                     from dequeue/read width), SIPO, or PISO.
 --!                    - Using dual-port syncrhonous-read memory
 --!                      (read data available on the next clock edge)
---!                    - Following AMD/Xilinx/Vivado HDL coding styles for SDP BRAM inference
+--!                    - Following AMD/Xilinx/Vivado HDL coding styles for asymmetric BRAM
 --!
 --! @note              read/write widths and capacity MUST be powers of 2
 --===============================================================================================--
@@ -157,18 +157,22 @@ begin
         wr_ptr            <= (others => '0');
       else
         if write_en then
-          if not read_en and almost_full then
-            is_full <= TRUE;
+          if not read_en then
+            if almost_full then
+              is_full <= TRUE;
+            end if;
+            is_empty <= FALSE;
           end if;
-          is_empty <= FALSE;
           wr_ptr   <= next_wr_ptr;
         end if;
         if read_en then
           dequeued_is_valid <= '1';
-          if not write_en and almost_empty then
-            is_empty <= TRUE;
+          if not write_en then
+            if almost_empty then
+              is_empty <= TRUE;
+            end if;
+            is_full           <= FALSE;
           end if;
-          is_full           <= FALSE;
           rd_ptr            <= next_rd_ptr;
         elsif out_ready = '1' then
           dequeued_is_valid <= '0';
@@ -222,7 +226,9 @@ begin
     end process;
   end generate;
 
-  GEN_WRITE_WIDER : if G_RD_W < G_WR_W generate -- enq is wider than deq
+  GEN_WRITE_WIDER : if G_WR_W > G_RD_W  generate -- enq is wider than deq
+    signal write_tmp: std_logic_vector(G_WR_W - 1 downto 0);
+    constant NUM_WRITE_CHUNKS: natural := G_WR_W / G_RD_W;
   begin
 
     almost_empty <= next_rd_ptr = wr_ptr & (WR_RD_LOG2 - 1 downto 0 => '0');
@@ -231,15 +237,29 @@ begin
     can_deq     <= not is_empty;
     enq_ready_o <= '1' when (is_empty or not overlap) else '0';
 
+    GEN_WRITE_BIG_ENDIAN: if G_BIG_ENDIAN generate
+      GEN_WRITE_SWAP: for i in 0 to NUM_WRITE_CHUNKS - 1 generate
+        write_tmp((NUM_WRITE_CHUNKS - i) * G_RD_W - 1 downto (NUM_WRITE_CHUNKS - i - 1) * G_RD_W) <= enq_data((i + 1) * G_RD_W - 1 downto i * G_RD_W);
+      end generate;
+    end generate;
+    GEN_WRITE_LITTLE_ENDIAN: if not G_BIG_ENDIAN generate
+      write_tmp <= enq_data;
+    end generate;
+
     process(clk) is
     begin
       if rising_edge(clk) then
         -- Write
         if write_en then
-          for i in 0 to (G_WR_W / G_RD_W) - 1 loop
-            ram(to_int01(wr_ptr & to_unsigned(i, WR_RD_LOG2))) <= slv_chunk(enq_data, G_RD_W, i);
+          for i in 0 to NUM_WRITE_CHUNKS - 1 loop
+            ram(to_int01(wr_ptr & to_unsigned(i, WR_RD_LOG2))) <= write_tmp((i + 1) * G_RD_W - 1 downto i * G_RD_W);
           end loop;
         end if;
+      end if;
+    end process;
+    process(clk) is
+    begin
+      if rising_edge(clk) then
         -- Read
         if read_en then
           read_data <= ram(to_int01(rd_ptr));
