@@ -1,14 +1,9 @@
 name = "LWC_2Pass"
 
 dependencies = [{ uri = "./LWC_common.toml", rtl.pos = 0 }]
-rtl.sources = [
-    "LWC_rtl/LWC_2Pass.vhd",
-]
+rtl.sources = ["LWC_rtl/LWC_2Pass.vhd", "LWC_rtl/LWC_2Pass_uut.vhd"]
 rtl.top = "LWC"
 clock.port = "clk"
 
-tb.sources = [
-    "LWC_tb/LWC_TB_2Pass_uut.vhd",
-    "LWC_tb/LWC_TB.vhd"
-]
+tb.sources = ["LWC_tb/LWC_TB.vhd"]
 tb.top = "LWC_TB"

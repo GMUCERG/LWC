@@ -7,7 +7,7 @@ entity LWC_SCA is
     generic (
         --! Assumed maximum length of input plaintext/ciphertext in bytes, which determines the size of the 2Pass FIFO.
         --! In a masked 2Pass implementation the actual FIFO size will be PDI_SHARES * G_MAX_SEGMENT_BYTES
-        G_MAX_MSG_BYTES : integer := 64 * 1024
+        G_MAX_MSG_BYTES : integer := 8 * 1024
     );
     port(
         --! Global ports
@@ -43,7 +43,7 @@ architecture structural of LWC_SCA is
     signal fdi_ready            : std_logic;
     signal fdo_ready            : std_logic;
 
-    component LWC_SCA_2pass
+    component LWC_SCA_2Pass
         port (
             --! Global ports
             clk             : in  std_logic;
@@ -79,7 +79,7 @@ begin
 
     assert False report "Using LWC_2Pass with G_MAX_SEGMENT_BYTES=" & integer'image(G_MAX_MSG_BYTES) severity warning;
     
-    uut: LWC_SCA_2pass
+    uut: LWC_SCA_2Pass
         port map(
             clk          => clk,
             rst          => rst,
@@ -107,7 +107,8 @@ begin
     twoPassfifo : entity work.FIFO
         generic map(
             G_W              => PDI_SHARES * W,
-            G_DEPTH          => G_MAX_MSG_BYTES / (W/8) -- G_MAX_SEGMENT_BYTES is the size of each share
+            G_DEPTH          => G_MAX_MSG_BYTES / (W/8), -- G_MAX_SEGMENT_BYTES is the size of each share
+            G_RAM_STYLE      => "block"
         )
         port map(
             clk              => clk,

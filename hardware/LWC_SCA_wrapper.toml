@@ -1,0 +1,16 @@
+name = "LWC_SCA_wrapper"
+
+rtl.sources = [
+    "LWC_rtl/LFSR.vhd",
+    "LWC_rtl/asym_fifo.vhd",
+    "LWC_rtl/LWC_SCA_wrapper.vhd",
+]
+rtl.top = "LWC_SCA_wrapper"
+rtl.clock_port = "clk"
+
+tb.sources = [
+    "LWC_tb/LWC_TB_SCA.vhd",
+    "LWC_tb/LWC_TB_SCA_wrapper_conf.vhd",
+]
+
+tb.top = "LWC_TB_SCA_wrapper_conf"

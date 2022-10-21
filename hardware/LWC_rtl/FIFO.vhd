@@ -8,7 +8,7 @@
 --!                ECE Department, George Mason University Fairfax, VA, U.S.A.
 --!                All rights Reserved.
 --!
---! @license       This work is dual-licensed under Solderpad Hardware License v2.1 (SHL-2.1) and 
+--! @license       This work is dual-licensed under Solderpad Hardware License v2.1 (SHL-2.1) and
 --!                   GNU General Public License v3.0 (GPL-3.0)
 --!                For more information please see:
 --!                   Solderpad Hardware License v2.1:  https://spdx.org/licenses/SHL-2.1.html and
@@ -43,7 +43,8 @@ entity FIFO is
     generic(
         G_W         : natural;
         G_DEPTH     : natural;
-        G_ELASTIC_2 : boolean := TRUE
+        G_ELASTIC_2 : boolean := TRUE;
+        G_RAM_STYLE : string  := "distributed"
     );
     port(
         clk        : in  std_logic;
@@ -65,6 +66,9 @@ architecture RTL of FIFO is
     type t_storage is array (0 to G_DEPTH - 1) of std_logic_vector(G_W - 1 downto 0);
     -- registers
     signal storage      : t_storage;
+
+    attribute ram_style : string;
+    attribute ram_style of storage : signal is G_RAM_STYLE;
 begin
 
     assert G_DEPTH = 0 or 2 ** DEPTH_BITS = G_DEPTH report "G_DEPTH must be either 0 or a power of 2" severity failure;
@@ -206,7 +210,7 @@ begin
     end generate;
 
     -- for depth > 2 (or non-isolating depth=2) implement as circular buffer
-    GEN_DEPTH_GT_2 : if G_DEPTH > 2 or (G_DEPTH = 2 and not G_ELASTIC_2) generate
+    GEN_DEPTH_GT_2 : if (G_DEPTH > 2 or (G_DEPTH = 2 and not G_ELASTIC_2)) and G_RAM_STYLE /= "block" generate
         -- registers
         signal rd_ptr, wr_ptr            : unsigned(DEPTH_BITS - 1 downto 0);
         signal empty                     : std_logic;
@@ -285,6 +289,111 @@ begin
             end if;
         end process;
         dout <= storage(to_integer(to_01(rd_ptr)));
+    end generate;
+
+    GEN_BRAM : if (G_DEPTH > 2 or (G_DEPTH = 2 and not G_ELASTIC_2)) and G_RAM_STYLE = "block" generate
+
+        constant G_OUT_REG: boolean := TRUE; -- TODO: add as generic?
+
+        --======================================== Registers =========================================--
+        signal is_full           : boolean;
+        signal dequeued_is_valid : std_logic;
+        signal rd_ptr, wr_ptr    : unsigned(log2ceil(G_DEPTH) - 1 downto 0);
+
+        --========================================== Wires ============================================--
+        signal next_rd_ptr                : unsigned(rd_ptr'range);
+        signal next_wr_ptr                : unsigned(wr_ptr'range);
+        signal write_en, read_en, overlap : boolean;
+        signal almost_full  : boolean;
+        signal can_deq                    : boolean;
+        signal read_data                  : std_logic_vector(G_W - 1 downto 0);
+        signal out_ready, enq_ready_o     : std_logic;
+
+    begin
+
+        assert FALSE report LF & "[FIFO] Block RAM" severity NOTE;
+
+        next_rd_ptr <= rd_ptr + 1;            -- mod (2 ** DEPTH_BITS)
+        next_wr_ptr <= wr_ptr + 1;            -- mod (2 ** DEPTH_BITS)
+
+        overlap     <= rd_ptr = wr_ptr;
+        almost_full <= next_wr_ptr = rd_ptr;
+
+        can_deq     <= is_full or not overlap;
+        enq_ready_o <= '0' when is_full else '1';
+        write_en    <= din_valid = '1' and enq_ready_o = '1';
+        read_en     <= can_deq and (dequeued_is_valid = '0' or out_ready = '1');
+        din_ready   <= enq_ready_o;
+
+        process(clk) is
+        begin
+            if rising_edge(clk) then
+                if rst = '1' then
+                    is_full           <= FALSE;
+                    dequeued_is_valid <= '0';
+                    rd_ptr            <= (others => '0');
+                    wr_ptr            <= (others => '0');
+                else
+                    if write_en then
+                        if not read_en and almost_full then
+                            is_full <= TRUE;
+                        end if;
+                        wr_ptr <= next_wr_ptr;
+                    end if;
+                    if read_en then
+                        dequeued_is_valid <= '1';
+                        if not write_en then
+                            is_full <= FALSE;
+                        end if;
+                        rd_ptr <= next_rd_ptr;
+                    elsif out_ready = '1' then
+                        dequeued_is_valid <= '0';
+                    end if;
+                end if;
+            end if;
+        end process;
+
+        process(clk) is
+        begin
+            if rising_edge(clk) then
+                if write_en then
+                    storage(to_int01(wr_ptr)) <= din;
+                end if;
+                if read_en then
+                    read_data <= storage(to_int01(rd_ptr));
+                end if;
+            end if;
+        end process;
+
+        GEN_OUTREG : if G_OUT_REG generate
+            --======================================== Registers ==========================================--
+            signal out_reg       : std_logic_vector(G_W - 1 downto 0);
+            signal out_reg_valid : std_logic;   -- := FALSE;
+
+        begin
+            dout  <= out_reg;
+            dout_valid <= out_reg_valid;
+            out_ready <= not out_reg_valid or dout_ready;
+
+            process(clk) is
+            begin
+                if rising_edge(clk) then
+                    if rst = '1' then
+                        out_reg_valid <= '0';
+                    elsif dout_ready = '1' or out_reg_valid = '0' then
+                        out_reg       <= read_data;
+                        out_reg_valid <= dequeued_is_valid;
+                    end if;
+                end if;
+            end process;
+        end generate;
+
+        GEN_NO_OUTREG : if not G_OUT_REG generate
+            dout  <= read_data;
+            dout_valid <= dequeued_is_valid;
+            out_ready <= dout_ready;
+        end generate;
+
     end generate;
 
 end architecture;
