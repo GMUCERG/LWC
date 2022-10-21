@@ -10,6 +10,7 @@ rtl.sources = [
     "LWC_rtl/LWC_SCA.vhd",
 ]
 rtl.top = "LWC_SCA"
+clock.port = "clk"
 
 tb.sources = [
     "LWC_tb/LWC_TB_SCA.vhd"

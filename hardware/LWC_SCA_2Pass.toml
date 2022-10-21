@@ -5,6 +5,7 @@ rtl.sources = [
     "LWC_rtl/LWC_SCA_2Pass.vhd",
 ]
 rtl.top = "LWC"
+clock.port = "clk"
 
 tb.sources = [
     "LWC_tb/LWC_TB_SCA_2Pass_uut.vhd",
