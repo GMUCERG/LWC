@@ -134,6 +134,7 @@ class Segment(Enum):
     tag = 8
     hash_tag = 9
     len = 10
+    adlen = 11  # TODO: update API documentation
     key = 12
     npub = 13
     nsec_pt = 14
@@ -176,6 +177,7 @@ txt_segment = {
     Segment.hash: "Hash",
     Segment.tag: "Tag",
     Segment.len: "Length",
+    Segment.adlen: "AD Length",
     Segment.key: "Key",
     Segment.nsec_pt: "Nsec (plain)",
     Segment.nsec_ct: "Nsec (cipher)",
@@ -584,6 +586,9 @@ class TestVector:
             if 32 < self.opts.io[0] < 64:
                 len_format = (self.opts.io[0], self.opts.io[0])
             data = get_len(len_format, len_ad, len_data)
+        elif sgt == "adlen":
+            len_ad = lenbytes(self.ad)
+            data = f"{len_ad:0{32 // 4}X}"
         elif sgt == "hash_tag":
             data = getattr(self, "hash_tag")
         else:
@@ -1350,7 +1355,9 @@ def blanket_tests(opts, reuse_key=None):
     hash_routine = []
     ad_bs = opts.block_size_ad // 8 if opts.block_size_ad is not None else 0
     xt_bs = opts.block_size // 8 if opts.block_size is not None else 0
-    hm_bs = opts.block_size_msg_digest  // 8 if opts.block_size_msg_digest is not None else 0
+    hm_bs = (
+        opts.block_size_msg_digest // 8 if opts.block_size_msg_digest is not None else 0
+    )
     if reuse_key is None:
         reuse_key = opts.aead and opts.with_key_reuse
     if opts.aead:
@@ -1425,7 +1432,9 @@ def blanket_tests(opts, reuse_key=None):
             if (
                 routine[i][4] == False and routine[i - 1][4] == False
             ):  # consequetive enc/dec
-                routine[i][0] = bool(random.randint(0, 1))  # set new key for some testvectors to 0
+                routine[i][0] = bool(
+                    random.randint(0, 1)
+                )  # set new key for some testvectors to 0
         msg_sizes = [
             0,
             15,

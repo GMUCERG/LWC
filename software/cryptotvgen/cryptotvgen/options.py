@@ -48,6 +48,8 @@ class ValidateMsgFormat(argparse.Action):
             "npub",
             "nsec",
             "ad",
+            "len",
+            "adlen",
             "ad_npub",
             "npub_ad",
             "data",
