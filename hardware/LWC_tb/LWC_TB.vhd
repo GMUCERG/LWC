@@ -26,6 +26,10 @@ use ieee.math_real.uniform;
 
 use std.textio.all;
 
+use work.LWC_config.PDI_SHARES;
+use work.LWC_config.SDI_SHARES;
+use work.LWC_config.RW;
+
 use work.NIST_LWAPI_pkg.all;
 
 ----= If have to use VHDL 2002:
@@ -229,6 +233,23 @@ architecture TB of LWC_TB is
             return max_stalls;
         end if;
     end function;
+
+    component LWC
+        port(
+            clk       : in  std_logic;
+            rst       : in  std_logic;
+            pdi_data  : in  std_logic_vector(PDI_SHARES * W - 1 downto 0);
+            pdi_valid : in  std_logic;
+            pdi_ready : out std_logic;
+            sdi_data  : in  std_logic_vector(SDI_SHARES * SW - 1 downto 0);
+            sdi_valid : in  std_logic;
+            sdi_ready : out std_logic;
+            do_data   : out std_logic_vector(PDI_SHARES * W - 1 downto 0);
+            do_last   : out std_logic;
+            do_valid  : out std_logic;
+            do_ready  : in  std_logic
+        );
+    end component;
 
 begin
     --===========================================================================================--
