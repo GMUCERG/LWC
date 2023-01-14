@@ -26,10 +26,6 @@ use ieee.math_real.uniform;
 
 use std.textio.all;
 
-use work.LWC_config.PDI_SHARES;
-use work.LWC_config.SDI_SHARES;
-use work.LWC_config.RW;
-
 use work.NIST_LWAPI_pkg.all;
 
 ----= If have to use VHDL 2002:
@@ -66,6 +62,10 @@ end LWC_TB;
 
 architecture TB of LWC_TB is
     --================================================== Constants ==================================================--
+
+    constant PDI_SHARES  : positive       := 1;
+    constant SDI_SHARES  : positive       := 1;
+    constant RW          : natural        := 0;
     constant W_S         : positive       := W * PDI_SHARES;
     constant SW_S        : positive       := SW * SDI_SHARES;
     constant input_delay : TIME           := G_INPUT_DELAY_PS * ps;
