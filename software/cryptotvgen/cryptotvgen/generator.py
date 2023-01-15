@@ -445,8 +445,8 @@ class TestVector:
         self.decrypt = op
         # Input
         self.key = key
-        self.npub = npub[: 2 * self.opts.npub_size // 8]
-        self.nsec_pt = nsec_pt[: 2 * self.opts.nsec_size // 8]
+        self.npub = npub[: 2 * self.opts.npub_size // 8] if self.opts.npub_size else npub
+        self.nsec_pt = nsec_pt[: 2 * self.opts.nsec_size // 8] if self.opts.nsec_size else nsec_pt
         self.ad = ad
         self.pt = pt
         self.partial = 0
