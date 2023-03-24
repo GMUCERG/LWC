@@ -365,8 +365,13 @@ begin
                   end if;
                end if;
 
-            when S_SDI_KEY | S_PDI_DATA =>
-               if sdi_fire or pdi_fire then
+            when S_SDI_KEY =>
+               if sdi_fire then
+                  seglen_counter_hi <= seglen_counter_hi - 1;
+               end if;
+
+            when S_PDI_DATA =>
+               if pdi_fire then
                   seglen_counter_hi <= seglen_counter_hi - 1;
                end if;
 
@@ -468,8 +473,7 @@ begin
                -- pdi_ready_o <= cmd_ready or to_std_logic(op_is_actkey);
                -- Wait for cmd FIFO, even when op_is_actkey = FALSE, in order to avoid combinational loop from pdi_data to pdi_ready
                pdi_ready_o <= cmd_ready;
-
-               if pdi_fire then
+               if pdi_valid = '1' then
                   if op_is_actkey then
                      nx_state <= S_INST_KEY;
                   else
@@ -548,7 +552,7 @@ begin
          -- An empty word is sent to CryptoCore
          when S_EMPTY_DATA =>
             -- if there's a bdiPISO, wait for it to empty
-            -- most of this will optimize out if W = CCW
+            -- NOTE: most of this will be optimized out when W = CCW
             if bdi_valid_s = '0' then
                bdi_valid       <= '1';
                hash            <= to_std_logic(hash_op);
@@ -560,7 +564,11 @@ begin
                bdi_eot         <= bdi_eot_p; -- = true
                bdi_type        <= bdi_type_p;
                if bdi_ready = '1' then
-                  nx_state <= S_INST;
+                  if last_flag = '1' then
+                     nx_state <= S_INST;
+                  else -- there could be more segments to follow
+                     nx_state <= S_PDI_HDR;
+                  end if;
                end if;
             end if;
 
