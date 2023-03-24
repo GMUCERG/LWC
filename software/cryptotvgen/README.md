@@ -1,4 +1,4 @@
-# cryptotvgen
+# CryptoTVGen
 Automatic test vector generation for hardware implementations of NIST Lightweight Cryptography (LWC) candidates using GMU LWC Hardware API package.
 
 ## Requirements
@@ -10,22 +10,9 @@ Dependencies:
 - C compiler (e.g. gcc or clang)
 
 ## Installation
-To install as symlinks (recommended):
+To install the latest version of CryptoTVGen from the main branch:
 ```
-$ python3 -m pip install -e .
-```
-The LWC source directory should be kept in its current location, but all updates
-to this directory should be immediately accessible.
-
-Alternatively, to install as a copy:
-```
-$ python3 -m pip install .
-```
-If using the latter command, remember to run it again following any git pulls or updates to the source distribution.
-
-To uninstall:
-```
-$ python3 -m pip uninstall cryptotvgen
+$ python3 -m pip install -U 'git+https://github.com/GMUCERG/LWC#subdirectory=software/cryptotvgen&egg=cryptotvgen'
 ```
 
 ## Running `cryptotvgen` Executable
