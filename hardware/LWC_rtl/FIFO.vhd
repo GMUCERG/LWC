@@ -304,7 +304,7 @@ begin
         signal next_rd_ptr                : unsigned(rd_ptr'range);
         signal next_wr_ptr                : unsigned(wr_ptr'range);
         signal write_en, read_en, overlap : boolean;
-        signal almost_full  : boolean;
+        signal almost_full                : boolean;
         signal can_deq                    : boolean;
         signal read_data                  : std_logic_vector(G_W - 1 downto 0);
         signal out_ready, enq_ready_o     : std_logic;
