@@ -1,5 +1,27 @@
 #!/usr/bin/env python3
 
+"""
+# LWC Benchmarking Simulation Script
+
+Copyright © 2022-2023 Kamyar Mohajerani. All rights reserved.
+
+[Cryptographic Engineering Research Group (CERG)](https://cryptography.gmu.edu/)
+
+## Dependencies:
+- [xeda] (https://github.com/XedaHQ/xeda)
+    ```
+    pip3 install -U xeda
+    ```
+- [cryptotvgen](https://github.com/GMUCERG/LWC/blob/master/software/cryptotvgen/README.md)
+    ```
+    pip3 install -U 'git+https://github.com/GMUCERG/LWC#subdirectory=software/cryptotvgen&egg=cryptotvgen'
+    ```
+
+## License:
+This script is distributed under GNU General Public License v3.0 [GPL-3.0](https://spdx.org/licenses/GPL-3.0.html).
+
+"""
+
 import csv
 import logging
 import os
@@ -353,8 +375,8 @@ def gen_shares(in_file: Path, num_shares, w_nbytes=0, keep_comments=True):
     return out_file
 
 
-FRESH_RAND_COL_NAME = "fresh rand. bits"
-RAND_PER_BYTE_COL_NAME = "rand. bits per byte of data"
+FRESH_RAND_COL = "fresh rand. bits"
+RAND_PER_BYTE_COL = "rand. bits per byte of data"
 
 
 @click.command()
@@ -489,7 +511,7 @@ def cli(
             assert isinstance(msgid, str)
             row["Cycles"] = msg_cycles[msgid]
             if msgid in msg_fresh_rand:
-                row[FRESH_RAND_COL_NAME] = msg_fresh_rand[msgid]
+                row[FRESH_RAND_COL] = msg_fresh_rand[msgid]
             if row["hash"] == "True":
                 row["Op"] = "Hash"
             else:
@@ -503,8 +525,8 @@ def cli(
             row["msgBytes"] = int(row["msgBytes"])
             total_bytes = row["adBytes"] + row["msgBytes"]
             row["Throughput"] = total_bytes / msg_cycles[msgid]
-            if FRESH_RAND_COL_NAME in row:
-                row[RAND_PER_BYTE_COL_NAME] = row[FRESH_RAND_COL_NAME] / total_bytes
+            if FRESH_RAND_COL in row:
+                row[RAND_PER_BYTE_COL] = row[FRESH_RAND_COL] / total_bytes
             results.append(row)
             if row["longN+1"] == "True":
                 long_row = copy(results[-2])
@@ -523,8 +545,8 @@ def cli(
                 long_row["Throughput"] = (ad_diff + msg_diff) / cycle_diff
                 if msgid in msg_fresh_rand:
                     rnd_diff = msg_fresh_rand[msgid] - msg_fresh_rand[prev_id]
-                    long_row[FRESH_RAND_COL_NAME] = rnd_diff
-                    long_row[RAND_PER_BYTE_COL_NAME] = rnd_diff / (ad_diff + msg_diff)
+                    long_row[FRESH_RAND_COL] = rnd_diff
+                    long_row[RAND_PER_BYTE_COL] = rnd_diff / (ad_diff + msg_diff)
                 results.append(long_row)
     results_file = design.name + "_timing_results.csv"
     fieldnames = [
@@ -537,8 +559,8 @@ def cli(
     ]
     if msg_fresh_rand:
         fieldnames += [
-            FRESH_RAND_COL_NAME,
-            RAND_PER_BYTE_COL_NAME,
+            FRESH_RAND_COL,
+            RAND_PER_BYTE_COL,
         ]
 
     def sorter(x):
@@ -571,6 +593,12 @@ def cli(
         table.add_column(tr(f), justify="right")
     for row in results:
         row["Reuse Key"] = "✓" if row["Reuse Key"] else ""
+        row["Throughput"] = f'{row["Throughput"]:0.3f}'
+        row["Cycles"] = f'{row["Cycles"]:,}'
+        if RAND_PER_BYTE_COL in row:
+            row[RAND_PER_BYTE_COL] = f'{row[RAND_PER_BYTE_COL]:0.1f}'
+        if FRESH_RAND_COL in row:
+            row[FRESH_RAND_COL] = f'{row[FRESH_RAND_COL]:,}'
         table.add_row(
             *(str(row[fn]) for fn in fieldnames),
             end_section=row["adBytes"] == "long" and row["msgBytes"] == "long",
