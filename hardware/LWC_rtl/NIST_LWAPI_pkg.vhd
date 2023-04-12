@@ -224,7 +224,6 @@ package body NIST_LWAPI_pkg is
     -- INST_MAC is MAC generation operation
     -- MAC verification is not supported
     constant INST_MAC       : T_LWC_OPCODE  := "0001";
-    constant INST_MAC_VERIF : T_LWC_OPCODE  := "0001";
     constant INST_LDKEY     : T_LWC_OPCODE  := "0100";
     constant INST_ACTKEY    : T_LWC_OPCODE  := "0111";
     constant INST_SUCCESS   : T_LWC_OPCODE  := "1110";
