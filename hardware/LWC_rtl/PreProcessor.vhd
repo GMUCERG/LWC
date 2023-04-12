@@ -107,7 +107,7 @@ architecture PreProcessor of PreProcessor is
    signal bdi_last_s, bdi_valid_s          : std_logic;
    --! always 3 bits
    signal bdi_size_p, bdi_size_s           : std_logic_vector(2 downto 0);
-   signal op_is_actkey, op_is_hash         : boolean;
+   signal op_is_actkey, op_is_hash, op_is_decrypt : boolean;
    -- If the current PDI input is a part of a segment header, it's the first (last) word of it
    -- NOTE: hdr_first/hdr_last are not always mutually exclusive, e.g. W=32
    signal hdr_first, hdr_last              : boolean;
@@ -342,21 +342,11 @@ begin
       if rising_edge(clk) then
          case state is
             when S_INST =>
-               hash_op    <= False;
-               decrypt_op <= False;
-               -- not really required:
+               hash_op    <= op_is_hash;
+               decrypt_op <= op_is_decrypt;
                eoi_flag   <= '0';
                eot_flag   <= '0';
                last_flag  <= '0';
-
-               if pdi_fire then
-                  if op_is_actkey then
-                  elsif op_is_hash then
-                     hash_op <= TRUE;
-                  else
-                     decrypt_op <= pdi_hdr_type(0) = '1';
-                  end if;
-               end if;
 
             when S_SDI_HDR =>
                if sdi_fire then
@@ -414,8 +404,6 @@ begin
    bdi_eoi_p <= eoi_flag and last_flit_of_segment;
    bdi_eot_p <= eot_flag and last_flit_of_segment;
 
-   op_is_actkey   <= pdi_hdr_type = INST_ACTKEY;
-   op_is_hash     <= pdi_hdr_type(3) = '1'; -- INST_HASH
    hdr_seglen     <= sdi_hdr_seglen when reading_sdi_hdr else pdi_hdr_seglen;
    seglen_is_zero <= is_zero(seglen);
 
@@ -424,6 +412,23 @@ begin
    cmd_data   <= pdi_hdr;
    bdi_type_p <= hdr_type;
    key_valid  <= key_valid_s;
+
+   process(pdi_hdr_type) is
+   begin
+      op_is_actkey <= '0';
+      op_is_hash   <= '0';
+      op_is_decrypt <= '0';
+      case pdi_hdr_type is
+         when INST_ACTKEY =>
+            op_is_actkey <= True;
+         when INST_DEC | INST_MAC =>
+            op_is_decrypt <= True;
+         when INST_HASH | INST_MAC =>
+            op_is_hash <= True;
+         when others =>
+            null;
+      end case;
+   end
 
    --============================================================================================--
    --= When using VHDL 2008+ change to

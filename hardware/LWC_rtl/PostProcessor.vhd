@@ -265,8 +265,20 @@ begin
    -- TODO avoid recomparison to zero by including a seglen_is_zero in cmd from PreProcessor
    -- NOTE: The following optimization needs to be changed if other operations are added
    -- possibilities: INST_HASH ("1000"), INST_DEC  ("0011"), or INST_DEC ("0010")
-   op_is_hash           <= cmd_hdr_opcode(3) = '1'; -- INST_HASH
-   op_is_decrypt        <= cmd_hdr_opcode(0) = '1'; -- INST_DEC
+
+   process(cmd_hdr_opcode) is
+   begin
+      op_is_hash    <= '0';
+      op_is_decrypt <= '0';
+      case cmd_hdr_opcode is
+         when INST_DEC =>
+            op_is_decrypt <= True;
+         when INST_HASH | INST_MAC =>
+            op_is_hash <= True;
+         when others =>
+            null;
+      end case;
+   end
    -- temporary outputs
    do_valid             <= do_valid_o;
    auth_ready           <= auth_ready_o;
