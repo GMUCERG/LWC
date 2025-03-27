@@ -438,7 +438,7 @@ begin
       seglen_is_zero, hdr_first, hdr_last, op_is_actkey, last_flag, bdi_valid_bytes_p, hash_s, --
       relay_hdr_to_postproc, bdi_valid_s, bdi_ready, bdi_valid_bytes_s, decrypt_op, bdi_eot_p, --
       bdi_size_s, bdi_eoi_s, bdi_pad_loc_s, bdi_type_s, bdi_eoi_p, decrypt_s, bdi_pad_loc_p, --
-      hash_op, bdi_size_p, cur_hdr_last, eoi_flag)
+      hash_op, bdi_size_p, cur_hdr_last, eoi_flag, sdi_hdr_type)
    begin
       -- Default Values
       sdi_ready_o           <= to_std_logic(reading_sdi_hdr);

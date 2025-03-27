@@ -278,9 +278,9 @@ begin
    --===========================================================================================--
    --= When using VHDL 2008+ change to
    -- process(all)
-   process(state, op_is_hash, op_is_decrypt, do_ready, do_fire, decrypt_flag, seglen_is_zero, --
+   process(state, op_is_hash, op_is_decrypt, do_ready, do_fire, decrypt_flag, seglen_is_zero, cmd_hdr_seglen, --
       eot_flag, cmd_valid, cmd_fire, hdr_first, hdr_last, auth_valid, status_success, must_verify_tag, --
-      cmd_hdr_opcode, bdo_valid_p, bdo_data_p, bdo_p_fire, bdo_last_p, last_flit_of_segment)
+      cmd_hdr_opcode, bdo_valid_p, bdo_data_p, bdo_p_fire, bdo_last_p, last_flit_of_segment, cmd_hdr_eot)
    begin
       -- make sure we do not output intermediate data
       do_data           <= (others => '0');
